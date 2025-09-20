@@ -1,0 +1,298 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ba-copilot-ai"
+version = "1.0.0"
+description = "AI-powered Backend Services for Business Analyst Copilot"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {file = "LICENSE"}
+authors = [
+    {name = "BA Copilot Team", email = "team@bacopilot.com"},
+]
+keywords = ["ai", "business-analysis", "srs", "wireframes", "llm", "fastapi"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Framework :: FastAPI",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "pydantic>=2.4.0",
+    "pydantic-settings>=2.0.0",
+    "sqlalchemy>=2.0.0",
+    "alembic>=1.12.0",
+    "psycopg2-binary>=2.9.7",
+    "redis>=5.0.0",
+    "celery>=5.3.0",
+    "aiofiles>=23.2.1",
+    "httpx>=0.25.0",
+    "python-multipart>=0.0.6",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "openai>=1.3.0",
+    "anthropic>=0.7.0",
+    "tiktoken>=0.5.0",
+    "pinecone-client>=2.2.4",
+    "weaviate-client>=3.25.0",
+    "boto3>=1.29.0",
+    "minio>=7.2.0",
+    "pika>=1.3.2",
+    "kafka-python>=2.0.2",
+    "prometheus-client>=0.19.0",
+    "structlog>=23.2.0",
+    "rich>=13.6.0",
+    "typer>=0.9.0",
+    "jinja2>=3.1.2",
+    "markupsafe>=2.1.3",
+    "reportlab>=4.0.6",
+    "weasyprint>=60.0",
+    "beautifulsoup4>=4.12.2",
+    "lxml>=4.9.3",
+    "python-dotenv>=1.0.0",
+    "tenacity>=8.2.3",
+    "websockets>=12.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.1",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.11.1",
+    "pytest-watch>=4.2.0",
+    "httpx>=0.25.0",
+    "factory-boy>=3.3.0",
+    "faker>=19.12.0",
+    "freezegun>=1.2.2",
+    "responses>=0.23.3",
+    "testcontainers>=3.7.1",
+]
+
+testing = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.1",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.11.1",
+    "pytest-xdist>=3.3.1",
+    "coverage>=7.3.0",
+    "factory-boy>=3.3.0",
+    "faker>=19.12.0",
+    "freezegun>=1.2.2",
+    "responses>=0.23.3",
+    "testcontainers>=3.7.1",
+]
+
+lint = [
+    "black>=23.9.1",
+    "isort>=5.12.0",
+    "flake8>=6.1.0",
+    "flake8-docstrings>=1.7.0",
+    "flake8-import-order>=0.18.2",
+    "flake8-bugbear>=23.9.16",
+    "pylint>=3.0.0",
+    "mypy>=1.6.0",
+    "bandit>=1.7.5",
+    "safety>=2.3.5",
+    "pre-commit>=3.5.0",
+]
+
+docs = [
+    "mkdocs>=1.5.3",
+    "mkdocs-material>=9.4.6",
+    "mkdocs-swagger-ui-tag>=0.6.8",
+    "mkdocstrings[python]>=0.23.0",
+]
+
+monitoring = [
+    "prometheus-client>=0.19.0",
+    "opentelemetry-api>=1.21.0",
+    "opentelemetry-sdk>=1.21.0",
+    "opentelemetry-auto-instrumentation>=0.42b0",
+    "opentelemetry-exporter-jaeger>=1.21.0",
+    "opentelemetry-instrumentation-fastapi>=0.42b0",
+    "opentelemetry-instrumentation-sqlalchemy>=0.42b0",
+    "opentelemetry-instrumentation-redis>=0.42b0",
+    "sentry-sdk[fastapi]>=1.38.0",
+]
+
+production = [
+    "gunicorn>=21.2.0",
+    "gevent>=23.9.1",
+]
+
+all = [
+    "ba-copilot-ai[dev,testing,lint,docs,monitoring,production]"
+]
+
+[project.urls]
+Homepage = "https://github.com/KHTNK22-DATN-BA-Copilot/ba_copilot_ai"
+Documentation = "https://ba-copilot-ai.readthedocs.io/"
+Repository = "https://github.com/KHTNK22-DATN-BA-Copilot/ba_copilot_ai"
+"Bug Tracker" = "https://github.com/KHTNK22-DATN-BA-Copilot/ba_copilot_ai/issues"
+
+[project.scripts]
+ba-copilot-api = "src.api.main:main"
+ba-copilot-worker = "src.workers.main:main"
+ba-copilot-migrate = "scripts.run_migrations:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.setuptools.package-data]
+"src.services.srs_generator" = ["templates/*.py", "templates/*.yaml"]
+"src.services.wireframe_generator" = ["templates/*.py", "templates/*.yaml", "templates/*.css"]
+
+# Black configuration
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # Directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | migrations
+)/
+'''
+
+# isort configuration
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["src"]
+known_third_party = ["fastapi", "pydantic", "sqlalchemy", "redis", "openai", "anthropic"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+
+# MyPy configuration
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "celery.*",
+    "pika.*",
+    "minio.*",
+    "pinecone.*",
+    "weaviate.*",
+    "reportlab.*",
+    "weasyprint.*",
+    "testcontainers.*",
+]
+ignore_missing_imports = true
+
+# Pytest configuration
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=src",
+    "--cov-branch",
+    "--cov-report=term-missing:skip-covered",
+    "--cov-report=html:htmlcov",
+    "--cov-report=xml",
+    "--cov-fail-under=80"
+]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "e2e: marks tests as end-to-end tests",
+    "unit: marks tests as unit tests",
+    "requires_db: marks tests as requiring database",
+    "requires_redis: marks tests as requiring redis",
+    "requires_llm: marks tests as requiring LLM API access",
+]
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+
+# Coverage configuration
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/migrations/*",
+    "*/__init__.py",
+    "*/settings/*",
+    "*/config/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+# Bandit security linter configuration
+[tool.bandit]
+exclude_dirs = ["tests", "migrations"]
+skips = ["B101", "B601"]  # Skip assert_used and shell_injection in tests
+
+# Pylint configuration
+[tool.pylint.messages_control]
+disable = [
+    "C0330",  # Wrong hanging indentation
+    "C0326",  # Bad whitespace
+    "W0511",  # TODO comments
+    "R0903",  # Too few public methods
+    "R0913",  # Too many arguments
+    "C0103",  # Invalid name (for pydantic models)
+]
+
+[tool.pylint.format]
+max-line-length = "88"
+
+[tool.pylint.design]
+max-args = 10
+max-locals = 20
+max-attributes = 15
