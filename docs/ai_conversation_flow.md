@@ -52,7 +52,6 @@ sequenceDiagram
     participant CM as Context Manager
     participant LLM as LLM Service
     participant DB as Database
-    participant CACHE as Redis Cache
 
     U->>FE: Send message
     FE->>API: POST /conversations/{id}/send
@@ -60,13 +59,8 @@ sequenceDiagram
 
     alt New Session
         SM->>DB: Create new conversation
-        SM->>CACHE: Initialize session cache
     else Existing Session
-        SM->>CACHE: Get session from cache
-        alt Cache Miss
-            SM->>DB: Load conversation history
-            SM->>CACHE: Update cache
-        end
+        SM->>DB: Load conversation history
     end
 
     SM->>CM: Prepare message context
@@ -78,7 +72,6 @@ sequenceDiagram
 
     CM->>DB: Store user message
     CM->>DB: Store AI response
-    CM->>CACHE: Update session cache
 
     CM->>API: Return response
     API->>FE: 200 OK with AI message
@@ -134,31 +127,6 @@ graph TD
     K --> L
 
     L --> M[Return to User]
-```
-
-## Conversation Analytics Flow
-
-```mermaid
-flowchart TD
-    A[Chat Message] --> B[Extract Metadata]
-    B --> C[Message Length]
-    B --> D[Response Time]
-    B --> E[Topic Classification]
-    B --> F[Sentiment Analysis]
-
-    C --> G[Analytics DB]
-    D --> G
-    E --> G
-    F --> G
-
-    G --> H[Generate Insights]
-    H --> I[User Behavior Patterns]
-    H --> J[Popular Topics]
-    H --> K[Response Quality Metrics]
-
-    I --> L[Dashboard Reporting]
-    J --> L
-    K --> L
 ```
 
 ## Error Handling and Fallback

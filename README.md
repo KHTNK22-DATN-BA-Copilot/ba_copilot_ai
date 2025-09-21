@@ -1,15 +1,22 @@
-# BA Copilot AI - Core Services Backend
+# BA Copilot AI - AI Services Backend
 
-Backend repository for **Business Analyst Copilot Artificial Intelligence** _(BA Copilot)_, providing comprehensive AI-powered services and APIs to support automated artifact creation, intelligent conversations, and workflow optimization for Business Analysts and professionals.
+**AI Services Repository** for **Business Analyst Copilot Artificial Intelligence** _(BA Copilot)_, providing comprehensive AI-powered services and APIs for automated document generation, diagram creation, and intelligent conversations.
+
+> **📋 Repository Context**: This is the **AI Services Backend** - one of three repositories in the BA Copilot ecosystem:
+>
+> 1. **Frontend Repository**: NextJS + ReactJS + TailwindCSS user interface
+> 2. **Backend Repository**: Core business logic and database operations
+> 3. **AI Services Repository** (This repo): AI-powered generation services
 
 ## 🎯 Overview
 
-BA Copilot AI Core Services is a microservices-based backend platform that leverages advanced Large Language Models (LLMs) to automate the creation of business analysis artifacts. The platform provides intelligent tools for generating Software Requirements Specifications (SRS), creating wireframe prototypes, and managing AI-powered conversations.
+BA Copilot AI Services is a specialized backend platform that leverages advanced Large Language Models (LLMs) to automate the creation of business analysis artifacts. The platform provides intelligent tools for generating Software Requirements Specifications (SRS), creating wireframe prototypes, generating various diagrams, and managing AI-powered conversations.
 
 ## 📋 Table of Contents
 
 - [Key Features](#-key-features)
 - [System Architecture](#-system-architecture)
+- [Technology Stack](#️-technology-stack)
 - [Project Structure](#-project-structure)
 - [Getting Started](#-getting-started)
 - [API Documentation](#-api-documentation)
@@ -24,6 +31,7 @@ BA Copilot AI Core Services is a microservices-based backend platform that lever
 ### 🔥 Core AI Services
 
 - **SRS Generator**: Automated creation of Software Requirements Specification documents from natural language input and uploaded documents
+- **Diagram Generator**: AI-powered creation of sequence, architecture, use case, and flowchart diagrams from descriptions or requirements
 - **Wireframe Generator**: AI-powered conversion of textual requirements into interactive wireframe prototypes
 - **AI Conversation Manager**: Intelligent chat system with context management, multi-LLM routing, and conversation history
 - **Document Processing**: Advanced parsing and analysis of business documents in various formats
@@ -40,103 +48,97 @@ BA Copilot AI Core Services is a microservices-based backend platform that lever
 
 ## 🏗️ System Architecture
 
-The system follows a microservices architecture pattern with the following key components:
+BA Copilot AI Core Services follows a **modular monolith architecture** designed for rapid development while maintaining clear migration paths to microservices as the system scales.
 
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Web Frontend  │    │   Mobile App     │    │  SDK/Libraries  │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-          │                       │                       │
-          └───────────────────────┼───────────────────────┘
-                                  │
-                        ┌─────────▼─────────┐
-                        │   API Gateway     │
-                        │ (Auth, Rate Limit,│
-                        │  Caching, CORS)   │
-                        └─────────┬─────────┘
-                                  │
-          ┌───────────────────────┼───────────────────────┐
-          │                       │                       │
-    ┌─────▼─────┐       ┌─────────▼─────────┐     ┌─────▼─────┐
-    │    SRS    │       │    Wireframe      │     │    AI     │
-    │ Generator │       │   Generator       │     │Conversation│
-    │  Service  │       │    Service        │     │  Manager  │
-    └─────┬─────┘       └─────────┬─────────┘     └─────┬─────┘
-          │                       │                     │
-          └───────────────────────┼─────────────────────┘
-                                  │
-                        ┌─────────▼─────────┐
-                        │ LLM Orchestrator  │
-                        │(OpenAI, Claude,   │
-                        │ Local Models)     │
-                        └─────────┬─────────┘
-                                  │
-    ┌─────────────────────────────┼─────────────────────────────┐
-    │                             │                             │
-┌───▼───┐  ┌─────▼─────┐  ┌──────▼──────┐  ┌─────▼─────┐  ┌───▼────┐
-│PostgreSQL│ │Redis Cache│  │Object Storage│  │Vector DB │  │Message │
-│Database│ │           │  │  (S3/MinIO) │  │(Pinecone)│  │ Queue  │
-└─────────┘  └───────────┘  └─────────────┘  └──────────┘  └────────┘
-```
+### Architecture Approach
 
-### Core Components:
+- **Phase 1 (Current)**: Monolithic deployment with modular service boundaries
+- **Phase 2 (Future)**: Gradual extraction to independent microservices
 
-- **API Gateway**: Request routing, authentication, rate limiting
-- **SRS Generator**: Document generation from requirements
-- **Wireframe Generator**: UI prototype creation from descriptions
-- **AI Conversation Manager**: Multi-LLM chat with context management
-- **LLM Orchestrator**: Intelligent routing across multiple AI providers
-- **Data Layer**: PostgreSQL, Redis, Object Storage, Vector Database
+The system starts as a single FastAPI application with well-defined internal service modules that can be extracted into separate services when needed. This approach enables:
 
-## 📁 Project Structure
+- **Rapid Development**: Fast iteration with direct function calls
+- **Simple Deployment**: Single container deployment and management
+- **Clear Boundaries**: Modules designed for easy future extraction
+- **Migration Ready**: Architecture supports service-by-service migration
 
-Our project follows a domain-driven microservices architecture:
+**For detailed architecture information, see [System Architecture Documentation](./docs/System_Architecture.md).**
+
+## �️ Technology Stack
+
+BA Copilot AI is built on a modern, robust technology stack designed for scalability, maintainability, and developer productivity.
+
+### Core Technologies
+
+| Layer        | Technology                     | Purpose                                  |
+| ------------ | ------------------------------ | ---------------------------------------- |
+| **Frontend** | NextJS + ReactJS + TailwindCSS | User interface and client-side rendering |
+| **Backend**  | Python FastAPI                 | High-performance API framework           |
+| **AI/ML**    | LangChain + LangGraph          | LLM orchestration and AI workflows       |
+| **Database** | PostgreSQL 14+                 | Primary data storage and persistence     |
+| **Cache**    | Redis 6.2+                     | Session storage and caching layer        |
+
+### Development & Operations
+
+| Component            | Technology                      | Purpose                              |
+| -------------------- | ------------------------------- | ------------------------------------ |
+| **Containerization** | Docker                          | Application packaging and deployment |
+| **Orchestration**    | Docker Compose                  | Local development environment        |
+| **CI/CD**            | GitHub Actions                  | Automated testing and deployment     |
+| **Code Quality**     | Pre-commit hooks, Black, Flake8 | Code formatting and linting          |
+| **Testing**          | Pytest + Coverage               | Unit and integration testing         |
+
+### External Services & APIs
+
+| Service                | Provider               | Purpose                       |
+| ---------------------- | ---------------------- | ----------------------------- |
+| **AI Models**          | OpenAI GPT-4, Claude-3 | Natural language processing   |
+| **Documentation**      | Google Docs            | Collaborative documentation   |
+| **Communication**      | Google Meet            | Team collaboration            |
+| **Project Management** | Google Sheets          | Project tracking and planning |
+
+### Repository Structure
+
+**This is the AI Services Repository** - one of three repositories in the BA Copilot ecosystem:
+
+1. **Frontend Repository**: NextJS + ReactJS + TailwindCSS user interface
+2. **Backend Repository**: Core business logic and database operations
+3. **AI Services Repository** (This repo): AI-powered services
+
+### Key Design Decisions
+
+- **Docker over Kubernetes**: Simplified deployment without orchestration complexity
+- **Modular Monolith**: Fast development with clear microservice migration paths
+- **Multi-LLM Support**: Provider flexibility and fallback capabilities
+- **PostgreSQL**: ACID compliance and complex query support
+- **FastAPI**: High performance with automatic API documentation
+
+## �📁 Project Structure
+
+Our project follows a modular monolith architecture with clear service boundaries:
 
 ```
 ba_copilot_ai/
-├── src/                                 # Source code
-│   ├── api/                            # API Gateway and routing
-│   │   ├── main.py                     # FastAPI application entry
-│   │   ├── middleware/                 # Custom middleware
-│   │   ├── routes/                     # API route definitions
-│   │   └── dependencies.py             # FastAPI dependencies
-│   │
-│   ├── services/                       # Core business services
-│   │   ├── srs_generator/              # SRS Generation Service
-│   │   ├── wireframe_generator/        # Wireframe Generation Service
-│   │   ├── conversation_manager/       # AI Conversation Service
-│   │   ├── user_management/            # User Management Service
-│   │   └── llm_orchestrator/           # LLM Orchestration Service
-│   │
-│   ├── shared/                         # Shared utilities and components
-│   │   ├── database/                   # Database utilities
-│   │   ├── cache/                      # Caching utilities
-│   │   ├── storage/                    # File storage utilities
-│   │   ├── messaging/                  # Message queue utilities
-│   │   ├── security/                   # Security utilities
-│   │   └── monitoring/                 # Monitoring and logging
-│   │
-│   └── workers/                        # Background workers
+├── app/                                # Main application package
+│   ├── main.py                         # FastAPI application entry
+│   ├── core/                           # Core components (auth, db, security)
+│   ├── api/                            # API routes and dependencies
+│   ├── models/                         # Database models
+│   ├── schemas/                        # Pydantic schemas for API
+│   ├── services/                       # Business logic modules
+│   ├── repositories/                   # Data access layer
+│   └── utils/                          # Utility functions
 │
 ├── tests/                              # Test suites
-│   ├── unit/                           # Unit tests
-│   ├── integration/                    # Integration tests
-│   ├── e2e/                           # End-to-end tests
-│   └── fixtures/                      # Test fixtures and data
-│
-├── infrastructure/                     # Infrastructure and deployment
-│   ├── docker/                        # Docker configurations
-│   ├── kubernetes/                    # Kubernetes manifests
-│   ├── terraform/                     # Infrastructure as Code
-│   └── monitoring/                    # Monitoring configurations
-│
-└── docs/                             # Documentation
-    ├── api/                          # API documentation
-    ├── architecture/                 # Architecture documentation
-    └── guides/                       # User and developer guides
+├── alembic/                            # Database migrations
+├── docs/                               # Documentation
+├── scripts/                            # Utility scripts
+├── Dockerfile                          # Container configuration
+├── docker-compose.yml                  # Local development setup
+└── pyproject.toml                      # Python project configuration
 ```
 
-For detailed project structure information, see [Project Structure Documentation](./docs/project_structure.md).
+**For detailed project structure information, see [Project Structure Documentation](./docs/project_structure.md).**
 
 ## 🚀 Getting Started
 
@@ -258,6 +260,15 @@ curl -H "Authorization: Bearer <your-jwt-token>" \
 - `PUT /srs/{document_id}` - Update SRS document
 - `GET /srs/{document_id}/export` - Export SRS document
 
+#### Diagram Generator
+
+- `POST /diagrams/sequence/generate` - Generate sequence diagrams
+- `POST /diagrams/architecture/generate` - Generate architecture diagrams
+- `POST /diagrams/usecase/generate` - Generate use case diagrams
+- `POST /diagrams/flowchart/generate` - Generate flowcharts
+- `GET /diagrams/{diagram_id}` - Retrieve diagram
+- `GET /diagrams/{diagram_id}/export` - Export diagram
+
 #### Wireframe Generator
 
 - `POST /wireframe/generate` - Generate wireframe
@@ -278,7 +289,7 @@ curl -H "Authorization: Bearer <your-jwt-token>" \
 - **ReDoc**: http://localhost:8000/redoc
 - **OpenAPI JSON**: http://localhost:8000/openapi.json
 
-For detailed API specification, see [API Documentation](./API_Specification.md).
+**For comprehensive API specification, see [AI API Documentation](./docs/ai_api_specs.md).**
 
 ## 🛠️ Development
 
@@ -354,8 +365,8 @@ docker-compose -f docker-compose.prod.yml up -d
 
 ### Architecture & Design
 
-- [System Architecture](./System_Architecture.md) - Complete system design and component interactions
-- [API Specification](./API_Specification.md) - Comprehensive REST API documentation
+- [System Architecture](./docs/System_Architecture.md) - Complete system design and component interactions
+- [AI API Specification](./docs/ai_api_specs.md) - REST API documentation for AI services
 - [Project Structure](./docs/project_structure.md) - Detailed project organization
 
 ### Service Flow Diagrams
@@ -364,18 +375,12 @@ docker-compose -f docker-compose.prod.yml up -d
 - [Wireframe Generator Flow](./docs/wireframe_generator_flow.md) - Wireframe creation workflow
 - [AI Conversation Flow](./docs/ai_conversation_flow.md) - Chat system and context management
 
-### Development Guides
+### Diagram Generation Workflows
 
-- [Local Development Setup](./docs/deployment/local_development.md)
-- [Contributing Guidelines](./CONTRIBUTING.md)
-- [Coding Standards](./docs/guides/coding_standards.md)
-- [Troubleshooting Guide](./docs/guides/troubleshooting.md)
-
-### Deployment & Operations
-
-- [Production Deployment](./docs/deployment/production_deployment.md)
-- [Monitoring & Observability](./docs/architecture/monitoring.md)
-- [Security Guidelines](./docs/guides/security.md)
+- [Sequence Diagram Flow](./docs/sequence_diagram_flow.md) - Sequence diagram generation process and actor identification
+- [Architecture Diagram Flow](./docs/architecture_diagram_flow.md) - System architecture diagram creation and component mapping
+- [Use Case Diagram Flow](./docs/usecase_diagram_flow.md) - Use case diagram generation and relationship modeling
+- [Flowchart Generation Flow](./docs/flowchart_generation_flow.md) - Process flowchart creation and workflow visualization
 
 ## 📞 Support & Contact
 
