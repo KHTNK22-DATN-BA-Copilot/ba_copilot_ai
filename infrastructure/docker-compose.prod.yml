@@ -1,0 +1,98 @@
+# Production Docker Compose Configuration
+# BA Copilot AI Services
+
+version: '3.8'
+
+services:
+  # Main application service
+  ba-copilot-ai:
+    build:
+      context: ..
+      dockerfile: infrastructure/Dockerfile
+    container_name: ba-copilot-ai-app-prod
+    ports:
+      - '8000:8000'
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+      - PYTHONPATH=/app/src
+    networks:
+      - ba-copilot-network
+    depends_on:
+      - redis
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8000/v1/health/']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: always
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # Redis for caching and session management
+  redis:
+    image: redis:7-alpine
+    container_name: ba-copilot-redis-prod
+    volumes:
+      - redis-prod-data:/data
+    networks:
+      - ba-copilot-network
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: ba-copilot-nginx-prod
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro # SSL certificates
+    depends_on:
+      - ba-copilot-ai
+    networks:
+      - ba-copilot-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.25'
+          memory: 64M
+
+# Named volumes
+volumes:
+  redis-prod-data:
+    driver: local
+
+# Networks
+networks:
+  ba-copilot-network:
+    driver: bridge
+    name: ba-copilot-network-prod
