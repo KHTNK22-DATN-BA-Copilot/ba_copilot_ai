@@ -64,7 +64,7 @@ The system starts as a single FastAPI application with well-defined internal ser
 
 **For detailed architecture information, see [System Architecture Documentation](./docs/System_Architecture.md).**
 
-## �️ Technology Stack
+## 🛠️ Technology Stack
 
 BA Copilot AI is built on a modern, robust technology stack designed for scalability, maintainability, and developer productivity.
 
@@ -113,7 +113,7 @@ BA Copilot AI is built on a modern, robust technology stack designed for scalabi
 - **PostgreSQL**: ACID compliance and complex query support
 - **FastAPI**: High performance with automatic API documentation
 
-## �📁 Project Structure
+## 📁 Project Structure
 
 Our project follows a modular monolith architecture with clear service boundaries:
 
