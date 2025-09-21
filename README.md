@@ -103,7 +103,7 @@ BA Copilot AI is built on a modern, robust technology stack designed for scalabi
 
 1. **Frontend Repository**: NextJS + ReactJS + TailwindCSS user interface
 2. **Backend Repository**: Core business logic and database operations
-3. **AI Services Repository** (This repo): AI-powered generation services
+3. **AI Services Repository** (This repo): AI-powered services
 
 ### Key Design Decisions
 
