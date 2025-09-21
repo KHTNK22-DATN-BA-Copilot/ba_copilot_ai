@@ -74,6 +74,7 @@ BA Copilot AI is built on a modern, robust technology stack designed for scalabi
 | ------------ | ------------------------------ | ---------------------------------------- |
 | **Frontend** | NextJS + ReactJS + TailwindCSS | User interface and client-side rendering |
 | **Backend**  | Python FastAPI                 | High-performance API framework           |
+| **Testing**  | PyTest                         | Versatile, excellent for API testing     |
 | **AI/ML**    | LangChain + LangGraph          | LLM orchestration and AI workflows       |
 | **Database** | PostgreSQL 14+                 | Primary data storage and persistence     |
 | **Cache**    | Redis 6.2+                     | Session storage and caching layer        |
@@ -195,24 +196,112 @@ ba_copilot_ai/
 2. **Install dependencies**:
 
    ```bash
-   pip install -r requirements/development.txt
+   pip install -r requirements.txt
    ```
 
-3. **Set up pre-commit hooks**:
+3. **Set up environment variables**:
 
    ```bash
-   pre-commit install
+   # Copy environment template
+   cp infrastructure/.env.template .env
+
+   # Edit .env file with your settings
+   # Basic setup only requires default values
    ```
 
 4. **Start development services**:
 
    ```bash
-   # Start PostgreSQL and Redis
-   docker-compose up -d postgres redis
+   # Option 1: Using Docker Compose (Recommended)
+   cd infrastructure
+   docker-compose up -d
 
-   # Run the API server
-   uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
+   # Option 2: Local development server
+   cd src
+   python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
    ```
+
+5. **Run tests**:
+
+   ```bash
+   # Run all tests
+   pytest
+
+   # Run with coverage
+   pytest --cov=src --cov-report=html
+
+   # Run specific test files
+   pytest tests/test_health.py
+   pytest tests/test_srs.py
+   pytest tests/test_wireframes.py
+   pytest tests/test_diagrams.py
+   pytest tests/test_conversations.py
+   ```
+
+### Dependencies Installation Guide
+
+The project uses the following core dependencies:
+
+**Web Framework & API:**
+
+- `fastapi==0.104.1` - Modern, fast web framework for building APIs
+- `uvicorn[standard]==0.24.0` - ASGI server for running FastAPI
+
+**Data Validation:**
+
+- `pydantic==2.5.0` - Data validation using Python type annotations
+- `pydantic-settings==2.1.0` - Settings management
+
+**Testing Framework:**
+
+- `pytest==7.4.3` - Testing framework
+- `pytest-asyncio==0.21.1` - Async testing support
+- `pytest-cov==4.1.0` - Coverage reporting
+- `httpx==0.25.2` - HTTP client for FastAPI testing
+
+**Development Tools:**
+
+- `black==23.11.0` - Code formatting
+- `flake8==6.1.0` - Code linting
+- `isort==5.12.0` - Import sorting
+- `mypy==1.7.1` - Static type checking
+
+**Virtual Environment Setup:**
+
+```bash
+# Create virtual environment
+python -m venv .venv
+
+# Activate virtual environment
+# On Windows:
+.venv\Scripts\activate
+
+# On macOS/Linux:
+source .venv/bin/activate
+
+# Install dependencies
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# Verify installation
+pip list
+
+# Run application
+cd src
+python -m uvicorn main:app --reload
+```
+
+**Docker Setup (Alternative):**
+
+```bash
+# Build and run with Docker Compose
+cd infrastructure
+docker-compose up --build
+
+# Or build manually
+docker build -f infrastructure/Dockerfile -t ba-copilot-ai .
+docker run -p 8000:8000 ba-copilot-ai
+```
 
 ### Configuration
 
