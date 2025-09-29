@@ -21,3 +21,5 @@ coverage.xml
 
 # Ignore compiled Python files (e.g., __init__.cpython-312.pyc and similar)
 *.pyc
+
+.env
