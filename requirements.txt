@@ -36,4 +36,4 @@ mkdocs==1.5.3
 mkdocs-material==9.4.8
 
 # Production server (alternative to uvicorn)
-gunicorn==21.2.0
+gunicorn==22.0.0
