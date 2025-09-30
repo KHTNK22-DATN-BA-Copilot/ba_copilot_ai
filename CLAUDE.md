@@ -503,27 +503,63 @@ class LLMService:
 
 ## Docker & Deployment
 
-### Docker Commands
+### Local Development with Docker
 
 ```bash
 # Development environment
 docker-compose up -d                    # Start all services
 docker-compose down                     # Stop all services
-docker-compose logs -f api              # View API logs
-docker-compose exec api bash            # Access API container
-docker-compose exec postgres psql -U bacopilot -d bacopilot  # Database access
+docker-compose logs -f ba-copilot-ai    # View API logs
+docker-compose exec ba-copilot-ai bash  # Access API container
 
-# Production commands
-docker-compose -f docker-compose.prod.yml up -d    # Production deployment
-docker-compose exec api alembic upgrade head       # Run migrations
+# Production testing locally
+docker-compose -f infrastructure/docker-compose.prod.yml up -d
+```
+
+### Production Deployment - Render Hosting
+
+**Render Configuration:**
+
+- **Service Type:** Web Service (Docker)
+- **Build Command:** `docker build -f infrastructure/Dockerfile -t ba-copilot-ai .`
+- **Start Command:** `gunicorn -c /app/gunicorn.conf.py src.main:app`
+- **Health Check Path:** `/v1/health/`
+
+**Required Environment Variables:**
+
+```bash
+ENVIRONMENT=production
+DEBUG=false
+HOST=0.0.0.0
+PORT=8000
+SECRET_KEY=NhUUNGKX_-23432_**kz
+DATABASE_URL=postgresql://user:pass@host:port/db
+REDIS_URL=redis://user:pass@host:port/db
+ALLOWED_ORIGINS=["https://your-frontend.com"]
+LOG_LEVEL=INFO
+```
+
+**Complete Deployment Guide:** See `RENDER_DEPLOYMENT.md` for detailed instructions.
+
+### Docker Commands
+
+```bash
+# Build production image
+docker build -f infrastructure/Dockerfile -t ba-copilot-ai:latest .
+
+# Test production image locally
+docker run -p 8000:8000 --env-file .env ba-copilot-ai:latest
+
+# Production deployment (if using Docker directly)
+docker run -d --name ba-copilot-ai -p 8000:8000 --env-file .env ba-copilot-ai:latest
 ```
 
 ### Service Health Checks
 
 ```bash
 # Health check endpoints
-curl http://localhost:8000/v1/health           # Basic health
-curl http://localhost:8000/v1/health/detailed  # Detailed health with dependencies
+curl http://localhost:8000/v1/health/           # Basic health
+curl https://your-app.onrender.com/v1/health/   # Production health check
 ```
 
 ## Performance & Monitoring

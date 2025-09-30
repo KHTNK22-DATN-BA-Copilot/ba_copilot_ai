@@ -2,14 +2,16 @@
 Configuration settings for BA Copilot AI Services.
 """
 
+from typing import Optional, List
+import os
+from pathlib import Path
+
 try:
     from pydantic_settings import BaseSettings
+    from pydantic import Field
 except ImportError:
     # Fallback for older pydantic versions
-    from pydantic import BaseSettings
-
-from typing import Optional
-import os
+    from pydantic import BaseSettings, Field
 
 class Settings(BaseSettings):
     """Application settings."""
@@ -36,11 +38,11 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     
     # CORS settings
-    allowed_origins: list[str] = ["*"]
+    allowed_origins: List[str] = ["*"]
     
     # LLM API settings
     openai_api_key: Optional[str] = None
-    claude_api_key: Optional[str] = None
+    anthropic_api_key: Optional[str] = None
     
     # File storage settings
     upload_directory: str = "./uploads"
@@ -54,6 +56,8 @@ class Settings(BaseSettings):
     
     class Config:
         env_file = ".env"
+        env_file_encoding = "utf-8"
         case_sensitive = False
 
+# Create global settings instance
 settings = Settings()
