@@ -451,8 +451,9 @@ pytest -m "integration"     # Run only integration tests
 
    - Connect your GitHub repository to Render
    - Service Type: **Web Service**
-   - Build Command: `docker build -f infrastructure/Dockerfile -t ba-copilot-ai .`
-   - Start Command: `gunicorn -c /app/gunicorn.conf.py src.main:app`
+   - Language: **Docker**
+   - Dockerfile Path: `infrastructure/Dockerfile`
+   - Leave Build Command and Start Command empty (auto-detected)
 
 2. **Required Environment Variables:**
 

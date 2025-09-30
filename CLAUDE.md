@@ -521,8 +521,10 @@ docker-compose -f infrastructure/docker-compose.prod.yml up -d
 **Render Configuration:**
 
 - **Service Type:** Web Service (Docker)
-- **Build Command:** `docker build -f infrastructure/Dockerfile -t ba-copilot-ai .`
-- **Start Command:** `gunicorn -c /app/gunicorn.conf.py src.main:app`
+- **Language:** Docker
+- **Dockerfile Path:** `infrastructure/Dockerfile`
+- **Docker Build Context Directory:** _(Leave empty)_
+- **Build/Start Commands:** _(Leave empty - auto-detected from Dockerfile)_
 - **Health Check Path:** `/v1/health/`
 
 **Required Environment Variables:**
