@@ -1,0 +1,39 @@
+# BA Copilot AI Services - Python Dependencies
+
+# Web framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# Data validation and settings
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# CORS support
+python-multipart==0.0.6
+
+# Testing framework
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+httpx==0.25.2  # For FastAPI test client
+
+# Development tools
+black==23.11.0
+flake8==6.1.0
+isort==5.12.0
+mypy==1.7.1
+
+# Optional dependencies for future features
+# redis==5.0.1  # For caching
+# python-jose[cryptography]==3.3.0  # For JWT
+# passlib[bcrypt]==1.7.4  # For password hashing
+# sqlalchemy==2.0.23  # For database
+# alembic==1.12.1  # For migrations
+# python-dotenv==1.0.0  # For environment variables
+
+# Documentation
+mkdocs==1.5.3
+mkdocs-material==9.4.8
+
+# Production server (alternative to uvicorn)
+gunicorn==21.2.0
