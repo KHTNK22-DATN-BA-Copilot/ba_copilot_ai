@@ -1,89 +1,73 @@
 # Project Structure
 
-This document outlines the simplified project structure for the BA Copilot AI Core Services backend, following a modular monolith approach.
+This document outlines the project structure for the BA Copilot AI Services backend, focusing on AI-powered generation services while relying on the Backend Repository for user management.
 
 ## Directory Structure
 
 ```
 ba_copilot_ai/
-├── app/                                # Main application package
+├── src/                                # Main application package
 │   ├── __init__.py
 │   ├── main.py                         # FastAPI application entry point
-│   ├── config.py                       # Configuration management
 │   │
 │   ├── core/                           # Core application components
 │   │   ├── __init__.py
-│   │   ├── auth.py                     # Authentication utilities
-│   │   ├── security.py                 # Security utilities (JWT, hashing)
+│   │   ├── config.py                   # Configuration management
 │   │   ├── database.py                 # Database connection and setup
 │   │   └── exceptions.py               # Custom exceptions
 │   │
 │   ├── api/                            # API routes and dependencies
 │   │   ├── __init__.py
 │   │   ├── dependencies.py             # FastAPI dependencies
-│   │   ├── middleware.py               # Custom middleware
+│   │   ├── middleware.py               # JWT validation middleware
 │   │   └── v1/                         # API version 1
 │   │       ├── __init__.py
 │   │       ├── router.py               # Main router
-│   │       ├── auth.py                 # Authentication endpoints
-│   │       ├── users.py                # User management endpoints
-│   │       ├── srs.py                  # SRS generation endpoints
-│   │       ├── wireframes.py           # Wireframe generation endpoints
-│   │       ├── conversations.py        # AI conversation endpoints
-│   │       └── health.py               # Health check endpoints
+│   │       ├── endpoints/              # AI service endpoints
+│   │       │   ├── srs.py              # SRS generation endpoints
+│   │       │   ├── wireframes.py       # Wireframe generation endpoints
+│   │       │   ├── conversations.py    # AI conversation endpoints
+│   │       │   ├── diagrams.py         # Diagram generation endpoints
+│   │       │   └── health.py           # Health check endpoints
 │   │
-│   ├── models/                         # Database models
+│   ├── shared/                         # Shared models and schemas
 │   │   ├── __init__.py
-│   │   ├── base.py                     # Base model class
-│   │   ├── user.py                     # User model
-│   │   ├── document.py                 # Document/SRS model
-│   │   ├── wireframe.py                # Wireframe model
-│   │   └── conversation.py             # Conversation model
+│   │   ├── models.py                   # SQLAlchemy database models
+│   │   └── base.py                     # Base model class
 │   │
 │   ├── schemas/                        # Pydantic schemas for API
 │   │   ├── __init__.py
-│   │   ├── user.py                     # User schemas
-│   │   ├── auth.py                     # Authentication schemas
 │   │   ├── srs.py                      # SRS schemas
 │   │   ├── wireframe.py                # Wireframe schemas
-│   │   └── conversation.py             # Conversation schemas
+│   │   ├── conversation.py             # Conversation schemas
+│   │   └── diagram.py                  # Diagram schemas
 │   │
 │   ├── services/                       # Business logic modules
 │   │   ├── __init__.py
-│   │   ├── user_service.py             # User management logic
-│   │   ├── auth_service.py             # Authentication logic
 │   │   ├── srs_service.py              # SRS generation logic
 │   │   ├── wireframe_service.py        # Wireframe generation logic
 │   │   ├── conversation_service.py     # AI conversation logic
-│   │   └── llm_service.py              # LLM integration logic
-│   │
-│   ├── repositories/                   # Data access layer
-│   │   ├── __init__.py
-│   │   ├── base.py                     # Base repository
-│   │   ├── user.py                     # User repository
-│   │   ├── document.py                 # Document repository
-│   │   ├── wireframe.py                # Wireframe repository
-│   │   └── conversation.py             # Conversation repository
+│   │   ├── diagram_service.py          # Diagram generation logic
+│   │   ├── llm_service.py              # LLM integration logic
+│   │   └── database_service.py         # Database operations
 │   │
 │   └── utils/                          # Utility functions
 │       ├── __init__.py
 │       ├── validators.py               # Input validators
 │       ├── formatters.py               # Data formatters
 │       ├── file_handler.py             # File upload/download handling
-│       └── websocket.py                # WebSocket utilities
+│       └── jwt_utils.py                # JWT token validation utilities
 │
 ├── tests/                              # Test suites
 │   ├── __init__.py
 │   ├── conftest.py                     # Pytest configuration
-│   ├── test_auth.py                    # Authentication tests
-│   ├── test_users.py                   # User management tests
 │   ├── test_srs.py                     # SRS generation tests
 │   ├── test_wireframes.py              # Wireframe generation tests
 │   ├── test_conversations.py           # Conversation tests
+│   ├── test_diagrams.py                # Diagram generation tests
 │   └── fixtures/                       # Test fixtures
 │       ├── __init__.py
-│       ├── users.py                    # User fixtures
-│       └── documents.py                # Document fixtures
+│       └── ai_content.py               # AI-generated content fixtures
 │
 ├── alembic/                            # Database migrations
 │   ├── versions/                       # Migration files
@@ -91,19 +75,22 @@ ba_copilot_ai/
 │   ├── script.py.mako                  # Migration template
 │   └── alembic.ini                     # Alembic configuration
 │
-├── docs/                               # Documentation
-│   ├── api/                            # API documentation
-│   │   └── openapi.json                # OpenAPI specification
-│   ├── architecture/                   # Architecture docs
-│   │   ├── system_design.md
-│   │   └── database_schema.md
-│   └── guides/                         # User guides
-│       ├── development.md
-│       └── deployment.md
+├── infrastructure/                     # Infrastructure as code
+│   ├── docker-compose.yml              # Local development setup
+│   ├── docker-compose.prod.yml         # Production setup
+│   ├── Dockerfile                      # Docker configuration
+│   └── nginx.conf                      # Nginx configuration
 │
 ├── scripts/                            # Utility scripts
+│   ├── init_dev_database.py            # Database initialization
 │   ├── run_migrations.py               # Database migration runner
-│   ├── create_admin.py                 # Admin user creator
+│   └── validate_deployment.sh          # Deployment validation
+│
+├── docs/                               # Documentation
+│   ├── ai_api_specs.md                 # API documentation
+│   ├── system_architecture.md          # Architecture documentation
+│   ├── database_documentation.md       # Database documentation
+│   └── *_flow.md                       # AI service flow documentation
 │   └── dev_setup.py                    # Development setup
 │
 ├── .env.template                       # Environment variables template

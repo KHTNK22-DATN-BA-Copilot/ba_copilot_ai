@@ -6,40 +6,52 @@
 **Timeline**: Sprint 2 (Current) - MVP by November 1st, 2025 - Full Project by May 1st, 2026
 **Methodology**: Scrum (1-week sprints, starting Tuesdays, team meetings Mondays, professor meetings Tuesdays 20:00-20:30)
 **Current Sprint**: Sprint 2 (ends September 30th, 2025)
-**Repository**: One of three repositories (AI Services Backend)
+**Repository**: AI Services Backend (one of three repositories)
+
+## Important: AI Services Focus
+
+**This repository handles ONLY AI-powered generation services:**
+
+- **SRS Generation**: AI-powered Software Requirements Specification documents
+- **Wireframe Generation**: UI mockups from natural language descriptions
+- **Diagram Generation**: Architecture, sequence, use case, and flowchart diagrams
+- **AI Conversations**: Chat interface for requirements gathering
+
+**User management and authentication are handled by the Backend Repository.**
 
 ## MVP Scope (By November 1st, 2025)
 
-Core features that must be complete and thoroughly tested:
+Core AI services that must be complete and thoroughly tested:
 
-1. **SRS Generator Service** - Complete document generation workflow
-2. **Wireframe Generator Service** - Basic wireframe creation from text
+1. **SRS Generator Service** - Complete AI document generation workflow
+2. **Wireframe Generator Service** - Basic AI wireframe creation from text
 3. **AI Conversation Service** - Chat interface with context management
-4. **Health & Monitoring** - Basic system monitoring
-5. **Testing Infrastructure** - Comprehensive test coverage
-6. **Docker & Deployment** - Containerized deployment ready
+4. **JWT Integration** - Middleware for backend authentication integration
+5. **Testing Infrastructure** - Comprehensive test coverage for AI services
+6. **Docker & Deployment** - Containerized AI services deployment ready
 
 ## Full Project Scope (By May 1st, 2026)
 
-Extended features building on MVP:
+Extended AI features building on MVP:
 
 1. **Advanced Diagram Generation** - Architecture, Sequence, Use Case, Flowchart diagrams
 2. **LLM Orchestrator** - Multi-provider AI routing and optimization
-3. **Advanced Features** - Export capabilities, template management, user management
+3. **Advanced AI Features** - Export capabilities, template management
 4. **Production Infrastructure** - CI/CD, monitoring, scalability features
-5. **Integration & Polish** - Frontend integration, performance optimization
+5. **Backend Integration** - Seamless integration with user management backend
 
 ---
 
 ## Epic Breakdown & Timeline
 
-### EPIC 1: CORE SRS SERVICE COMPLETION
+### EPIC 1: CORE SRS AI SERVICE COMPLETION
 
 **Priority**: Critical (MVP Core)
 **Sprint Target**: Sprint 2-3 (Sep 24 - Oct 7, 2025)
 **Story Points**: 34 points (68 hours)
+**Dependencies**: JWT middleware for user context
 
-#### STORY 1.1: SRS Generation Engine Implementation
+#### STORY 1.1: SRS AI Generation Engine Implementation
 
 **Labels**: AI, Backend
 **Story Points**: 18 points
@@ -56,7 +68,7 @@ Extended features building on MVP:
 
 - **Task 1.1.2**: Build SRS Template Engine (5 points)
 
-  - Design SRS document templates (IEEE standards)
+  - Design AI-driven SRS document templates (IEEE standards)
   - Implement template rendering system
   - Support for different project types
   - Template validation logic
@@ -76,27 +88,32 @@ Extended features building on MVP:
   - Error handling for generation failures
 
 - **Task 1.1.5**: Database Integration (2 points)
-  - Create SQLAlchemy models for documents
-  - Implement document CRUD operations
-  - Add metadata tracking
+  - Create SQLAlchemy models for AI-generated documents
+  - Implement document CRUD operations with user_id association
+  - Add metadata tracking (no FK to users table)
   - Database migration scripts
 
-#### STORY 1.2: SRS API Enhancement & Testing
+#### STORY 1.2: SRS API Enhancement & JWT Integration
 
-**Labels**: Backend, Test
+**Labels**: Backend, Test, Integration
 **Story Points**: 16 points
-**Description**: Complete SRS endpoints with proper validation and comprehensive testing
+**Description**: Complete SRS endpoints with JWT validation and comprehensive testing
 
 ##### Tasks:
 
-- **Task 1.2.1**: Complete POST /srs/generate Endpoint (4 points)
+- **Task 1.2.1**: JWT Middleware Implementation (3 points)
 
-  - Replace mock implementation with real service
+  - Create JWT validation middleware
+  - Extract user_id from token claims
+  - Handle authentication errors
+  - Integration with Backend Repository tokens
+
+- **Task 1.2.2**: Complete POST /srs/generate Endpoint (4 points)
+
+  - Replace mock implementation with real AI service
   - Add request validation and sanitization
   - Implement async processing for long generations
   - Add proper HTTP status codes and errors
-
-- **Task 1.2.2**: Implement Document Management Endpoints (3 points)
 
   - Complete PUT /srs/{document_id} for updates
   - Add DELETE /srs/{document_id} endpoint

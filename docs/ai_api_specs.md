@@ -5,103 +5,42 @@ This document specifies the AI-powered REST API endpoints provided by the BA Cop
 **Repository Context**: This is the **AI Services Repository** - one of three repositories:
 
 1. **Frontend Repository**: NextJS + ReactJS + TailwindCSS
-2. **Backend Repository**: Core business logic and database operations
+2. **Backend Repository**: Core business logic, user management, and database operations
 3. **AI Services Repository** (This repo): AI-powered generation services
 
 **Base URL**: `http://localhost:8000/v1` (Development)  
 **API Version**: 1.0  
 **Content-Type**: `application/json`
 
-## Authentication
+## Authentication & User Management
 
-All API endpoints require JWT Bearer token authentication.
+**Important**: This AI Services repository does **NOT** handle user authentication or user management. All authentication is handled by the **Backend Repository**.
 
-### Headers
+### Authentication Flow
+
+1. **User Authentication**: Users authenticate through the Backend Repository
+2. **JWT Token**: Backend provides JWT tokens containing `user_id` and other claims
+3. **AI Service Requests**: Frontend sends requests to AI Services with JWT token
+4. **User Context**: AI Services extract `user_id` from JWT for data association
+
+### Required Headers
+
+All AI service endpoints require JWT Bearer token authentication provided by the Backend Repository.
 
 ```http
-Authorization: Bearer <jwt_token>
+Authorization: Bearer <jwt_token_from_backend>
 Content-Type: application/json
 Accept: application/json
 ```
 
-### Authentication Endpoints
+### User Data Handling
 
-#### POST /auth/register
+- **No User Table**: AI Services DB does NOT contain a `users` table
+- **User ID Only**: AI Services store only `user_id` (UUID) from JWT claims
+- **No Foreign Keys**: No foreign key constraints to non-existent `users` table
+- **Application-Level Joins**: User information joined at application layer, not SQL level
 
-Register a new user account.
-
-**Request Body:**
-
-```json
-{
-  "email": "user@example.com",
-  "password": "SecurePassword123!",
-  "full_name": "John Doe",
-  "organization": "TechCorp Inc."
-}
-```
-
-**Response (201 Created):**
-
-```json
-{
-  "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "email": "user@example.com",
-  "full_name": "John Doe",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "expires_at": "2025-10-20T14:30:00Z",
-  "created_at": "2025-09-20T14:30:00Z"
-}
-```
-
-#### POST /auth/login
-
-Authenticate user and receive access token.
-
-**Request Body:**
-
-```json
-{
-  "email": "user@example.com",
-  "password": "SecurePassword123!"
-}
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "expires_at": "2025-09-20T18:30:00Z",
-  "user": {
-    "user_id": "550e8400-e29b-41d4-a716-446655440000",
-    "email": "user@example.com",
-    "full_name": "John Doe"
-  }
-}
-```
-
-#### POST /auth/refresh
-
-Refresh an expired access token.
-
-**Request Body:**
-
-```json
-{
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "expires_at": "2025-09-20T18:30:00Z"
-}
-```
+````
 
 ## SRS Generator Service
 
@@ -128,7 +67,7 @@ Generate Software Requirements Specification document from user input.
   "include_diagrams": true,
   "diagram_types": ["sequence", "architecture", "use_case"]
 }
-```
+````
 
 **Response (200 OK):**
 

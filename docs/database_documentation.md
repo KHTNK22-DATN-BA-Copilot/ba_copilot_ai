@@ -66,38 +66,26 @@ graph TD
 
 ## Database Schema Design
 
-### Core Entities
+### Important: AI Services Database Scope
 
-#### 1. Users Table
+**This database schema is specifically for AI Services and does NOT include user management tables:**
 
-```sql
-CREATE TABLE users (
-    user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    full_name VARCHAR(255) NOT NULL,
-    organization VARCHAR(255),
-    preferences JSONB DEFAULT '{}',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    is_active BOOLEAN DEFAULT true
-);
+- **No `users` table**: User management is handled by the Backend Repository
+- **User ID references**: All tables store `user_id` as UUID without foreign key constraints
+- **Application-level joins**: User information is joined at the application layer via JWT claims
+- **Data isolation**: Each AI service entity is associated with a user through `user_id` field
 
--- Indexes
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_created_at ON users(created_at);
-CREATE INDEX idx_users_active ON users(is_active);
-```
+### Core AI Services Entities
 
-#### 2. Documents (SRS) Table
+#### 1. Documents (SRS) Table
 
 ```sql
 CREATE TABLE documents (
     document_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    user_id UUID NOT NULL, -- No FK constraint, managed by application layer
     project_name VARCHAR(500) NOT NULL,
     content TEXT NOT NULL,
-    metadata JSONB DEFAULT '{}',
+    document_metadata JSONB DEFAULT '{}', -- Renamed to avoid SQL keyword conflict
     status VARCHAR(50) DEFAULT 'draft',
     version INTEGER DEFAULT 1,
     file_path VARCHAR(1000),
@@ -110,19 +98,19 @@ CREATE INDEX idx_documents_user_id ON documents(user_id);
 CREATE INDEX idx_documents_project_name ON documents(project_name);
 CREATE INDEX idx_documents_status ON documents(status);
 CREATE INDEX idx_documents_created_at ON documents(created_at);
-CREATE INDEX idx_documents_metadata ON documents USING GIN(metadata);
+CREATE INDEX idx_documents_metadata ON documents USING GIN(document_metadata);
 ```
 
-#### 3. Wireframes Table
+#### 2. Wireframes Table
 
 ```sql
 CREATE TABLE wireframes (
     wireframe_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    user_id UUID NOT NULL, -- No FK constraint, managed by application layer
     title VARCHAR(500) NOT NULL,
     html_content TEXT,
     css_styles TEXT,
-    metadata JSONB DEFAULT '{}',
+    wireframe_metadata JSONB DEFAULT '{}', -- Renamed to avoid SQL keyword conflict
     template_type VARCHAR(100),
     preview_url VARCHAR(1000),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -136,14 +124,14 @@ CREATE INDEX idx_wireframes_template_type ON wireframes(template_type);
 CREATE INDEX idx_wireframes_created_at ON wireframes(created_at);
 ```
 
-#### 4. Conversations Table
+#### 3. Conversations Table
 
 ```sql
 CREATE TABLE conversations (
     conversation_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    user_id UUID NOT NULL, -- No FK constraint, managed by application layer
     title VARCHAR(500) NOT NULL,
-    metadata JSONB DEFAULT '{}',
+    conversation_metadata JSONB DEFAULT '{}', -- Renamed to avoid SQL keyword conflict
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -154,7 +142,7 @@ CREATE INDEX idx_conversations_title ON conversations(title);
 CREATE INDEX idx_conversations_created_at ON conversations(created_at);
 ```
 
-#### 5. Messages Table
+#### 4. Messages Table
 
 ```sql
 CREATE TABLE messages (
@@ -162,7 +150,7 @@ CREATE TABLE messages (
     conversation_id UUID NOT NULL REFERENCES conversations(conversation_id) ON DELETE CASCADE,
     role VARCHAR(20) NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
     content TEXT NOT NULL,
-    metadata JSONB DEFAULT '{}',
+    message_metadata JSONB DEFAULT '{}', -- Renamed to avoid SQL keyword conflict
     token_count INTEGER,
     timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -173,17 +161,17 @@ CREATE INDEX idx_messages_timestamp ON messages(timestamp);
 CREATE INDEX idx_messages_role ON messages(role);
 ```
 
-#### 6. Diagrams Table
+#### 5. Diagrams Table
 
 ```sql
 CREATE TABLE diagrams (
     diagram_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    user_id UUID NOT NULL, -- No FK constraint, managed by application layer
     title VARCHAR(500) NOT NULL,
     diagram_type VARCHAR(50) NOT NULL CHECK (diagram_type IN ('sequence', 'architecture', 'usecase', 'flowchart')),
     mermaid_code TEXT NOT NULL,
     preview_url VARCHAR(1000),
-    metadata JSONB DEFAULT '{}',
+    diagram_metadata JSONB DEFAULT '{}', -- Renamed to avoid SQL keyword conflict
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -199,30 +187,17 @@ CREATE INDEX idx_diagrams_created_at ON diagrams(created_at);
 
 ```mermaid
 erDiagram
-    USERS ||--o{ DOCUMENTS : creates
-    USERS ||--o{ WIREFRAMES : creates
-    USERS ||--o{ CONVERSATIONS : owns
-    USERS ||--o{ DIAGRAMS : creates
-    CONVERSATIONS ||--o{ MESSAGES : contains
+    %% AI Services Database Schema
+    %% Note: No USERS table - managed by Backend Repository
 
-    USERS {
-        uuid user_id PK
-        varchar email
-        varchar password_hash
-        varchar full_name
-        varchar organization
-        jsonb preferences
-        timestamp created_at
-        timestamp updated_at
-        boolean is_active
-    }
+    CONVERSATIONS ||--o{ MESSAGES : contains
 
     DOCUMENTS {
         uuid document_id PK
-        uuid user_id FK
+        uuid user_id "No FK - application managed"
         varchar project_name
         text content
-        jsonb metadata
+        jsonb document_metadata
         varchar status
         integer version
         varchar file_path
@@ -232,11 +207,11 @@ erDiagram
 
     WIREFRAMES {
         uuid wireframe_id PK
-        uuid user_id FK
+        uuid user_id "No FK - application managed"
         varchar title
         text html_content
         text css_styles
-        jsonb metadata
+        jsonb wireframe_metadata
         varchar template_type
         varchar preview_url
         timestamp created_at
@@ -245,9 +220,9 @@ erDiagram
 
     CONVERSATIONS {
         uuid conversation_id PK
-        uuid user_id FK
+        uuid user_id "No FK - application managed"
         varchar title
-        jsonb metadata
+        jsonb conversation_metadata
         timestamp created_at
         timestamp updated_at
     }
@@ -257,23 +232,33 @@ erDiagram
         uuid conversation_id FK
         varchar role
         text content
-        jsonb metadata
+        jsonb message_metadata
         integer token_count
         timestamp timestamp
     }
 
     DIAGRAMS {
         uuid diagram_id PK
-        uuid user_id FK
+        uuid user_id "No FK - application managed"
         varchar title
         varchar diagram_type
         text mermaid_code
         varchar preview_url
-        jsonb metadata
+        jsonb diagram_metadata
         timestamp created_at
         timestamp updated_at
     }
 ```
+
+### User Data Management
+
+**Important**: This AI Services database does NOT manage user data:
+
+- **No `users` table**: User management is handled by the Backend Repository
+- **Application-level user context**: User information is provided via JWT claims from backend
+- **User ID storage**: All AI service entities store `user_id` as UUID for data association
+- **No foreign key constraints**: No FK relationships to non-existent users table
+- **Data isolation**: Each user's AI-generated content is isolated via `user_id` filtering
 
 ## Docker Integration
 
