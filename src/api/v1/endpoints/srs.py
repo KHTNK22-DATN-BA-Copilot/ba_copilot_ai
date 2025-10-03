@@ -2,12 +2,17 @@
 SRS document endpoints.
 """
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Dict, Any, Optional
 import uuid
+import logging
 
+from schemas.srs import SRSGenerateRequest, SRSGenerateResponse, SRSErrorResponse
+from services.srs_service import srs_service
+
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 class SRSDocument(BaseModel):
@@ -23,6 +28,50 @@ class SRSExportResponse(BaseModel):
     expires_at: str
     file_size_bytes: int
     format: str
+
+
+@router.post("/generate", response_model=SRSGenerateResponse)
+async def generate_srs_document(request: SRSGenerateRequest):
+    """
+    Generate a new SRS document using AI.
+    
+    Args:
+        request: SRS generation request containing project input
+    
+    Returns:
+        Generated SRS document with metadata
+    
+    Raises:
+        HTTPException: If generation fails or input is invalid
+    """
+    try:
+        logger.info("Received SRS generation request")
+        
+        # Validate input
+        if not await srs_service.validate_input(request.project_input):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid input: Project description must be at least 10 characters long"
+            )
+        
+        # Generate SRS document
+        result = await srs_service.generate_srs(
+            project_input=request.project_input,
+            user_id=None  # TODO: Extract from JWT token when auth is implemented
+        )
+        
+        logger.info(f"Successfully generated SRS document: {result['document_id']}")
+        return SRSGenerateResponse(**result)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating SRS document: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate SRS document: {str(e)}"
+        )
+
 
 @router.get("/{document_id}", response_model=SRSDocument)
 async def get_srs_document(document_id: str):

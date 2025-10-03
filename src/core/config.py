@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     allowed_origins: List[str] = ["*"]
     
     # LLM API settings
-    openai_api_key: Optional[str] = None
+    google_ai_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None
     
     # File storage settings
@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     mock_data_enabled: bool = True
     
     class Config:
-        env_file = ".env"
+        env_file = ".env"  # Look for .env in project root directory
         env_file_encoding = "utf-8"
         case_sensitive = False
 

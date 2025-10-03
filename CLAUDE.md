@@ -92,7 +92,7 @@ cp .env.template .env
 # Required variables:
 DATABASE_URL=postgresql://username:password@localhost:5432/bacopilot
 REDIS_URL=redis://localhost:6379
-OPENAI_API_KEY=your_openai_key
+GOOGLE_AI_API_KEY=your_google_ai_key
 ANTHROPIC_API_KEY=your_claude_key
 JWT_SECRET_KEY=your_jwt_secret
 ```
@@ -102,16 +102,20 @@ JWT_SECRET_KEY=your_jwt_secret
 ### Core Development
 
 ```bash
-# Start development server
-make dev                    # uvicorn with auto-reload
-python src/main.py         # Direct Python execution
+# Start development server (Primary method for AI services)
+cd src
+python main.py             # Direct Python execution (Recommended)
 
-# Database operations
+# Alternative methods
+python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000  # With auto-reload
+make dev                   # If Makefile configured
+
+# Database operations (if using database features)
 make migrate               # Run migrations
 make migration msg="description"  # Create new migration
 make db-reset              # Reset database (development only)
 
-# Docker operations
+# Docker operations (optional)
 make docker-up             # Start all services
 make docker-down           # Stop all services
 make docker-build          # Rebuild containers
@@ -120,7 +124,19 @@ make docker-build          # Rebuild containers
 ### Testing & Quality
 
 ```bash
-# Run tests
+# Run all tests
+pytest
+
+# Run specific service tests
+pytest tests/test_srs.py -v              # All SRS tests
+pytest tests/test_srs.py -k "generate"   # Only SRS generation tests
+pytest tests/test_health.py -v           # Health check tests
+
+# Test coverage
+pytest --cov=src --cov-report=html       # Generate coverage report
+pytest --cov=src --cov-report=term       # Terminal coverage report
+
+# Alternative commands (if Makefile configured)
 make test                  # All tests
 make test-unit             # Unit tests only
 make test-integration      # Integration tests only
@@ -131,6 +147,42 @@ make lint                  # Run linting (flake8, black)
 make format                # Format code (black, isort)
 make type-check            # Type checking (mypy)
 ```
+
+## LLM Service Implementation
+
+### Google Gemini Integration
+
+The project now uses **Google Gemini AI** instead of OpenAI for LLM services:
+
+```bash
+# Environment setup
+GOOGLE_AI_API_KEY=your_google_ai_api_key_here
+
+# Test LLM connectivity
+python -c "from src.services.llm_service import get_llm_service; print('LLM Service loaded successfully')"
+```
+
+### SRS Generation Service
+
+**POST /v1/srs/generate** endpoint is fully implemented:
+
+```bash
+# Test the SRS generation endpoint
+curl -X POST "http://localhost:8000/v1/srs/generate" \
+     -H "Content-Type: application/json" \
+     -d '{"project_input": "Create a web-based math learning game for elementary students"}'
+
+# Or test with Python
+python test_api_complete.py  # Comprehensive API testing
+python test_srs_mock.py      # Service testing with mocks
+```
+
+### Service Architecture
+
+- **LLM Service** (`src/services/llm_service.py`): Google Gemini integration with proper error handling
+- **SRS Service** (`src/services/srs_service.py`): Business logic for SRS document generation
+- **API Endpoints** (`src/api/v1/endpoints/srs.py`): REST API with validation and error handling
+- **Schemas** (`src/schemas/srs.py`): Pydantic models for request/response validation
 
 ## Coding Standards
 
@@ -459,7 +511,7 @@ class LLMService:
     """Centralized LLM integration service."""
 
     def __init__(self):
-        self.openai_client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
+        self.google_ai_client = google.generativeai.GenerativeModel(api_key=settings.GOOGLE_AI_API_KEY)
         self.anthropic_client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
 
     async def generate_content(
@@ -666,11 +718,11 @@ async def detailed_health_check(db: Session = Depends(get_db)):
 
    ```bash
    # Check API keys in environment
-   echo $OPENAI_API_KEY
+   echo $GOOGLE_AI_API_KEY
    echo $ANTHROPIC_API_KEY
 
    # Test API connectivity
-   curl -H "Authorization: Bearer $OPENAI_API_KEY" https://api.openai.com/v1/models
+   curl -H "Authorization: Bearer $GOOGLE_AI_API_KEY" https://ai.googleapis.com/v1/models
    ```
 
 4. **Import/Path Issues**

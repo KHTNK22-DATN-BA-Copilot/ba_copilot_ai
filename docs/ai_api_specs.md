@@ -887,7 +887,7 @@ Required environment variables for local development:
 ```bash
 DATABASE_URL=postgresql://user:password@localhost:5432/bacopilot
 SECRET_KEY=your-secret-key-here
-OPENAI_API_KEY=your-openai-api-key
+GOOGLE_AI_API_KEY=your-google-ai-api-key
 CLAUDE_API_KEY=your-claude-api-key  # Optional
 DIAGRAM_RENDERER_URL=http://localhost:8080  # Mermaid renderer service
 LOG_LEVEL=DEBUG

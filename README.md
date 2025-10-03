@@ -170,19 +170,33 @@ ba_copilot_ai/
 3. **Start the services**:
 
    ```bash
-      docker-compose -f infrastructure/docker-compose.yml up -d
+   # For Docker development
+   docker-compose -f infrastructure/docker-compose.yml up -d
    ```
 
-4. **Run database migrations**:
+4. **Start the FastAPI server**:
 
    ```bash
-   docker-compose exec api python scripts/run_migrations.py
+   # Activate virtual environment first
+   .venv\Scripts\activate  # Windows
+   source .venv/bin/activate  # Linux/macOS
+
+   # Start the server
+   cd src
+   python main.py
+   ```
+
+   Or if you want to have auto-reload (usually for development)
+
+   ```powershell
+   cd src
+   python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
    ```
 
 5. **Access the API**:
    - API Base URL: http://localhost:8000
-   - API Documentation: http://localhost:8000/docs
-   - Health Check: http://localhost:8000/health
+   - Interactive API Documentation: http://localhost:8000/docs
+   - Health Check: http://localhost:8000/v1/health/
 
 ### Local Development Setup
 
@@ -212,13 +226,17 @@ ba_copilot_ai/
 4. **Start development services**:
 
    ```bash
-   # Option 1: Using Docker Compose (Recommended)
-   cd infrastructure
-   docker-compose up -d
+   # Option 1: Start FastAPI server directly (Recommended for AI services)
+   cd src
+   python main.py
 
-   # Option 2: Local development server
+   # Option 2: Using uvicorn with auto-reload
    cd src
    python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+   # Option 3: Using Docker Compose (if database services needed)
+   cd infrastructure
+   docker-compose up -d
    ```
 
 5. **Run tests**:
@@ -231,11 +249,14 @@ ba_copilot_ai/
    pytest --cov=src --cov-report=html
 
    # Run specific test files
-   pytest tests/test_health.py
-   pytest tests/test_srs.py
-   pytest tests/test_wireframes.py
-   pytest tests/test_diagrams.py
-   pytest tests/test_conversations.py
+   pytest tests/test_health.py        # Health check tests
+   pytest tests/test_srs.py          # SRS generation tests (including POST /srs/generate)
+   pytest tests/test_wireframes.py   # Wireframe generation tests
+   pytest tests/test_diagrams.py     # Diagram generation tests
+   pytest tests/test_conversations.py # AI conversation tests
+
+   # Run only SRS generation endpoint tests
+   pytest tests/test_srs.py -k "generate" -v
    ```
 
 ### Dependencies Installation Guide
@@ -307,15 +328,15 @@ docker run -p 8000:8000 ba-copilot-ai
 
 Key environment variables (see `.env.template` for complete list):
 
-| Variable         | Description                  | Default                                      |
-| ---------------- | ---------------------------- | -------------------------------------------- |
-| `DATABASE_URL`   | PostgreSQL connection string | `postgresql://user:pass@localhost/bacopilot` |
-| `REDIS_URL`      | Redis connection string      | `redis://localhost:6379/0`                   |
-| `SECRET_KEY`     | JWT signing secret           | `your-secret-key-here`                       |
-| `OPENAI_API_KEY` | OpenAI API key               | Required for AI features                     |
-| `CLAUDE_API_KEY` | Anthropic Claude API key     | Optional                                     |
-| `LOG_LEVEL`      | Logging level                | `INFO`                                       |
-| `ENVIRONMENT`    | Runtime environment          | `development`                                |
+| Variable            | Description                  | Default                                      |
+| ------------------- | ---------------------------- | -------------------------------------------- |
+| `DATABASE_URL`      | PostgreSQL connection string | `postgresql://user:pass@localhost/bacopilot` |
+| `REDIS_URL`         | Redis connection string      | `redis://localhost:6379/0`                   |
+| `SECRET_KEY`        | JWT signing secret           | `your-secret-key-here`                       |
+| `GOOGLE_AI_API_KEY` | Google AI API key            | Required for AI features                     |
+| `CLAUDE_API_KEY`    | Anthropic Claude API key     | Optional                                     |
+| `LOG_LEVEL`         | Logging level                | `INFO`                                       |
+| `ENVIRONMENT`       | Runtime environment          | `development`                                |
 
 ## 📚 API Documentation
 

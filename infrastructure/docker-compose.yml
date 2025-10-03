@@ -1,8 +1,6 @@
 # Development Docker Compose Configuration
 # BA Copilot AI Services
 
-version: '3.8'
-
 services:
   # Main application service
   ba-copilot-ai:
