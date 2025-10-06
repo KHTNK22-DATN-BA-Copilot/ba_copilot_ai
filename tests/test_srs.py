@@ -13,7 +13,7 @@ import json
 @pytest.mark.asyncio
 async def test_generate_srs_document_success(client):
     """Test successful SRS document generation."""
-    with patch('services.srs_service.get_llm_service') as mock_get_llm_service:
+    with patch('src.services.srs_service.get_llm_service') as mock_get_llm_service:
         # Mock the LLM service
         mock_llm_service = AsyncMock()
         mock_llm_service.generate_srs_document.return_value = {
@@ -75,7 +75,7 @@ async def test_generate_srs_document_invalid_input_short(client):
 @pytest.mark.asyncio
 async def test_generate_srs_document_service_error(client):
     """Test SRS generation with service error."""
-    with patch('services.srs_service.get_llm_service') as mock_get_llm_service:
+    with patch('src.services.srs_service.get_llm_service') as mock_get_llm_service:
         # Mock LLM service to raise an error
         mock_llm_service = AsyncMock()
         mock_llm_service.generate_srs_document.side_effect = Exception("LLM service error")
@@ -109,7 +109,7 @@ async def test_generate_srs_document_validation_pydantic(client):
 @pytest.mark.asyncio
 async def test_generate_srs_document_response_format(client):
     """Test SRS generation response format compliance."""
-    with patch('services.srs_service.get_llm_service') as mock_get_llm_service:
+    with patch('src.services.srs_service.get_llm_service') as mock_get_llm_service:
         # Mock the LLM service
         mock_llm_service = AsyncMock()
         mock_llm_service.generate_srs_document.return_value = {

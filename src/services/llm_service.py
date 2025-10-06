@@ -2,6 +2,7 @@
 LLM Service for Google Gemini integration using LangChain.
 """
 
+from datetime import datetime
 import json
 import logging
 import os
@@ -18,85 +19,59 @@ class LLMService:
         """Initialize the LLM service with Google Gemini."""
         self.llm = None
         self._initialized = False
-        self.provider: Optional[str] = None
-        self.model = None
-        self.client = None
         
-    def _try_init_provider(self, name: str) -> bool:
-        """Attempt to initialize a given provider. Returns True on success."""
-        try:
-            if name == "google" and settings.google_ai_api_key:
+    def _ensure_initialized(self):
+        """Ensure the LLM service is initialized."""
+        if not self._initialized:
+            # Try Google AI first, then OpenAI, then OpenRouter
+            if settings.google_ai_api_key:
                 try:
+                    # Use the google-generativeai package directly for better compatibility
                     import google.generativeai as genai
+                    genai.configure(api_key=settings.google_ai_api_key)
+                    # Use gemini-pro instead of gemini-1.5-flash (more stable)
+                    self.model = genai.GenerativeModel('gemini-pro')
+                    self.provider = "google"
+                    self._initialized = True
+                    logger.info("LLM Service initialized with Google Gemini")
+                    return
                 except ImportError as e:
                     logger.warning(f"Failed to import google.generativeai: {e}")
-                    return False
-                try:
-                    genai.configure(api_key=settings.google_ai_api_key)
-                    # Keep gemini-pro by default; if model changes are needed, adjust here
-                    self.model = genai.GenerativeModel('gemini-pro')
-                    self.client = None
-                    self.provider = "google"
-                    logger.info("LLM Service initialized with Google Gemini")
-                    return True
                 except Exception as e:
                     logger.warning(f"Failed to initialize Google Gemini: {e}")
-                    return False
-            elif name == "openai" and settings.openai_api_key:
+            
+            # Try OpenAI as next fallback
+            if settings.openai_api_key:
                 try:
                     from openai import AsyncOpenAI
                     self.client = AsyncOpenAI(api_key=settings.openai_api_key)
-                    self.model = None
                     self.provider = "openai"
+                    self._initialized = True
                     logger.info("LLM Service initialized with OpenAI")
-                    return True
+                    return
                 except ImportError as e:
                     logger.warning(f"OpenAI package not available: {e}")
-                    return False
                 except Exception as e:
                     logger.warning(f"Failed to initialize OpenAI: {e}")
-                    return False
-            elif name == "openrouter" and settings.openrouter_api_key:
+            
+            # Try OpenRouter (OpenAI-compatible) as final fallback
+            if settings.openrouter_api_key:
                 try:
                     from openai import AsyncOpenAI
                     self.client = AsyncOpenAI(
                         api_key=settings.openrouter_api_key,
                         base_url="https://openrouter.ai/api/v1",
                     )
-                    self.model = None
                     self.provider = "openrouter"
+                    self._initialized = True
                     logger.info("LLM Service initialized with OpenRouter via OpenAI SDK")
-                    return True
+                    return
                 except ImportError as e:
                     logger.warning(f"OpenAI package not available for OpenRouter: {e}")
-                    return False
                 except Exception as e:
                     logger.warning(f"Failed to initialize OpenRouter: {e}")
-                    return False
-        except Exception as e:
-            logger.warning(f"Unexpected error while initializing provider {name}: {e}")
-        return False
-
-    def _ensure_initialized(self):
-        """Ensure the LLM service is initialized with the first available provider."""
-        if not self._initialized:
-            # Default priority: google -> openai -> openrouter
-            for candidate in ("google", "openai", "openrouter"):
-                if self._try_init_provider(candidate):
-                    self._initialized = True
-                    break
-            if not self._initialized:
-                raise ValueError(
-                    "Either OPENAI_API_KEY or GOOGLE_AI_API_KEY or OPENROUTER_API_KEY must be set in environment variables"
-                )
-
-    def _provider_cycle(self):
-        """Return providers in fallback order starting from current provider."""
-        order = ["google", "openai", "openrouter"]
-        if self.provider in order:
-            start = order.index(self.provider)
-            return order[start:] + order[:start]
-        return order
+            
+            raise ValueError("Either OPENAI_API_KEY or GOOGLE_AI_API_KEY or OPENROUTER_API_KEY must be set in environment variables")
     
     async def generate_srs_document(self, user_input: str) -> Dict[str, Any]:
         """
@@ -140,51 +115,34 @@ Generate me a comprehensive IEEE document in JSON format based on the input:
 
 Return only valid JSON without any markdown formatting or additional text."""
             
-            # Try providers in fallback order until one succeeds
-            last_error: Optional[Exception] = None
-            content: str = ""
-            for provider_name in self._provider_cycle():
-                if self.provider != provider_name:
-                    # attempt switching provider
-                    if not self._try_init_provider(provider_name):
-                        continue
-                logger.info(f"Generating SRS document using {self.provider} for input: {user_input[:100]}...")
-                try:
-                    if self.provider in ("openai", "openrouter"):
-                        extra_headers = None
-                        if self.provider == "openrouter":
-                            extra_headers = {}
-                            if settings.openrouter_referer:
-                                extra_headers["HTTP-Referer"] = settings.openrouter_referer
-                            if settings.openrouter_title:
-                                extra_headers["X-Title"] = settings.openrouter_title
+            # Generate response based on provider
+            logger.info(f"Generating SRS document using {self.provider} for input: {user_input[:100]}...")
+            
+            if self.provider in ("openai", "openrouter"):
+                extra_headers = None
+                if self.provider == "openrouter":
+                    extra_headers = {}
+                    if settings.openrouter_referer:
+                        extra_headers["HTTP-Referer"] = settings.openrouter_referer
+                    if settings.openrouter_title:
+                        extra_headers["X-Title"] = settings.openrouter_title
 
-                        response = await self.client.chat.completions.create(
-                            model=(
-                                "openai/gpt-4o" if self.provider == "openrouter" else "gpt-3.5-turbo"
-                            ),
-                            messages=[
-                                {"role": "system", "content": "You are a professional Business Analyst. Return only valid JSON."},
-                                {"role": "user", "content": prompt}
-                            ],
-                            temperature=0.7,
-                            max_tokens=4000,
-                            extra_headers=extra_headers
-                        )
-                        content = response.choices[0].message.content or ""
-                    else:
-                        response = self.model.generate_content(prompt)
-                        content = response.text or ""
-                    # If we reach here without exception, break out with content
-                    break
-                except Exception as prov_err:
-                    last_error = prov_err
-                    logger.warning(f"Provider {self.provider} failed to generate content: {prov_err}")
-                    # continue to next provider
-                    continue
-
-            if not content:
-                raise Exception(str(last_error) if last_error else "Unknown LLM error")
+                response = await self.client.chat.completions.create(
+                    model=(
+                        "openai/gpt-4o" if self.provider == "openrouter" else "gpt-3.5-turbo"
+                    ),
+                    messages=[
+                        {"role": "system", "content": "You are a professional Business Analyst. Return only valid JSON."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.7,
+                    max_tokens=4000,
+                    extra_headers=extra_headers
+                )
+                content = response.choices[0].message.content or ""
+            else:  # Google Gemini
+                response = self.model.generate_content(prompt)
+                content = response.text or ""
             
             logger.debug(f"LLM Response: {content[:200]}...")
             
@@ -207,10 +165,11 @@ Return only valid JSON without any markdown formatting or additional text."""
             except json.JSONDecodeError as e:
                 logger.warning(f"Failed to parse LLM response as JSON: {e}")
                 # Return a structured fallback response
+                current_date_string = datetime.now().strftime('%Y-%m-%d')
                 return {
                     "title": "Generated SRS Document FALLBACK RESPONSE",
                     "version": "1.0",
-                    "date": "2024-01-01",
+                    "date": {current_date_string},
                     "author": "BA Copilot AI",
                     "project_overview": user_input,
                     "functional_requirements": ["Requirements based on: " + user_input],
@@ -245,39 +204,28 @@ Return only valid JSON without any markdown formatting or additional text."""
         try:
             self._ensure_initialized()
             
-            # Try providers in fallback order until one succeeds
-            last_error: Optional[Exception] = None
-            for provider_name in self._provider_cycle():
-                if self.provider != provider_name:
-                    if not self._try_init_provider(provider_name):
-                        continue
-                try:
-                    if self.provider in ("openai", "openrouter"):
-                        extra_headers = None
-                        if self.provider == "openrouter":
-                            extra_headers = {}
-                            if settings.openrouter_referer:
-                                extra_headers["HTTP-Referer"] = settings.openrouter_referer
-                            if settings.openrouter_title:
-                                extra_headers["X-Title"] = settings.openrouter_title
+            # Generate response based on provider
+            if self.provider in ("openai", "openrouter"):
+                extra_headers = None
+                if self.provider == "openrouter":
+                    extra_headers = {}
+                    if settings.openrouter_referer:
+                        extra_headers["HTTP-Referer"] = settings.openrouter_referer
+                    if settings.openrouter_title:
+                        extra_headers["X-Title"] = settings.openrouter_title
 
-                        response = await self.client.chat.completions.create(
-                            model=(
-                                "openai/gpt-4o" if self.provider == "openrouter" else "gpt-3.5-turbo"
-                            ),
-                            messages=[{"role": "user", "content": prompt}],
-                            temperature=temperature,
-                            extra_headers=extra_headers
-                        )
-                        return response.choices[0].message.content or ""
-                    else:
-                        response = self.model.generate_content(prompt)
-                        return response.text or ""
-                except Exception as prov_err:
-                    last_error = prov_err
-                    logger.warning(f"Provider {self.provider} failed to generate content: {prov_err}")
-                    continue
-            raise Exception(str(last_error) if last_error else "Unknown LLM error")
+                response = await self.client.chat.completions.create(
+                    model=(
+                        "openai/gpt-4o" if self.provider == "openrouter" else "gpt-3.5-turbo"
+                    ),
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=temperature,
+                    extra_headers=extra_headers
+                )
+                return response.choices[0].message.content or ""
+            else:  # Google Gemini
+                response = self.model.generate_content(prompt)
+                return response.text or ""
             
         except Exception as e:
             logger.error(f"Error generating content: {str(e)}")
