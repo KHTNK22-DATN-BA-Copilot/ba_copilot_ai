@@ -150,16 +150,30 @@ make type-check            # Type checking (mypy)
 
 ## LLM Service Implementation
 
-### Google Gemini Integration
+### LLM Integration (Google, OpenAI, OpenRouter)
 
-The project now uses **Google Gemini AI** instead of OpenAI for LLM services:
+The project supports multiple providers with this priority: **Google Gemini** -> **OpenAI** -> **OpenRouter** (OpenAI-compatible). The first available key is used automatically.
 
 ```bash
-# Environment setup
-GOOGLE_AI_API_KEY=your_google_ai_api_key_here
+Environment variables (.env at project root):
 
-# Test LLM connectivity
-python -c "from src.services.llm_service import get_llm_service; print('LLM Service loaded successfully')"
+```
+
+GOOGLE_AI_API_KEY=...
+OPENAI_API_KEY=...
+OPENROUTER_AI_API_KEY=...
+OPENROUTER_REFERER=http://localhost
+OPENROUTER_TITLE=BA Copilot AI (Local)
+
+```
+
+Quick check:
+```
+
+python -c "from src.services.llm_service import get_llm_service; import asyncio; print('Provider init...'); svc=get_llm_service(); print('ok')"
+
+```
+
 ```
 
 ### SRS Generation Service
@@ -167,10 +181,23 @@ python -c "from src.services.llm_service import get_llm_service; print('LLM Serv
 **POST /v1/srs/generate** endpoint is fully implemented:
 
 ```bash
-# Test the SRS generation endpoint
-curl -X POST "http://localhost:8000/v1/srs/generate" \
-     -H "Content-Type: application/json" \
-     -d '{"project_input": "Create a web-based math learning game for elementary students"}'
+Start full stack with Docker (recommended for DB/Redis):
+
+```
+
+Set-Location .\infrastructure
+docker-compose -f docker-compose.yml up --build -d
+Invoke-RestMethod 'http://localhost:8000/v1/health/' | ConvertTo-Json
+
+```
+
+Test the SRS generation endpoint:
+
+```
+
+curl -X POST "http://localhost:8000/v1/srs/generate" -H "Content-Type: application/json" -d '{"project_input": "Create a web-based math learning game for elementary students"}'
+
+```
 
 # Or test with Python
 python test_api_complete.py  # Comprehensive API testing

@@ -6,7 +6,7 @@ import requests
 from unittest.mock import AsyncMock, patch
 
 # Add src directory to Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 def test_srs_api_endpoint():
     """Test SRS API endpoint with FastAPI test client."""

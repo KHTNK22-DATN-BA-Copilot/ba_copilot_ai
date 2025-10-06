@@ -4,7 +4,7 @@ import sys
 import os
 
 # Add src directory to Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 async def test_srs_generation_real():
     """Test SRS generation with actual Google AI API call."""

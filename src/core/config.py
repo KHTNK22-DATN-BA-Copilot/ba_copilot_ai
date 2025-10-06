@@ -5,13 +5,13 @@ Configuration settings for BA Copilot AI Services.
 from typing import Optional, List
 import os
 from pathlib import Path
+from pydantic_settings import BaseSettings
+from pydantic import Field
 
-try:
-    from pydantic_settings import BaseSettings
-    from pydantic import Field
-except ImportError:
-    # Fallback for older pydantic versions
-    from pydantic import BaseSettings, Field
+# Resolve the project root .env regardless of current working directory
+# This file lives at src/core/config.py, so project root is two levels up
+ENV_PATH = str(Path(__file__).resolve().parents[2] / ".env")
+
 
 class Settings(BaseSettings):
     """Application settings."""
@@ -42,7 +42,13 @@ class Settings(BaseSettings):
     
     # LLM API settings
     google_ai_api_key: Optional[str] = None
+    openai_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None
+    # OpenRouter (OpenAI-compatible) settings
+    openrouter_api_key: Optional[str] = None
+    openrouter_model: Optional[str] = "deepseek/deepseek-v3.1:free"
+    openrouter_referer: Optional[str] = None  # for OpenRouter rankings (optional)
+    openrouter_title: Optional[str] = None    # for OpenRouter rankings (optional)
     
     # File storage settings
     upload_directory: str = "./uploads"
@@ -55,7 +61,7 @@ class Settings(BaseSettings):
     mock_data_enabled: bool = True
     
     class Config:
-        env_file = ".env"  # Look for .env in project root directory
+        env_file = ENV_PATH  # Resolve to the project root .env
         env_file_encoding = "utf-8"
         case_sensitive = False
 

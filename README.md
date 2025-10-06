@@ -35,20 +35,23 @@ BA Copilot AI Services is a specialized backend platform that leverages advanced
 - **Wireframe Generator**: AI-powered conversion of textual requirements into interactive wireframe prototypes
 - **AI Conversation Manager**: Intelligent chat system with context management, multi-LLM routing, and conversation history
 - **Document Processing**: Advanced parsing and analysis of business documents in various formats
-
-### 🚀 Technical Features
-
+  ```powershell
+  # For Docker development (Windows PowerShell)
+  Set-Location 'D:\Do_an_tot_nghiep\ba_copilot_ai'
+  Copy-Item 'infrastructure\.env' '.env' -Force  # ensure .env at project root
+  docker-compose -f infrastructure/docker-compose.yml up --build -d
+  ```
 - **RESTful API Design**: Industry-standard REST APIs with comprehensive OpenAPI documentation
 - **Microservices Architecture**: Independently scalable services with clear domain boundaries
-- **Multi-LLM Integration**: Support for OpenAI GPT-4, Claude-3, and local models with intelligent routing
-- **Real-time Communication**: WebSocket-based real-time chat and streaming responses
-- **Authentication & Security**: JWT-based authentication with role-based access control
-- **High Performance**: Redis caching, connection pooling, and optimized database queries
-- **Monitoring & Observability**: Comprehensive logging, metrics, and distributed tracing
 
-## 🏗️ System Architecture
+  ```powershell
+  # Activate virtual environment first
+  .venv\Scripts\Activate
 
-BA Copilot AI Core Services follows a **modular monolith architecture** designed for rapid development while maintaining clear migration paths to microservices as the system scales.
+  # Start the server
+  Set-Location 'D:\Do_an_tot_nghiep\ba_copilot_ai\src'
+  python main.py
+  ```
 
 ### Architecture Approach
 
