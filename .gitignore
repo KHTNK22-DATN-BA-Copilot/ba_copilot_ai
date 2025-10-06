@@ -4,8 +4,6 @@
 # Ignore Python virtual environment directory
 .venv
 
-# Ignore Python package initialization file (if not needed in repo)
-__init__.py
 
 # Ignore pytest cache directory
 .pytest_cache
