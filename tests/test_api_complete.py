@@ -66,7 +66,7 @@ def test_srs_api_endpoint():
     }
     
     # Test with mock
-    with patch('services.srs_service.get_llm_service', return_value=mock_llm_service):
+    with patch('src.services.srs_service.get_llm_service', return_value=mock_llm_service):
         client = TestClient(app)
         
         # Test data
