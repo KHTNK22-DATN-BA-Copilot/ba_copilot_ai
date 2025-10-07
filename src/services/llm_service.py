@@ -274,7 +274,7 @@ Return only valid JSON without any markdown formatting or additional text."""
 
 
 # Global instance - initialized lazily
-_llm_service_instance = None
+_llm_service_instance: Optional[LLMService] = None
 
 def get_llm_service() -> LLMService:
     """Get or create the global LLM service instance."""

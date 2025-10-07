@@ -51,7 +51,7 @@ async def test_generate_srs_openrouter_parses_json_and_sets_headers():
     # Force provider to openrouter and inject fake client
     def fake_init():
         svc.provider = "openrouter"
-        svc.client = FakeOpenRouterClient(
+        svc.__dict__['client'] = FakeOpenRouterClient(
             content='```json\n{"title":"X","version":"1.0"}\n```',
             capture_kwargs=True,
         )
@@ -86,7 +86,7 @@ async def test_generate_srs_google_non_json_fallback_with_raw_response():
 
     def fake_init():
         svc.provider = "google"
-        svc.model = FakeGoogleModel(text="this is not json")
+        svc.__dict__['model'] = FakeGoogleModel(text="this is not json")
         svc._initialized = True
 
     svc._ensure_initialized = fake_init  # type: ignore
@@ -107,7 +107,7 @@ async def test_generate_srs_openrouter_empty_content_triggers_outer_fallback():
 
     def fake_init():
         svc.provider = "openrouter"
-        svc.client = FakeOpenRouterClient(content="")
+        svc.__dict__['client'] = FakeOpenRouterClient(content="")
         svc._initialized = True
 
     svc._ensure_initialized = fake_init  # type: ignore
@@ -145,7 +145,7 @@ async def test_generate_content_openrouter_success():
 
     def fake_init():
         svc.provider = "openrouter"
-        svc.client = FakeOpenRouterClient(content="ok")
+        svc.__dict__['client'] = FakeOpenRouterClient(content="ok")
         svc._initialized = True
 
     svc._ensure_initialized = fake_init  # type: ignore
@@ -160,7 +160,7 @@ async def test_generate_content_google_success():
 
     def fake_init():
         svc.provider = "google"
-        svc.model = FakeGoogleModel(text="ok")
+        svc.__dict__['model'] = FakeGoogleModel(text="ok")
         svc._initialized = True
 
     svc._ensure_initialized = fake_init  # type: ignore
@@ -175,7 +175,7 @@ async def test_generate_content_error_returns_prompt():
 
     def fake_init():
         svc.provider = "openrouter"
-        svc.client = FakeOpenRouterClient(content="", raise_error=True)
+        svc.__dict__['client'] = FakeOpenRouterClient(content="", raise_error=True)
         svc._initialized = True
 
     svc._ensure_initialized = fake_init  # type: ignore
