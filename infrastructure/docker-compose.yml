@@ -17,12 +17,6 @@ services:
       - DEBUG=true
       - LOG_LEVEL=DEBUG
       - PYTHONPATH=/app/src
-      # Explicitly pass through LLM keys if present
-      - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENROUTER_API_KEY=${OPENROUTER_AI_API_KEY}
-      - OPENROUTER_REFERER=${OPENROUTER_REFERER}
-      - OPENROUTER_TITLE=${OPENROUTER_TITLE}
     volumes:
       # Mount source code for development hot-reload
       - ../src:/app/src:ro
