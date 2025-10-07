@@ -74,22 +74,23 @@ async def test_generate_srs_document_invalid_input_short(client):
 
 @pytest.mark.asyncio
 async def test_generate_srs_document_service_error(client):
-    """Test SRS generation with service error."""
+    """When LLM errors occur, the API should gracefully return a fallback document (HTTP 200)."""
     with patch('src.services.srs_service.get_llm_service') as mock_get_llm_service:
-        # Mock LLM service to raise an error
+        # Mock LLM service to raise an error to force fallback path
         mock_llm_service = AsyncMock()
         mock_llm_service.generate_srs_document.side_effect = Exception("LLM service error")
         mock_get_llm_service.return_value = mock_llm_service
-        
+
         request_data = {
             "project_input": "Valid input for testing error handling that is long enough"
         }
-        
+
         response = client.post("/v1/srs/generate", json=request_data)
-        
-        assert response.status_code == 500
+
+        assert response.status_code == 200
         data = response.json()
-        assert "Failed to generate SRS document" in data["detail"]
+        assert data["status"] == "completed"
+        assert isinstance(data.get("document"), dict)
 
 
 @pytest.mark.asyncio
