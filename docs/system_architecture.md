@@ -1,23 +1,24 @@
-# System Architecture - BA Copilot AI Core Services
+# System Architecture - BA Copilot AI Services
 
 ## Overview
 
-The BA Copilot AI Core Services system is designed as a **modular monolith** that provides AI-powered tools for Business Analysts. The system emphasizes rapid development and easy deployment while maintaining clear domain boundaries that enable future microservices migration.
+The BA Copilot AI Services system is designed as a **modular monolith** that provides AI-powered tools for Business Analysts. This repository specifically handles AI-powered document and diagram generation services, while relying on the Backend Repository for user management and core business logic.
 
 ## Architecture Principles
 
+- **AI Services Focus**: Specialized in AI-powered content generation (SRS, wireframes, diagrams, conversations)
+- **Backend Integration**: Relies on Backend Repository for user authentication and management
 - **Modular Monolith**: Well-defined service boundaries within a single deployment unit
 - **API-First Design**: Clear internal interfaces that can become external APIs later
-- **Domain-Driven Design**: Services organized around business domains
+- **Domain-Driven Design**: Services organized around AI generation domains
 - **Progressive Enhancement**: Start simple, scale complexity as needed
 - **Migration-Ready**: Architecture supports future microservices extraction
-- **Observability**: Comprehensive logging and monitoring
 
 ## System Overview
 
-The system is designed as a **modular monolith** that can evolve into microservices as needed:
+The system is designed as an **AI-focused modular monolith** that integrates with the Backend Repository:
 
-### Current Architecture (Monolith Phase)
+### Current Architecture (AI Services Only)
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
@@ -27,11 +28,17 @@ The system is designed as a **modular monolith** that can evolve into microservi
           └───────────────────────┼───────────────────────┘
                                   │
                     ┌─────────────▼─────────────┐
-                    │      FastAPI Backend     │
-                    │   (Modular Monolith)     │
+                    │    Backend Repository    │
+                    │  (User Management &      │
+                    │   Core Business Logic)   │
+                    └─────────────┬─────────────┘
+                                  │ JWT + user_id
+                    ┌─────────────▼─────────────┐
+                    │   AI Services Backend    │
+                    │   (This Repository)      │
                     │                          │
                     │  ┌─────────────────────┐ │
-                    │  │    Service Layer    │ │
+                    │  │    AI Service Layer │ │
                     │  │ ┌─────┬─────┬─────┐ │ │
                     │  │ │ SRS │Wire-│ AI  │ │ │
                     │  │ │ Gen │frame│Chat │ │ │
@@ -46,8 +53,9 @@ The system is designed as a **modular monolith** that can evolve into microservi
     │                             │                             │
 ┌───▼───┐           ┌─────────────▼─────────────┐         ┌────▼────┐
 │PostgreSQL│           │      File Storage       │         │   LLM   │
-│Database│           │    (Local/S3-Compatible) │         │Provider │
-└─────────┘           └─────────────────────────┘         │  APIs   │
+│AI Services│         │    (Local/S3-Compatible) │         │Provider │
+│Database   │         └─────────────────────────┘         │  APIs   │
+└─────────┘                                               └─────────┘
                                                          └─────────┘
 ```
 

@@ -4,6 +4,140 @@ Tests for SRS document endpoints.
 
 import pytest
 from fastapi.testclient import TestClient
+from unittest.mock import AsyncMock, patch
+import json
+
+
+# Tests for POST /srs/generate endpoint
+
+@pytest.mark.asyncio
+async def test_generate_srs_document_success(client):
+    """Test successful SRS document generation."""
+    with patch('src.services.srs_service.get_llm_service') as mock_get_llm_service:
+        # Mock the LLM service
+        mock_llm_service = AsyncMock()
+        mock_llm_service.generate_srs_document.return_value = {
+            "title": "Math Learning Web Game",
+            "version": "1.0",
+            "author": "BA Copilot AI",
+            "project_overview": "Interactive web-based math learning platform",
+            "functional_requirements": ["User registration", "Interactive exercises"],
+            "non_functional_requirements": ["High performance", "Security"]
+        }
+        mock_get_llm_service.return_value = mock_llm_service
+        
+        # Test data
+        request_data = {
+            "project_input": "Create a web-based math learning game for elementary school students with interactive exercises, progress tracking, and teacher dashboard."
+        }
+        
+        # Make request
+        response = client.post("/v1/srs/generate", json=request_data)
+        
+        # Assertions
+        assert response.status_code == 200
+        data = response.json()
+        
+        # Validate response structure
+        assert "document_id" in data
+        assert "generated_at" in data
+        assert "input_description" in data
+        assert "document" in data
+        assert "status" in data
+        
+        # Validate response values
+        assert data["status"] == "completed"
+        assert data["input_description"] == request_data["project_input"]
+        assert isinstance(data["document"], dict)
+
+
+@pytest.mark.asyncio 
+async def test_generate_srs_document_invalid_input_empty(client):
+    """Test SRS generation with empty input."""
+    request_data = {"project_input": ""}
+    
+    response = client.post("/v1/srs/generate", json=request_data)
+    
+    assert response.status_code == 422  # Validation error
+
+
+@pytest.mark.asyncio
+async def test_generate_srs_document_invalid_input_short(client):
+    """Test SRS generation with too short input."""
+    request_data = {"project_input": "short"}
+    
+    response = client.post("/v1/srs/generate", json=request_data)
+    
+    # Pydantic validation error (422) is expected for input too short
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_generate_srs_document_service_error(client):
+    """When LLM errors occur, the API should gracefully return a fallback document (HTTP 200)."""
+    with patch('src.services.srs_service.get_llm_service') as mock_get_llm_service:
+        # Mock LLM service to raise an error to force fallback path
+        mock_llm_service = AsyncMock()
+        mock_llm_service.generate_srs_document.side_effect = Exception("LLM service error")
+        mock_get_llm_service.return_value = mock_llm_service
+
+        request_data = {
+            "project_input": "Valid input for testing error handling that is long enough"
+        }
+
+        response = client.post("/v1/srs/generate", json=request_data)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "completed"
+        assert isinstance(data.get("document"), dict)
+
+
+@pytest.mark.asyncio
+async def test_generate_srs_document_validation_pydantic(client):
+    """Test Pydantic validation for SRS generation request."""
+    # Test missing required field
+    response = client.post("/v1/srs/generate", json={})
+    assert response.status_code == 422
+    
+    # Test field too long
+    long_input = "a" * 10001
+    request_data = {"project_input": long_input}
+    response = client.post("/v1/srs/generate", json=request_data)
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_generate_srs_document_response_format(client):
+    """Test SRS generation response format compliance."""
+    with patch('src.services.srs_service.get_llm_service') as mock_get_llm_service:
+        # Mock the LLM service
+        mock_llm_service = AsyncMock()
+        mock_llm_service.generate_srs_document.return_value = {
+            "title": "Test Project",
+            "version": "1.0",
+            "author": "BA Copilot AI"
+        }
+        mock_get_llm_service.return_value = mock_llm_service
+        
+        request_data = {"project_input": "Test project description that is long enough"}
+        response = client.post("/v1/srs/generate", json=request_data)
+        
+        assert response.status_code == 200
+        data = response.json()
+        
+        # Check all required fields are present
+        required_fields = ["document_id", "generated_at", "input_description", "document", "status"]
+        for field in required_fields:
+            assert field in data
+            
+        # Check data types
+        assert isinstance(data["document_id"], str)
+        assert isinstance(data["document"], dict)
+        assert data["status"] == "completed"
+
+
+# Tests for existing GET endpoints
 
 
 def test_get_srs_document_success(client, mock_document_id):
