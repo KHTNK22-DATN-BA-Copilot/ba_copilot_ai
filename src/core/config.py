@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     openai_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None
     # OpenRouter (OpenAI-compatible) settings
-    openrouter_api_key: Optional[str] = None
+    openrouter_ai_api_key: Optional[str] = None
     openrouter_model: Optional[str] = "deepseek/deepseek-v3.1:free"
     openrouter_referer: Optional[str] = None  # for OpenRouter rankings (optional)
     openrouter_title: Optional[str] = None    # for OpenRouter rankings (optional)

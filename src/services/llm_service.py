@@ -24,11 +24,11 @@ class LLMService:
         """Ensure the LLM service is initialized."""
         if not self._initialized:
             # Priority: OpenRouter (DeepSeek free) -> Google Gemini -> OpenAI -> Fallback
-            if settings.openrouter_api_key:
+            if settings.openrouter_ai_api_key:
                 try:
                     from openai import AsyncOpenAI
                     self.client = AsyncOpenAI(
-                        api_key=settings.openrouter_api_key,
+                        api_key=settings.openrouter_ai_api_key,
                         base_url="https://openrouter.ai/api/v1",
                     )
                     self.provider = "openrouter"
