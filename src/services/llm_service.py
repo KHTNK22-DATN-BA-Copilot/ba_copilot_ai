@@ -1,86 +1,52 @@
 """
-LLM Service for Google Gemini integration using LangChain.
+LLM Service using LangGraph workflows for advanced AI processing.
 """
 
 from datetime import datetime
 import json
 import logging
-import os
 from typing import Dict, Any, Optional
 from core.config import settings
+from .workflows.srs_workflow import SRSWorkflow
 
 logger = logging.getLogger(__name__)
 
 
 class LLMService:
-    """Service for interacting with Google Gemini API using LangChain."""
+    """Service for interacting with LLMs using LangGraph workflows."""
     
     def __init__(self):
-        """Initialize the LLM service with Google Gemini."""
-        self.llm = None
+        """Initialize the LLM service with LangGraph workflows."""
+        self.srs_workflow = None
         self._initialized = False
         
     def _ensure_initialized(self):
         """Ensure the LLM service is initialized."""
         if not self._initialized:
-            # Priority: OpenRouter (DeepSeek free) -> Google Gemini -> OpenAI -> Fallback
-            if settings.openrouter_ai_api_key:
-                try:
-                    from openai import AsyncOpenAI
-                    self.client = AsyncOpenAI(
-                        api_key=settings.openrouter_ai_api_key,
-                        base_url="https://openrouter.ai/api/v1",
-                    )
-                    self.provider = "openrouter"
-                    self._initialized = True
-                    logger.info("LLM Service initialized with OpenRouter via OpenAI SDK")
-                    return
-                except ImportError as e:
-                    logger.warning(f"OpenAI package not available for OpenRouter: {e}")
-                except Exception as e:
-                    logger.warning(f"Failed to initialize OpenRouter: {e}")
-
-            # Next: Google Gemini (1.5)
-            if settings.google_ai_api_key:
-                try:
-                    import google.generativeai as genai
-                    genai.configure(api_key=settings.google_ai_api_key)
-                    # Prefer a stable, widely available model
-                    self.model = genai.GenerativeModel('gemini-1.5-flash')
-                    self.provider = "google"
-                    self._initialized = True
-                    logger.info("LLM Service initialized with Google Gemini")
-                    return
-                except ImportError as e:
-                    logger.warning(f"Failed to import google.generativeai: {e}")
-                except Exception as e:
-                    logger.warning(f"Failed to initialize Google Gemini: {e}")
-
-            # Finally: OpenAI
-            if settings.openai_api_key:
-                try:
-                    from openai import AsyncOpenAI
-                    self.client = AsyncOpenAI(api_key=settings.openai_api_key)
-                    self.provider = "openai"
-                    self._initialized = True
-                    logger.info("LLM Service initialized with OpenAI")
-                    return
-                except ImportError as e:
-                    logger.warning(f"OpenAI package not available: {e}")
-                except Exception as e:
-                    logger.warning(f"Failed to initialize OpenAI: {e}")
-
-            # Fallback provider (no external keys) to keep API functional
-            self.provider = "fallback"
-            self._initialized = True
-            logger.info("LLM Service initialized in fallback mode (no external LLM keys)")
+            try:
+                # Initialize SRS workflow
+                self.srs_workflow = SRSWorkflow()
+                self._initialized = True
+                logger.info("LLM Service initialized with LangGraph workflows")
+            except Exception as e:
+                logger.error(f"Failed to initialize LLM Service: {e}")
+                # Continue with fallback mode
+                self._initialized = True
+                logger.info("LLM Service initialized in fallback mode")
     
-    async def generate_srs_document(self, user_input: str) -> Dict[str, Any]:
+    async def generate_srs_document(
+        self, 
+        user_input: str, 
+        user_id: Optional[str] = None,
+        project_id: Optional[int] = None
+    ) -> Dict[str, Any]:
         """
-        Generate SRS document using OpenAI or Google Gemini.
+        Generate SRS document using LangGraph workflow.
         
         Args:
             user_input: Input requirements from frontend
+            user_id: Optional user ID for tracking
+            project_id: Optional project ID for organization
             
         Returns:
             Dict containing the generated SRS document in JSON format
@@ -88,105 +54,20 @@ class LLMService:
         try:
             self._ensure_initialized()
             
-            # Create the prompt for SRS generation
-            prompt = f"""
-You are a Lead Business Analyst with extensive experience in creating IEEE-standard Software Requirements Specification documents.
-
-Your task is to generate a comprehensive IEEE document in JSON format based on the provided input.
-
-Return ONLY the document in JSON format along with metadata, without any additional comments, explanations, or text.
-
-The JSON structure should include:
-- title: Project title
-- version: Document version
-- date: Creation date
-- author: Document author
-- project_overview: High-level project description
-- functional_requirements: Array of detailed functional requirements
-- non_functional_requirements: Array of performance, security, usability requirements
-- system_architecture: High-level system design description
-- user_stories: Array of user stories and acceptance criteria
-- constraints: Array of technical and business constraints
-- assumptions: Array of project assumptions
-- glossary: Object with technical terms and definitions
-
-Ensure the document follows IEEE standards and is comprehensive yet clear.
-
-Generate me a comprehensive IEEE document in JSON format based on the input: 
-\"{user_input}\"
-
-Return only valid JSON without any markdown formatting or additional text."""
+            logger.info(f"Generating SRS document using LangGraph workflow for input: {user_input[:100]}...")
             
-            # Generate response based on provider
-            logger.info(f"Generating SRS document using {self.provider} for input: {user_input[:100]}...")
-            
-            if self.provider in ("openai", "openrouter"):
-                extra_headers = None
-                if self.provider == "openrouter":
-                    extra_headers = {}
-                    if settings.openrouter_referer:
-                        extra_headers["HTTP-Referer"] = settings.openrouter_referer
-                    if settings.openrouter_title:
-                        extra_headers["X-Title"] = settings.openrouter_title
-
-                # Use DeepSeek free model on OpenRouter first
-                model_id = (
-                    "deepseek/deepseek-chat-v3.1:free" if self.provider == "openrouter" else "gpt-3.5-turbo"
+            if self.srs_workflow:
+                # Use LangGraph workflow for comprehensive SRS generation
+                srs_document = await self.srs_workflow.generate_srs_document(
+                    project_input=user_input,
+                    user_id=user_id,
+                    project_id=project_id
                 )
-
-                response = await self.client.chat.completions.create(
-                    model=model_id,
-                    messages=[
-                        {"role": "system", "content": "You are a professional Business Analyst. Return only valid JSON."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    temperature=0.7,
-                    max_tokens=4000,
-                    extra_headers=extra_headers
-                )
-                content = response.choices[0].message.content or ""
-            elif self.provider == "google":
-                response = self.model.generate_content(prompt)
-                content = response.text or ""
-            else:
-                # Fallback: construct a structured response without external LLMs
-                current_date_string = datetime.now().strftime('%Y-%m-%d')
-                content = json.dumps({
-                    "title": "Generated SRS Document (Fallback)",
-                    "version": "1.0",
-                    "date": current_date_string,
-                    "author": "BA Copilot AI",
-                    "project_overview": user_input,
-                    "functional_requirements": ["Requirement derived from input"],
-                    "non_functional_requirements": ["Performance and security requirements TBD"],
-                    "system_architecture": "Architecture TBD",
-                    "user_stories": ["As a user, I can ..."],
-                    "constraints": ["Constraints TBD"],
-                    "assumptions": ["Assumptions TBD"],
-                    "glossary": {"SRS": "Software Requirements Specification"}
-                })
-            
-            logger.debug(f"LLM Response: {content[:200]}...")
-            
-            # Ensure content is not empty
-            if not content.strip():
-                raise ValueError("Empty response from LLM service")
-            
-            # Try to parse as JSON
-            try:
-                # Clean the response if it has markdown formatting
-                if content.startswith('```json'):
-                    content = content.replace('```json', '').replace('```', '').strip()
-                elif content.startswith('```'):
-                    content = content.replace('```', '').strip()
-                
-                srs_document = json.loads(content)
-                logger.info("Successfully generated and parsed SRS document")
+                logger.info("Successfully generated SRS document using LangGraph workflow")
                 return srs_document
-                
-            except json.JSONDecodeError as e:
-                logger.warning(f"Failed to parse LLM response as JSON: {e}")
-                # Return a structured fallback response
+            else:
+                # Fallback: construct a structured response without workflows
+                logger.warning("SRS workflow not available, using fallback generation")
                 current_date_string = datetime.now().strftime('%Y-%m-%d')
                 return {
                     "title": "Generated SRS Document (Fallback)",
@@ -201,7 +82,11 @@ Return only valid JSON without any markdown formatting or additional text."""
                     "constraints": ["Technical constraints to be identified"],
                     "assumptions": ["Assumptions to be validated"],
                     "glossary": {"SRS": "Software Requirements Specification"},
-                    "raw_response": content
+                    "metadata": {
+                        "user_id": user_id,
+                        "project_id": project_id,
+                        "provider": "fallback"
+                    }
                 }
                 
         except Exception as e:
@@ -209,7 +94,7 @@ Return only valid JSON without any markdown formatting or additional text."""
             logger.error(f"Error generating SRS document: {str(e)}")
             current_date_string = datetime.now().strftime('%Y-%m-%d')
             return {
-                "title": "Generated SRS Document (Fallback)",
+                "title": "Generated SRS Document (Error Fallback)",
                 "version": "1.0",
                 "date": current_date_string,
                 "author": "BA Copilot AI",
@@ -220,20 +105,28 @@ Return only valid JSON without any markdown formatting or additional text."""
                 "user_stories": ["User story derived from: " + user_input],
                 "constraints": ["Technical constraints to be identified"],
                 "assumptions": ["Assumptions to be validated"],
-                "glossary": {"SRS": "Software Requirements Specification"}
+                "glossary": {"SRS": "Software Requirements Specification"},
+                "metadata": {
+                    "user_id": user_id,
+                    "project_id": project_id,
+                    "provider": "error_fallback",
+                    "error": str(e)
+                }
             }
     
     async def generate_content(
         self, 
         prompt: str, 
-        temperature: float = 0.7
+        temperature: float = 0.7,
+        user_id: Optional[str] = None
     ) -> str:
         """
-        Generate content using Google Gemini with custom parameters.
+        Generate content using available LLM providers.
         
         Args:
             prompt: User prompt
             temperature: Response creativity (0.0 to 1.0)
+            user_id: Optional user ID for tracking
             
         Returns:
             Generated content as string
@@ -241,36 +134,133 @@ Return only valid JSON without any markdown formatting or additional text."""
         try:
             self._ensure_initialized()
             
-            # Generate response based on provider
-            if self.provider in ("openai", "openrouter"):
-                extra_headers = None
-                if self.provider == "openrouter":
-                    extra_headers = {}
-                    if settings.openrouter_referer:
-                        extra_headers["HTTP-Referer"] = settings.openrouter_referer
-                    if settings.openrouter_title:
-                        extra_headers["X-Title"] = settings.openrouter_title
-
-                model_id = (
-                    "deepseek/deepseek-chat-v3.1:free" if self.provider == "openrouter" else ""
-                )
-
-                response = await self.client.chat.completions.create(
-                    model=model_id,
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=temperature,
-                    extra_headers=extra_headers
-                )
-                return response.choices[0].message.content or ""
-            elif self.provider == "google":  # Google Gemini
-                response = self.model.generate_content(prompt)
-                return response.text or ""
+            logger.info(f"Generating content for user {user_id}: {prompt[:50]}...")
+            
+            # For now, use a simple text generation approach
+            # This can be extended with additional LangGraph workflows for other content types
+            
+            # Placeholder for content generation workflow
+            logger.info("Content generation workflow - placeholder implementation")
+            
+            # Try to use SRS workflow's LLM if available
+            if self.srs_workflow and hasattr(self.srs_workflow, 'llm') and self.srs_workflow.llm:
+                try:
+                    from langchain_core.messages import HumanMessage
+                    response = await self.srs_workflow.llm.ainvoke([HumanMessage(content=prompt)])
+                    content = response.content
+                    return str(content) if content else prompt
+                except Exception as e:
+                    logger.warning(f"LLM content generation failed: {e}")
+                    return f"Generated content based on: {prompt}"
             else:
-                return prompt  # simple echo fallback for content API
+                # Simple fallback content generation
+                return f"Generated content based on: {prompt}"
             
         except Exception as e:
             logger.error(f"Error generating content: {str(e)}")
-            return prompt
+            return f"Content generation error. Original prompt: {prompt}"
+
+    async def generate_wireframe(
+        self, 
+        description: str, 
+        user_id: Optional[str] = None,
+        project_id: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """
+        Generate wireframe using LangGraph workflow (placeholder).
+        
+        Args:
+            description: Wireframe description
+            user_id: Optional user ID
+            project_id: Optional project ID
+            
+        Returns:
+            Generated wireframe data
+        """
+        logger.info("Wireframe generation workflow - placeholder implementation")
+        
+        # Placeholder for wireframe generation workflow
+        return {
+            "wireframe_id": f"wireframe_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+            "title": "Generated Wireframe",
+            "description": description,
+            "html_content": f"<div>Wireframe based on: {description}</div>",
+            "css_content": "/* CSS to be generated */",
+            "metadata": {
+                "user_id": user_id,
+                "project_id": project_id,
+                "generated_at": datetime.now().isoformat()
+            }
+        }
+
+    async def generate_diagram(
+        self, 
+        description: str, 
+        diagram_type: str,
+        user_id: Optional[str] = None,
+        project_id: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """
+        Generate diagram using LangGraph workflow (placeholder).
+        
+        Args:
+            description: Diagram description
+            diagram_type: Type of diagram (sequence, architecture, usecase, flowchart)
+            user_id: Optional user ID
+            project_id: Optional project ID
+            
+        Returns:
+            Generated diagram data
+        """
+        logger.info(f"Diagram generation workflow - {diagram_type} - placeholder implementation")
+        
+        # Placeholder for diagram generation workflow
+        return {
+            "diagram_id": f"diagram_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+            "diagram_type": diagram_type,
+            "title": f"Generated {diagram_type.title()} Diagram",
+            "description": description,
+            "mermaid_code": f"graph TD\n    A[Start] --> B[{description}]\n    B --> C[End]",
+            "metadata": {
+                "user_id": user_id,
+                "project_id": project_id,
+                "generated_at": datetime.now().isoformat()
+            }
+        }
+
+    async def process_conversation(
+        self, 
+        message: str, 
+        conversation_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        project_id: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """
+        Process conversation message using LangGraph workflow (placeholder).
+        
+        Args:
+            message: User message
+            conversation_id: Optional conversation ID
+            user_id: Optional user ID
+            project_id: Optional project ID
+            
+        Returns:
+            AI response data
+        """
+        logger.info("Conversation processing workflow - placeholder implementation")
+        
+        # Placeholder for conversation processing workflow
+        return {
+            "message_id": f"msg_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+            "conversation_id": conversation_id or f"conv_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+            "role": "assistant",
+            "content": f"AI response to: {message}",
+            "metadata": {
+                "user_id": user_id,
+                "project_id": project_id,
+                "generated_at": datetime.now().isoformat()
+            }
+        }
 
 
 # Global instance - initialized lazily

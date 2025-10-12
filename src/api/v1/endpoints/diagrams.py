@@ -2,13 +2,37 @@
 Diagram endpoints.
 """
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 import uuid
+import logging
 
+from services.diagram_service import diagram_service
+
+logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+class DiagramGenerateRequest(BaseModel):
+    """Diagram generation request model."""
+    description: str
+    diagram_type: str  # sequence, architecture, usecase, flowchart
+    project_id: Optional[int] = None
+
+
+class DiagramGenerateResponse(BaseModel):
+    """Diagram generation response model."""
+    diagram_id: str
+    user_id: Optional[str]
+    project_id: Optional[int]
+    generated_at: str
+    description: str
+    diagram_type: str
+    diagram: Dict[str, Any]
+    status: str
+
 
 class DiagramResponse(BaseModel):
     """Diagram response model."""
@@ -33,6 +57,51 @@ class DiagramListResponse(BaseModel):
     diagrams: List[Dict[str, Any]]
     total_count: int
     has_next: bool
+
+
+@router.post("/generate", response_model=DiagramGenerateResponse)
+async def generate_diagram(request: DiagramGenerateRequest):
+    """
+    Generate a new diagram using AI.
+    
+    Args:
+        request: Diagram generation request containing description and type
+    
+    Returns:
+        Generated diagram with metadata
+    
+    Raises:
+        HTTPException: If generation fails or input is invalid
+    """
+    try:
+        logger.info(f"Received {request.diagram_type} diagram generation request")
+        
+        # Validate input
+        if not await diagram_service.validate_input(request.description, request.diagram_type):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid input: Description must be at least 5 characters long and diagram type must be valid"
+            )
+        
+        # Generate diagram
+        result = await diagram_service.generate_diagram(
+            description=request.description,
+            diagram_type=request.diagram_type,
+            user_id=None,  # TODO: Extract from JWT token when auth is implemented
+            project_id=request.project_id
+        )
+        
+        logger.info(f"Successfully generated {request.diagram_type} diagram: {result['diagram_id']}")
+        return DiagramGenerateResponse(**result)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating {request.diagram_type} diagram: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate {request.diagram_type} diagram: {str(e)}"
+        )
 
 @router.get("/{diagram_id}", response_model=DiagramResponse)
 async def get_diagram(diagram_id: str):

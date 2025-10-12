@@ -2,13 +2,37 @@
 Wireframe endpoints.
 """
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 import uuid
+import logging
 
+from services.wireframe_service import wireframe_service
+
+logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+class WireframeGenerateRequest(BaseModel):
+    """Wireframe generation request model."""
+    description: str
+    template_type: Optional[str] = "standard"
+    project_id: Optional[int] = None
+
+
+class WireframeGenerateResponse(BaseModel):
+    """Wireframe generation response model."""
+    wireframe_id: str
+    user_id: Optional[str]
+    project_id: Optional[int]
+    generated_at: str
+    description: str
+    template_type: str
+    wireframe: Dict[str, Any]
+    status: str
+
 
 class WireframeComponent(BaseModel):
     """Wireframe component model."""
@@ -30,6 +54,51 @@ class WireframeExportResponse(BaseModel):
     expires_at: str
     file_size_bytes: int
     format: str
+
+
+@router.post("/generate", response_model=WireframeGenerateResponse)
+async def generate_wireframe(request: WireframeGenerateRequest):
+    """
+    Generate a new wireframe using AI.
+    
+    Args:
+        request: Wireframe generation request containing description
+    
+    Returns:
+        Generated wireframe with metadata
+    
+    Raises:
+        HTTPException: If generation fails or input is invalid
+    """
+    try:
+        logger.info("Received wireframe generation request")
+        
+        # Validate input
+        if not await wireframe_service.validate_input(request.description):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid input: Description must be at least 5 characters long"
+            )
+        
+        # Generate wireframe
+        result = await wireframe_service.generate_wireframe(
+            description=request.description,
+            user_id=None,  # TODO: Extract from JWT token when auth is implemented
+            project_id=request.project_id,
+            template_type=request.template_type or "standard"
+        )
+        
+        logger.info(f"Successfully generated wireframe: {result['wireframe_id']}")
+        return WireframeGenerateResponse(**result)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating wireframe: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate wireframe: {str(e)}"
+        )
 
 @router.get("/{wireframe_id}", response_model=WireframeResponse)
 async def get_wireframe(wireframe_id: str):

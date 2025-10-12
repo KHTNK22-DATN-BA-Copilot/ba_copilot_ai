@@ -2,13 +2,37 @@
 Conversation endpoints.
 """
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 import uuid
+import logging
 
+from services.conversation_service import conversation_service
+
+logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+class MessageSendRequest(BaseModel):
+    """Message send request model."""
+    message: str
+    conversation_id: Optional[str] = None
+    project_id: Optional[int] = None
+
+
+class MessageSendResponse(BaseModel):
+    """Message send response model."""
+    message_id: str
+    conversation_id: str
+    user_id: Optional[str]
+    project_id: Optional[int]
+    generated_at: str
+    user_message: str
+    ai_response: Dict[str, Any]
+    status: str
+
 
 class MessageModel(BaseModel):
     """Message model."""
@@ -32,6 +56,51 @@ class ConversationListResponse(BaseModel):
     conversations: List[Dict[str, Any]]
     total_count: int
     has_next: bool
+
+
+@router.post("/send", response_model=MessageSendResponse)
+async def send_message(request: MessageSendRequest):
+    """
+    Send a message and get AI response.
+    
+    Args:
+        request: Message send request containing the message content
+    
+    Returns:
+        AI response with conversation metadata
+    
+    Raises:
+        HTTPException: If processing fails or input is invalid
+    """
+    try:
+        logger.info("Received conversation message")
+        
+        # Validate input
+        if not await conversation_service.validate_input(request.message):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid input: Message cannot be empty"
+            )
+        
+        # Process message
+        result = await conversation_service.send_message(
+            message=request.message,
+            conversation_id=request.conversation_id,
+            user_id=None,  # TODO: Extract from JWT token when auth is implemented
+            project_id=request.project_id
+        )
+        
+        logger.info(f"Successfully processed message: {result['message_id']}")
+        return MessageSendResponse(**result)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error processing conversation message: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to process message: {str(e)}"
+        )
 
 @router.get("/{conversation_id}", response_model=ConversationResponse)
 async def get_conversation(conversation_id: str):

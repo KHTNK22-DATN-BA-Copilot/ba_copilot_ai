@@ -18,25 +18,30 @@ class SRSService:
         """Initialize the SRS service."""
         logger.info("SRS Service initialized")
     
-    async def generate_srs(self, project_input: str, user_id: Optional[str] = None) -> Dict[str, Any]:
+    async def generate_srs(self, project_input: str, user_id: Optional[str] = None, project_id: Optional[int] = None) -> Dict[str, Any]:
         """
         Generate a comprehensive SRS document.
         
         Args:
             project_input: Input requirements/description from user
             user_id: Optional user ID for tracking
+            project_id: Optional project ID for organization
             
         Returns:
             Dict containing the generated SRS document with metadata
         """
         try:
-            logger.info(f"Generating SRS document for user: {user_id}")
+            logger.info(f"Generating SRS document for user: {user_id}, project: {project_id}")
             
             # Get LLM service instance
             llm_service = get_llm_service()
             
-            # Generate SRS document using LLM
-            srs_content = await llm_service.generate_srs_document(project_input)
+            # Generate SRS document using LLM with LangGraph workflow
+            srs_content = await llm_service.generate_srs_document(
+                user_input=project_input,
+                user_id=user_id,
+                project_id=project_id
+            )
             
             # Add metadata
             document_id = str(uuid4())
@@ -46,6 +51,7 @@ class SRSService:
             response = {
                 "document_id": document_id,
                 "user_id": user_id,
+                "project_id": project_id,
                 "generated_at": generated_at,
                 "input_description": project_input,
                 "document": srs_content,
