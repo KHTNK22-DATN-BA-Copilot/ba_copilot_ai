@@ -59,7 +59,7 @@ Extended AI features building on MVP:
 
 ##### Tasks:
 
-- **Task 1.1.1**: Implement LLM Client Service (4 points)
+- **Task 1.1.1**: Implement LLM Client Service (4 points) (DONE)
 
   - Create OpenAI/Claude API client wrapper
   - Implement retry logic and error handling

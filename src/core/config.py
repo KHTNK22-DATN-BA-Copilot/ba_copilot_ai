@@ -34,11 +34,12 @@ class Settings(BaseSettings):
     port: int = 8000
     
     # Database settings
-    database_url: str = "postgresql://bacopilot_user:dev_password@localhost:5432/bacopilot"
+    # Default points to docker network service names; overridden by env DATABASE_URL
+    database_url: str = "postgresql://postgres:postgres123@postgres:5432/bacopilot_db"
     database_echo: bool = False  # Set to True to log SQL queries
     
     # Redis settings
-    redis_url: str = "redis://localhost:6379/0"
+    redis_url: str = "redis://redis:6379/0"
     
     # JWT settings
     secret_key: str = "your-secret-key-change-in-production"

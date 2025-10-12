@@ -14,6 +14,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Production stage
@@ -26,10 +27,13 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy source code
+# Copy source code and configuration
 COPY src/ src/
 COPY gunicorn.conf.py .
 COPY README.md .
+
+# Create uploads directory
+RUN mkdir -p uploads
 
 # Create non-root user
 RUN groupadd -r appuser && useradd -r -g appuser appuser
