@@ -10,6 +10,8 @@ import uuid
 import logging
 
 from services.conversation_service import conversation_service
+from shared.error_handler import ValidationError
+from shared.endpoint_helpers import raise_ai_friendly_http_exception
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -74,14 +76,19 @@ async def send_message(request: MessageSendRequest):
     """
     try:
         logger.info("Received conversation message")
-        
+
         # Validate input
         if not await conversation_service.validate_input(request.message):
+            error_response = ValidationError.invalid_input(
+                "message",
+                "Tin nhắn không được để trống",
+                request.message[:50] if request.message else ""
+            )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid input: Message cannot be empty"
+                detail=error_response
             )
-        
+
         # Process message
         result = await conversation_service.send_message(
             message=request.message,
@@ -89,17 +96,17 @@ async def send_message(request: MessageSendRequest):
             user_id=None,  # TODO: Extract from JWT token when auth is implemented
             project_id=request.project_id
         )
-        
+
         logger.info(f"Successfully processed message: {result['message_id']}")
         return MessageSendResponse(**result)
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error processing conversation message: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to process message: {str(e)}"
+        raise_ai_friendly_http_exception(
+            e,
+            default_message="Không thể xử lý tin nhắn"
         )
 
 @router.get("/{conversation_id}", response_model=ConversationResponse)

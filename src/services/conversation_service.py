@@ -7,6 +7,10 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 from uuid import uuid4
 from services.llm_service import get_llm_service
+from shared.error_handler import (
+    LLMServiceError,
+    InternalError
+)
 
 logger = logging.getLogger(__name__)
 
@@ -39,22 +43,30 @@ class ConversationService:
         """
         try:
             logger.info(f"Processing message for user: {user_id}, project: {project_id}")
-            
+
             # Get LLM service instance
-            llm_service = get_llm_service()
-            
+            try:
+                llm_service = get_llm_service()
+            except Exception as e:
+                error_response = LLMServiceError.provider_unavailable("LLM Service", e)
+                raise Exception(str(error_response))
+
             # Process conversation using LLM workflow
-            response_content = await llm_service.process_conversation(
-                message=message,
-                conversation_id=conversation_id,
-                user_id=user_id,
-                project_id=project_id
-            )
-            
+            try:
+                response_content = await llm_service.process_conversation(
+                    message=message,
+                    conversation_id=conversation_id,
+                    user_id=user_id,
+                    project_id=project_id
+                )
+            except Exception as e:
+                error_response = LLMServiceError.generation_failed("phản hồi AI", e)
+                raise Exception(str(error_response))
+
             # Add metadata
             message_id = str(uuid4())
             generated_at = datetime.utcnow().isoformat()
-            
+
             # Prepare response
             response = {
                 "message_id": message_id,
@@ -66,13 +78,19 @@ class ConversationService:
                 "ai_response": response_content,
                 "status": "completed"
             }
-            
+
             logger.info(f"Successfully processed conversation message {message_id}")
             return response
-            
+
         except Exception as e:
-            logger.error(f"Error processing conversation: {str(e)}")
-            raise Exception(f"Failed to process conversation: {str(e)}")
+            # Check if it's already a formatted error
+            error_str = str(e)
+            if "error_id" in error_str:
+                raise
+            else:
+                error_response = InternalError.unexpected_error("xử lý tin nhắn", e)
+                logger.error(f"Unexpected error in send_message: {error_response}")
+                raise Exception(str(error_response))
     
     async def get_conversation_history(
         self, 

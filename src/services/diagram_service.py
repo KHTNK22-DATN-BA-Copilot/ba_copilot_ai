@@ -7,6 +7,11 @@ from typing import Dict, Any, Optional
 from datetime import datetime
 from uuid import uuid4
 from services.llm_service import get_llm_service
+from shared.error_handler import (
+    ValidationError,
+    LLMServiceError,
+    InternalError
+)
 
 logger = logging.getLogger(__name__)
 
@@ -39,27 +44,40 @@ class DiagramService:
         """
         try:
             logger.info(f"Generating {diagram_type} diagram for user: {user_id}, project: {project_id}")
-            
+
             # Validate diagram type
             valid_types = ["sequence", "architecture", "usecase", "flowchart"]
             if diagram_type not in valid_types:
-                raise ValueError(f"Invalid diagram type. Must be one of: {valid_types}")
-            
+                error_response = ValidationError.invalid_input(
+                    "diagram_type",
+                    f"Phải là một trong các loại: {', '.join(valid_types)}",
+                    diagram_type
+                )
+                raise ValueError(str(error_response))
+
             # Get LLM service instance
-            llm_service = get_llm_service()
-            
+            try:
+                llm_service = get_llm_service()
+            except Exception as e:
+                error_response = LLMServiceError.provider_unavailable("LLM Service", e)
+                raise Exception(str(error_response))
+
             # Generate diagram using LLM workflow
-            diagram_content = await llm_service.generate_diagram(
-                description=description,
-                diagram_type=diagram_type,
-                user_id=user_id,
-                project_id=project_id
-            )
-            
+            try:
+                diagram_content = await llm_service.generate_diagram(
+                    description=description,
+                    diagram_type=diagram_type,
+                    user_id=user_id,
+                    project_id=project_id
+                )
+            except Exception as e:
+                error_response = LLMServiceError.generation_failed(f"sơ đồ {diagram_type}", e)
+                raise Exception(str(error_response))
+
             # Add metadata
             diagram_id = str(uuid4())
             generated_at = datetime.utcnow().isoformat()
-            
+
             # Prepare response
             response = {
                 "diagram_id": diagram_id,
@@ -71,13 +89,19 @@ class DiagramService:
                 "diagram": diagram_content,
                 "status": "completed"
             }
-            
+
             logger.info(f"Successfully generated {diagram_type} diagram {diagram_id}")
             return response
-            
-        except Exception as e:
-            logger.error(f"Error generating {diagram_type} diagram: {str(e)}")
-            raise Exception(f"Failed to generate {diagram_type} diagram: {str(e)}")
+
+        except (ValueError, Exception) as e:
+            # Check if it's already a formatted error
+            error_str = str(e)
+            if "error_id" in error_str:
+                raise
+            else:
+                error_response = InternalError.unexpected_error(f"tạo sơ đồ {diagram_type}", e)
+                logger.error(f"Unexpected error in generate_diagram: {error_response}")
+                raise Exception(str(error_response))
     
     async def validate_input(self, description: str, diagram_type: str) -> bool:
         """

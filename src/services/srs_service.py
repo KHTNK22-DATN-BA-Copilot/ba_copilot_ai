@@ -7,6 +7,11 @@ from typing import Dict, Any, Optional
 from datetime import datetime
 from uuid import uuid4
 from services.llm_service import get_llm_service
+from shared.error_handler import (
+    ValidationError,
+    LLMServiceError,
+    InternalError
+)
 
 logger = logging.getLogger(__name__)
 
@@ -21,32 +26,43 @@ class SRSService:
     async def generate_srs(self, project_input: str, user_id: Optional[str] = None, project_id: Optional[int] = None) -> Dict[str, Any]:
         """
         Generate a comprehensive SRS document.
-        
+
         Args:
             project_input: Input requirements/description from user
             user_id: Optional user ID for tracking
             project_id: Optional project ID for organization
-            
+
         Returns:
             Dict containing the generated SRS document with metadata
+
+        Raises:
+            Exception: With AI-friendly error details
         """
         try:
             logger.info(f"Generating SRS document for user: {user_id}, project: {project_id}")
-            
+
             # Get LLM service instance
-            llm_service = get_llm_service()
-            
+            try:
+                llm_service = get_llm_service()
+            except Exception as e:
+                error_response = LLMServiceError.provider_unavailable("LLM Service", e)
+                raise Exception(str(error_response))
+
             # Generate SRS document using LLM with LangGraph workflow
-            srs_content = await llm_service.generate_srs_document(
-                user_input=project_input,
-                user_id=user_id,
-                project_id=project_id
-            )
-            
+            try:
+                srs_content = await llm_service.generate_srs_document(
+                    user_input=project_input,
+                    user_id=user_id,
+                    project_id=project_id
+                )
+            except Exception as e:
+                error_response = LLMServiceError.generation_failed("tài liệu SRS", e)
+                raise Exception(str(error_response))
+
             # Add metadata
             document_id = str(uuid4())
             generated_at = datetime.utcnow().isoformat()
-            
+
             # Prepare response
             response = {
                 "document_id": document_id,
@@ -57,13 +73,21 @@ class SRSService:
                 "document": srs_content,
                 "status": "completed"
             }
-            
+
             logger.info(f"Successfully generated SRS document {document_id}")
             return response
-            
+
         except Exception as e:
-            logger.error(f"Error generating SRS document: {str(e)}")
-            raise Exception(f"Failed to generate SRS document: {str(e)}")
+            # Check if it's already a formatted error
+            error_str = str(e)
+            if "error_id" in error_str:
+                # Already formatted, just re-raise
+                raise
+            else:
+                # Unexpected error, wrap it
+                error_response = InternalError.unexpected_error("tạo tài liệu SRS", e)
+                logger.error(f"Unexpected error in generate_srs: {error_response}")
+                raise Exception(str(error_response))
     
     async def validate_input(self, project_input: str) -> bool:
         """

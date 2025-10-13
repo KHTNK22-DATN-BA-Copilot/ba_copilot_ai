@@ -10,6 +10,8 @@ import uuid
 import logging
 
 from services.wireframe_service import wireframe_service
+from shared.error_handler import ValidationError
+from shared.endpoint_helpers import raise_ai_friendly_http_exception
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -72,14 +74,19 @@ async def generate_wireframe(request: WireframeGenerateRequest):
     """
     try:
         logger.info("Received wireframe generation request")
-        
+
         # Validate input
         if not await wireframe_service.validate_input(request.description):
+            error_response = ValidationError.invalid_input(
+                "description",
+                "Mô tả wireframe phải có ít nhất 5 ký tự",
+                request.description[:50] if request.description else ""
+            )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid input: Description must be at least 5 characters long"
+                detail=error_response
             )
-        
+
         # Generate wireframe
         result = await wireframe_service.generate_wireframe(
             description=request.description,
@@ -87,17 +94,17 @@ async def generate_wireframe(request: WireframeGenerateRequest):
             project_id=request.project_id,
             template_type=request.template_type or "standard"
         )
-        
+
         logger.info(f"Successfully generated wireframe: {result['wireframe_id']}")
         return WireframeGenerateResponse(**result)
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error generating wireframe: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate wireframe: {str(e)}"
+        raise_ai_friendly_http_exception(
+            e,
+            default_message="Không thể tạo wireframe"
         )
 
 @router.get("/{wireframe_id}", response_model=WireframeResponse)

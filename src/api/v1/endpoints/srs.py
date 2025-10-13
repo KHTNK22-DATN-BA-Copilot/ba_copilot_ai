@@ -8,9 +8,12 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 import uuid
 import logging
+import json
 
 from schemas.srs import SRSGenerateRequest, SRSGenerateResponse, SRSErrorResponse
 from services.srs_service import srs_service
+from shared.error_handler import ValidationError
+from shared.endpoint_helpers import raise_ai_friendly_http_exception
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -34,42 +37,47 @@ class SRSExportResponse(BaseModel):
 async def generate_srs_document(request: SRSGenerateRequest):
     """
     Generate a new SRS document using AI.
-    
+
     Args:
         request: SRS generation request containing project input
-    
+
     Returns:
         Generated SRS document with metadata
-    
+
     Raises:
         HTTPException: If generation fails or input is invalid
     """
     try:
         logger.info("Received SRS generation request")
-        
+
         # Validate input
         if not await srs_service.validate_input(request.project_input):
+            error_response = ValidationError.invalid_input(
+                "project_input",
+                "Mô tả dự án phải có ít nhất 10 ký tự",
+                request.project_input[:50] if request.project_input else ""
+            )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid input: Project description must be at least 10 characters long"
+                detail=error_response
             )
-        
+
         # Generate SRS document
         result = await srs_service.generate_srs(
             project_input=request.project_input,
             user_id=None  # TODO: Extract from JWT token when auth is implemented
         )
-        
+
         logger.info(f"Successfully generated SRS document: {result['document_id']}")
         return SRSGenerateResponse(**result)
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error generating SRS document: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate SRS document: {str(e)}"
+        raise_ai_friendly_http_exception(
+            e,
+            default_message="Không thể tạo tài liệu SRS"
         )
 
 

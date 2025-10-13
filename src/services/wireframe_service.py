@@ -7,6 +7,10 @@ from typing import Dict, Any, Optional
 from datetime import datetime
 from uuid import uuid4
 from services.llm_service import get_llm_service
+from shared.error_handler import (
+    LLMServiceError,
+    InternalError
+)
 
 logger = logging.getLogger(__name__)
 
@@ -39,21 +43,29 @@ class WireframeService:
         """
         try:
             logger.info(f"Generating wireframe for user: {user_id}, project: {project_id}")
-            
+
             # Get LLM service instance
-            llm_service = get_llm_service()
-            
+            try:
+                llm_service = get_llm_service()
+            except Exception as e:
+                error_response = LLMServiceError.provider_unavailable("LLM Service", e)
+                raise Exception(str(error_response))
+
             # Generate wireframe using LLM workflow
-            wireframe_content = await llm_service.generate_wireframe(
-                description=description,
-                user_id=user_id,
-                project_id=project_id
-            )
-            
+            try:
+                wireframe_content = await llm_service.generate_wireframe(
+                    description=description,
+                    user_id=user_id,
+                    project_id=project_id
+                )
+            except Exception as e:
+                error_response = LLMServiceError.generation_failed("wireframe", e)
+                raise Exception(str(error_response))
+
             # Add metadata
             wireframe_id = str(uuid4())
             generated_at = datetime.utcnow().isoformat()
-            
+
             # Prepare response
             response = {
                 "wireframe_id": wireframe_id,
@@ -65,13 +77,19 @@ class WireframeService:
                 "wireframe": wireframe_content,
                 "status": "completed"
             }
-            
+
             logger.info(f"Successfully generated wireframe {wireframe_id}")
             return response
-            
+
         except Exception as e:
-            logger.error(f"Error generating wireframe: {str(e)}")
-            raise Exception(f"Failed to generate wireframe: {str(e)}")
+            # Check if it's already a formatted error
+            error_str = str(e)
+            if "error_id" in error_str:
+                raise
+            else:
+                error_response = InternalError.unexpected_error("tạo wireframe", e)
+                logger.error(f"Unexpected error in generate_wireframe: {error_response}")
+                raise Exception(str(error_response))
     
     async def validate_input(self, description: str) -> bool:
         """

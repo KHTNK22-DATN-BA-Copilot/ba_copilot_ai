@@ -10,6 +10,8 @@ import uuid
 import logging
 
 from services.diagram_service import diagram_service
+from shared.error_handler import ValidationError
+from shared.endpoint_helpers import raise_ai_friendly_http_exception
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -75,14 +77,19 @@ async def generate_diagram(request: DiagramGenerateRequest):
     """
     try:
         logger.info(f"Received {request.diagram_type} diagram generation request")
-        
+
         # Validate input
         if not await diagram_service.validate_input(request.description, request.diagram_type):
+            error_response = ValidationError.invalid_input(
+                "description hoặc diagram_type",
+                "Mô tả phải có ít nhất 5 ký tự và loại sơ đồ phải hợp lệ (sequence, architecture, usecase, flowchart)",
+                f"{request.description[:30]}... | type: {request.diagram_type}"
+            )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid input: Description must be at least 5 characters long and diagram type must be valid"
+                detail=error_response
             )
-        
+
         # Generate diagram
         result = await diagram_service.generate_diagram(
             description=request.description,
@@ -90,17 +97,17 @@ async def generate_diagram(request: DiagramGenerateRequest):
             user_id=None,  # TODO: Extract from JWT token when auth is implemented
             project_id=request.project_id
         )
-        
+
         logger.info(f"Successfully generated {request.diagram_type} diagram: {result['diagram_id']}")
         return DiagramGenerateResponse(**result)
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error generating {request.diagram_type} diagram: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate {request.diagram_type} diagram: {str(e)}"
+        raise_ai_friendly_http_exception(
+            e,
+            default_message=f"Không thể tạo sơ đồ {request.diagram_type}"
         )
 
 @router.get("/{diagram_id}", response_model=DiagramResponse)
