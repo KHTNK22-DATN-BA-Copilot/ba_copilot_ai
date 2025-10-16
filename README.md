@@ -72,7 +72,7 @@ python ..\test_ai_direct.py
 Expected output should show:
 
 - Status: 200
-- Provider: NOT "fallback" (should be "openrouter" or "unknown")
+- Provider: NOT "fallback"
 - Properly formatted SRS document with detailed functional requirements
 
 ## 📋 Table of Contents
@@ -569,27 +569,6 @@ The AI service should NEVER return fallback responses when properly configured:
    - All SRS generation responses should have `provider != "fallback"`
    - If you see fallback responses, check API key and network connectivity
 
-#### Troubleshooting Tests
-
-If integration tests fail:
-
-1. **Services not healthy**:
-
-   ```powershell
-   docker-compose ps
-   docker-compose restart ai
-   ```
-
-2. **AI service timeout**:
-
-   - Check AI service logs: `docker-compose logs ai`
-   - Verify OpenRouter API is accessible
-   - Increase timeout in backend configuration if needed
-
-3. **Database errors**:
-   - Check database logs: `docker-compose logs postgres`
-   - Verify database migrations are applied
-
 ## 🚢 Deployment
 
 ### Production Deployment
@@ -687,16 +666,6 @@ curl -X POST https://your-app.onrender.com/v1/srs/generate \
 - [Architecture Diagram Flow](./docs/architecture_diagram_flow.md) - System architecture diagram creation and component mapping
 - [Use Case Diagram Flow](./docs/usecase_diagram_flow.md) - Use case diagram generation and relationship modeling
 - [Flowchart Generation Flow](./docs/flowchart_generation_flow.md) - Process flowchart creation and workflow visualization
-
-## 📞 Support & Contact
-
-- **Issues**: [GitHub Issues](https://github.com/KHTNK22-DATN-BA-Copilot/ba_copilot_ai/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/KHTNK22-DATN-BA-Copilot/ba_copilot_ai/discussions)
-- **Documentation**: [Wiki](https://github.com/KHTNK22-DATN-BA-Copilot/ba_copilot_ai/wiki)
-
-## ⚖️ License
-
-This project is licensed under the [MIT License](./LICENSE). See the LICENSE file for details.
 
 ---
 
