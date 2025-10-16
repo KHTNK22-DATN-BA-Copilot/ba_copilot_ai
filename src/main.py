@@ -56,10 +56,10 @@ def create_app() -> FastAPI:
         debug=settings.debug,
     )
 
-    # Configure CORS
+    # Configure CORS - allow all origins for local development
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.allowed_origins,
+        allow_origins=["*"],  # Allow all origins for development/local Docker networking
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
