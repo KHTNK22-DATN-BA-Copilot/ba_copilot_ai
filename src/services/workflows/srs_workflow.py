@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional, List, TypedDict
 from uuid import uuid4
 
-from pydantic import SecretStr
+from pydantic.v1 import SecretStr
 
 from core.config import settings
 
@@ -53,28 +53,9 @@ class SRSWorkflow:
         
     def _initialize_llm(self):
         """Initialize the LLM client based on available API keys."""
-        # Priority: Google Gemini -> OpenRouter -> OpenAI -> Fallback
+        # Priority: OpenRouter (DeepSeek free) -> Google Gemini -> OpenAI -> Fallback
         
-        # Google Gemini (prioritized due to rate limit issues with free OpenRouter)
-        if settings.google_ai_api_key:
-            try:
-                from langchain_google_genai import ChatGoogleGenerativeAI
-                self.llm = ChatGoogleGenerativeAI(
-                    model="gemini-2.5-flash",
-                    temperature=0.7,
-                    google_api_key=settings.google_ai_api_key,
-                    convert_system_message_to_human=True
-                )
-                
-                self.provider = "google"
-                logger.info("LLM initialized with Google Gemini")
-                return
-            except ImportError as e:
-                logger.warning(f"Google GenAI package not available: {e}")
-            except Exception as e:
-                logger.warning(f"Failed to initialize Google Gemini: {e}")
-        
-        # OpenRouter (DeepSeek free) - fallback
+        # OpenRouter (DeepSeek free) - HIGHEST PRIORITY
         if settings.openrouter_ai_api_key:
             try:
                 from langchain_openai import ChatOpenAI
@@ -98,6 +79,26 @@ class SRSWorkflow:
             except Exception as e:
                 logger.warning(f"Failed to initialize OpenRouter: {e}")
 
+        # Google Gemini (prioritized due to rate limit issues with free OpenRouter)
+        if settings.google_ai_api_key:
+            try:
+                from langchain_google_genai import ChatGoogleGenerativeAI
+                self.llm = ChatGoogleGenerativeAI(
+                    model="gemini-2.5-flash",
+                    temperature=0.7,
+                    google_api_key=SecretStr(settings.google_ai_api_key) if settings.google_ai_api_key else None,
+                    convert_system_message_to_human=True,
+                    client=None
+                )
+                
+                self.provider = "google"
+                logger.info("LLM initialized with Google Gemini")
+                return
+            except ImportError as e:
+                logger.warning(f"Google GenAI package not available: {e}")
+            except Exception as e:
+                logger.warning(f"Failed to initialize Google Gemini: {e}")
+
         # OpenAI
         if settings.openai_api_key:
             try:
@@ -118,7 +119,7 @@ class SRSWorkflow:
         # Fallback: No external LLM
         self.llm = None
         self.provider = "fallback"
-        logger.info("LLM initialized in fallback mode (no external API keys)")
+        logger.warning("LLM initialized in fallback mode (no external API keys) - This should not happen in production!")
 
     async def _call_llm(self, prompt: str, system_message: Optional[str] = None) -> str:
         """Call LLM with proper message formatting."""

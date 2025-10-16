@@ -50,7 +50,7 @@ class SRSGenerateResponse(BaseModel):
                     "functional_requirements": ["User registration", "Interactive exercises"],
                     "non_functional_requirements": ["High performance", "Security"]
                 },
-                "status": "completed"
+                "status": "generated"  # Changed from "completed" to match database constraint
             }
         }
 

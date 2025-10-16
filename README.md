@@ -2,15 +2,78 @@
 
 **AI Services Repository** for **Business Analyst Copilot Artificial Intelligence** _(BA Copilot)_, providing comprehensive AI-powered services and APIs for automated document generation, diagram creation, and intelligent conversations.
 
-> **📋 Repository Context**: This is the **AI Services Backend** - one of three repositories in the BA Copilot ecosystem:
+> **📋 Repository Context**: This is the **AI Services Backend** - one of three components in the BA Copilot ecosystem:
 >
-> 1. **Frontend Repository**: NextJS + ReactJS + TailwindCSS user interface
-> 2. **Backend Repository**: Core business logic and database operations
-> 3. **AI Services Repository** (This repo): AI-powered generation services
+> 1. **Frontend**: NextJS + ReactJS + TailwindCSS user interface
+> 2. **Backend**: Core business logic and database operations
+> 3. **AI Services** (This component): AI-powered generation services
 
 ## 🎯 Overview
 
 BA Copilot AI Services is a specialized backend platform that leverages advanced Large Language Models (LLMs) to automate the creation of business analysis artifacts. The platform provides intelligent tools for generating Software Requirements Specifications (SRS), creating wireframe prototypes, generating various diagrams, and managing AI-powered conversations.
+
+## 🚀 Quick Start with Docker
+
+### Prerequisites
+
+- Docker and Docker Compose installed
+- OpenRouter API key (or other AI provider credentials)
+
+### Start the Complete Stack
+
+From the **root project directory**:
+
+```powershell
+# Stop any existing containers
+docker-compose down -v
+
+# Build and start all services (PostgreSQL, Backend, AI)
+docker-compose up -d --build
+
+# Wait for health checks (30-60 seconds)
+docker-compose ps
+```
+
+Services will be available at:
+
+- **AI Service**: http://localhost:8000
+- **API Documentation**: http://localhost:8000/docs
+- **Health Check**: http://localhost:8000/v1/health/
+
+### Environment Configuration
+
+The AI service requires the following environment variables:
+
+```env
+# AI Provider Configuration
+OPENROUTER_API_KEY=your-openrouter-api-key
+OPENROUTER_API_BASE=https://openrouter.ai/api/v1
+
+# Model Configuration
+OPENROUTER_MODEL=deepseek/deepseek-chat-v3.1:free
+
+# Database Configuration
+DATABASE_URL=postgresql://user:password@postgres:5432/dbname
+
+# Service Configuration
+AI_SERVICE_HOST=0.0.0.0
+AI_SERVICE_PORT=8000
+```
+
+### Verify AI Service
+
+Test the AI service is returning real (non-fallback) responses:
+
+```powershell
+cd ba_copilot_backend
+python ..\test_ai_direct.py
+```
+
+Expected output should show:
+
+- Status: 200
+- Provider: NOT "fallback" (should be "openrouter" or "unknown")
+- Properly formatted SRS document with detailed functional requirements
 
 ## 📋 Table of Contents
 
@@ -18,13 +81,12 @@ BA Copilot AI Services is a specialized backend platform that leverages advanced
 - [System Architecture](#-system-architecture)
 - [Technology Stack](#️-technology-stack)
 - [Project Structure](#-project-structure)
-- [Getting Started](#-getting-started)
 - [API Documentation](#-api-documentation)
 - [Development](#-development)
+- [Testing](#testing)
 - [Deployment](#-deployment)
 - [Contributing](#-contributing)
 - [Documentation](#-documentation)
-- [License](#license)
 
 ## ✨ Key Features
 
@@ -35,37 +97,22 @@ BA Copilot AI Services is a specialized backend platform that leverages advanced
 - **Wireframe Generator**: AI-powered conversion of textual requirements into interactive wireframe prototypes
 - **AI Conversation Manager**: Intelligent chat system with context management, multi-LLM routing, and conversation history
 - **Document Processing**: Advanced parsing and analysis of business documents in various formats
-  ```powershell
-  # For Docker development (Windows PowerShell)
-  Set-Location 'D:\Do_an_tot_nghiep\ba_copilot_ai'
-  Copy-Item 'infrastructure\.env' '.env' -Force  # ensure .env at project root
-  docker-compose -f infrastructure/docker-compose.yml up --build -d
-  ```
 - **RESTful API Design**: Industry-standard REST APIs with comprehensive OpenAPI documentation
 - **Microservices Architecture**: Independently scalable services with clear domain boundaries
 
-  ```powershell
-  # Activate virtual environment first
-  .venv\Scripts\Activate
+### 🤖 LLM Integration
 
-  # Start the server
-  Set-Location 'D:\Do_an_tot_nghiep\ba_copilot_ai\src'
-  python main.py
-  ```
+The AI service uses **OpenRouter** as the primary LLM provider, with fallback capabilities:
 
-### Architecture Approach
+1. **Primary**: OpenRouter API (DeepSeek Chat v3.1)
+2. **Fallback**: Google Gemini (if OpenRouter unavailable)
+3. **Emergency Fallback**: Static response templates
 
-- **Phase 1 (Current)**: Monolithic deployment with modular service boundaries
-- **Phase 2 (Future)**: Gradual extraction to independent microservices
+**Priority Order** (configured in `srs_workflow.py`):
 
-The system starts as a single FastAPI application with well-defined internal service modules that can be extracted into separate services when needed. This approach enables:
-
-- **Rapid Development**: Fast iteration with direct function calls
-- **Simple Deployment**: Single container deployment and management
-- **Clear Boundaries**: Modules designed for easy future extraction
-- **Migration Ready**: Architecture supports service-by-service migration
-
-**For detailed architecture information, see [System Architecture Documentation](./docs/System_Architecture.md).**
+- OpenRouter is tried FIRST for all requests
+- Fallback only activates if OpenRouter fails
+- Health checks verify proper API connectivity
 
 ## 🛠️ Technology Stack
 
@@ -444,7 +491,46 @@ make migration name="add_new_table"
 
 ### Testing
 
-The project includes comprehensive test coverage:
+The project includes comprehensive test coverage for the AI services:
+
+#### Integration Testing with Full Stack
+
+To test the complete workflow including AI service:
+
+```powershell
+# Ensure Docker stack is running
+docker-compose ps  # All services should be "healthy"
+
+# Run full integration test
+cd ba_copilot_backend
+python tests/integration/test_full_stack.py
+```
+
+This test verifies:
+
+- ✅ User registration and authentication
+- ✅ Project creation
+- ✅ SRS document generation via AI service
+- ✅ AI service returns non-fallback responses (real OpenRouter)
+- ✅ Document structure and content validation
+
+#### Test AI Service Directly
+
+```powershell
+cd ba_copilot_backend
+python ..\test_ai_direct.py
+```
+
+Expected output:
+
+```
+Status: 200
+Provider: openrouter  # NOT "fallback"
+Title: [Generated title from AI]
+Document sections: functional_requirements, non_functional_requirements, etc.
+```
+
+#### Unit Tests
 
 ```bash
 # Run all tests
@@ -453,15 +539,56 @@ pytest
 # Run with coverage report
 pytest --cov=src --cov-report=html
 
-# Run specific test categories (examples)
+# Run specific test categories
 pytest tests/unit/           # Unit tests
 pytest tests/integration/    # Integration tests
 pytest tests/e2e/           # End-to-end tests
 
-# Run tests with markers (examples)
+# Run tests with markers
 pytest -m "not slow"        # Skip slow tests
 pytest -m "integration"     # Run only integration tests
 ```
+
+#### Verify Non-Fallback Responses
+
+The AI service should NEVER return fallback responses when properly configured:
+
+1. **Check OpenRouter Configuration**:
+
+   ```powershell
+   # View AI service logs
+   docker-compose logs ai | Select-String "OpenRouter"
+   ```
+
+2. **Verify API Key**:
+
+   - Ensure `OPENROUTER_API_KEY` is set in environment
+   - Check AI service startup logs for initialization messages
+
+3. **Test Response Provider**:
+   - All SRS generation responses should have `provider != "fallback"`
+   - If you see fallback responses, check API key and network connectivity
+
+#### Troubleshooting Tests
+
+If integration tests fail:
+
+1. **Services not healthy**:
+
+   ```powershell
+   docker-compose ps
+   docker-compose restart ai
+   ```
+
+2. **AI service timeout**:
+
+   - Check AI service logs: `docker-compose logs ai`
+   - Verify OpenRouter API is accessible
+   - Increase timeout in backend configuration if needed
+
+3. **Database errors**:
+   - Check database logs: `docker-compose logs postgres`
+   - Verify database migrations are applied
 
 ## 🚢 Deployment
 

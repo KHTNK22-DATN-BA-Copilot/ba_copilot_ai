@@ -49,7 +49,7 @@ class SRSService:
                 "generated_at": generated_at,
                 "input_description": project_input,
                 "document": srs_content,
-                "status": "completed"
+                "status": "generated"  # Changed from "completed" to match database constraint
             }
             
             logger.info(f"Successfully generated SRS document {document_id}")
