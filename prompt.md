@@ -8,20 +8,14 @@ Bạn là một Product Owner, chuyên gia lập trình AI engineer kiêm devops
 - Database: PostgreSQL, SQLAlchemy
 
 ### SCOPE
-- @BA-Copilot/AI_Implement
+- @BA-Copilot/ba_copilot_ai
 
 ### CONTEXT
-- Tôi muốn tổ chức thành 3 workflow trong 3 folder 
-+ srs_workflow
-+ diagram_workflow
-+ wireframe_workflow
-- các flow đều sử dụng openrouter AI với cách sử dụng được mô tả trong file @usage.py
-- trong mỗi workflow thì sử dụng các node được trình bày trong file @ai_workflow.py
-- trong file @main.py thực hiện chuyển thành 3 endpoint POST "/api/v1/srs/generate", POST "/api/v1/diagram/generate", POST "/api/v1/wireframe/generate". và các câu prompt chuyển sang english
+- Tôi muốn bạn đọc file @FIGMA_MCP_GUIDELINE.md và thực hiện integrate Figma MCP vào hệ thống workflow của tôi để tạo ra wireframe và diagram thật từ FIGMA_API_KEY trong file @.env
 
 ### INSTRUCTION
 Bước 1: Thực hiện đọc và nghiên cứu **<CONTEXT>** và **<SCOPE>**
-Bước 2: Thực hiện hoàn chỉnh phần AI_Implement như mô tả trong **<CONTEXT>** giữ nguyên phần response như hiện tại
+Bước 2: Thực hiện hoàn chỉnh phần generate wireframe và generate diagram sử dụng figma MCP như mô tả trong **<CONTEXT>** giữ nguyên phần response như hiện tại
 Bước 3: Thực hiện deploy và test endpoint với các prompt để sinh ra SRS, Wireframe và Diagram 
 
 ### NOTE

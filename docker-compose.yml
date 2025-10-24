@@ -8,6 +8,7 @@ services:
       - "8000:8000"
     environment:
       - OPEN_ROUTER_API_KEY=${OPEN_ROUTER_API_KEY}
+      - FIGMA_API_TOKEN=${FIGMA_API_TOKEN}
       - DATABASE_URL=${DATABASE_URL:-postgresql://user:password@db:5432/ba_copilot}
     env_file:
       - .env
@@ -27,7 +28,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
       - POSTGRES_DB=${POSTGRES_DB:-ba_copilot}
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped

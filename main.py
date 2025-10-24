@@ -49,9 +49,11 @@ async def root():
 async def health_check():
     """Health check endpoint"""
     openrouter_api_key = os.getenv("OPEN_ROUTER_API_KEY", "")
+    figma_api_token = os.getenv("FIGMA_API_TOKEN", "")
     return {
         "status": "healthy",
-        "openrouter_api_configured": bool(openrouter_api_key)
+        "openrouter_api_configured": bool(openrouter_api_key),
+        "figma_api_configured": bool(figma_api_token)
     }
 
 @app.post("/api/v1/srs/generate")
