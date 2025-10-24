@@ -1,49 +1,20 @@
-# BA Copilot AI Services - Python Dependencies
+# FastAPI and server
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
 
-# Web framework
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
+# LangChain and LangGraph
+langchain>=0.1.16
+langgraph>=0.0.52
 
-# Data validation and settings
-pydantic==2.5.0
-pydantic-settings==2.1.0
+# OpenAI (for OpenRouter)
+openai>=1.0.0
 
-# CORS support
-python-multipart==0.0.6
+# Database (if needed)
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
 
-# LLM and AI libraries
-langchain==0.0.340
-langchain-google-genai==0.0.5
-google-generativeai==0.3.2
-langgraph==0.0.20
-openai==1.3.5
-
-# Testing framework
-pytest==7.4.3
-pytest-asyncio==0.21.1
-pytest-cov==4.1.0
-httpx==0.25.2  # For FastAPI test client
-
-# Development tools
-black==23.11.0
-flake8==6.1.0
-isort==5.12.0
-mypy==1.7.1
-
-# Database and migrations
-sqlalchemy==2.0.23
-alembic==1.12.1
-psycopg2-binary==2.9.9
-python-dotenv==1.0.0
-
-# Optional dependencies
-# redis==5.0.1  # For caching
-# python-jose[cryptography]==3.3.0  # For JWT
-# passlib[bcrypt]==1.7.4  # For password hashing
-
-# Documentation
-mkdocs==1.5.3
-mkdocs-material==9.4.8
-
-# Production server (alternative to uvicorn)
-gunicorn==22.0.0
+# Utilities
+python-dotenv>=1.0.0
+requests>=2.31.0
