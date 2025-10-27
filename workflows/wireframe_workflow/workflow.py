@@ -1,5 +1,8 @@
-# wireframe_workflow/workflow.py
+# workflows/wireframe_workflow/workflow.py
 from langgraph.graph import StateGraph, END
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from figma_mcp import generate_figma_wireframe
 from models.wireframe import WireframeOutput, WireframeResponse
 from typing import TypedDict

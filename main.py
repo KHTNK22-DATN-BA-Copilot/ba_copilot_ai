@@ -2,9 +2,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from srs_workflow import srs_graph
-from diagram_workflow import diagram_graph
-from wireframe_workflow import wireframe_graph
+from workflows import srs_graph, diagram_graph, wireframe_graph
 import os
 from dotenv import load_dotenv
 

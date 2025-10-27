@@ -1,9 +1,11 @@
-# srs_workflow/workflow.py
+# workflows/srs_workflow/workflow.py
 from langgraph.graph import StateGraph, END
 from openai import OpenAI
-from models.srs import SRSOutput, SRSResponse
-import json
+import sys
 import os
+import json
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from models.srs import SRSOutput, SRSResponse
 from typing import TypedDict
 
 # Load API key from environment

@@ -1,9 +1,11 @@
-# diagram_workflow/workflow.py
+# workflows/diagram_workflow/workflow.py
 from langgraph.graph import StateGraph, END
 from openai import OpenAI
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from figma_mcp import generate_figma_diagram
 from models.diagram import DiagramOutput, DiagramResponse
-import os
 from typing import TypedDict
 
 # Load API key from environment
