@@ -1,0 +1,43 @@
+services:
+  ai-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ba-copilot-ai
+    ports:
+      - "8000:8000"
+    environment:
+      - OPEN_ROUTER_API_KEY=${OPEN_ROUTER_API_KEY}
+      - FIGMA_API_TOKEN=${FIGMA_API_TOKEN}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://user:password@db:5432/ba_copilot}
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - ba-network
+
+  db:
+    image: postgres:15-alpine
+    container_name: ba-copilot-db
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
+      - POSTGRES_DB=${POSTGRES_DB:-ba_copilot}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - ba-network
+
+networks:
+  ba-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
