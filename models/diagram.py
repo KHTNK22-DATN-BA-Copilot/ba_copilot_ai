@@ -2,10 +2,9 @@
 from pydantic import BaseModel
 
 class DiagramResponse(BaseModel):
-    figma_link: str
-    editable: bool
-    description: str
+    type: str  # "class_diagram" or "usecase_diagram"
+    detail: str  # Markdown content of the diagram
 
 class DiagramOutput(BaseModel):
-    type: str = "diagram"
+    type: str
     response: DiagramResponse

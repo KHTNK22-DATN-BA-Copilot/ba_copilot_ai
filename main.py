@@ -2,7 +2,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from workflows import srs_graph, diagram_graph, wireframe_graph
+from workflows import srs_graph, class_diagram_graph, usecase_diagram_graph, wireframe_graph
 import os
 from dotenv import load_dotenv
 
@@ -47,11 +47,9 @@ async def root():
 async def health_check():
     """Health check endpoint"""
     openrouter_api_key = os.getenv("OPEN_ROUTER_API_KEY", "")
-    figma_api_token = os.getenv("FIGMA_API_TOKEN", "")
     return {
         "status": "healthy",
-        "openrouter_api_configured": bool(openrouter_api_key),
-        "figma_api_configured": bool(figma_api_token)
+        "openrouter_api_configured": bool(openrouter_api_key)
     }
 
 @app.post("/api/v1/srs/generate")
@@ -87,36 +85,66 @@ async def generate_srs(req: AIRequest):
             detail=f"Error generating SRS: {str(e)}"
         )
 
-@app.post("/api/v1/diagram/generate")
-async def generate_diagram(req: AIRequest):
+@app.post("/api/v1/generate/class-diagram")
+async def generate_class_diagram(req: AIRequest):
     """
-    Generate diagram (ERD, Architecture, Flowchart, etc.).
+    Generate UML Class Diagram in Mermaid markdown format.
 
     Args:
         req (AIRequest): Request body containing user message
 
     Returns:
-        dict: Response with diagram data
+        dict: Response with class diagram data
 
     Example response:
         {
             "type": "diagram",
             "response": {
-                "figma_link": "https://...",
-                "editable": true,
-                "description": "..."
+                "type": "class_diagram",
+                "detail": "```mermaid\\nclassDiagram\\n...```"
             }
         }
     """
     try:
-        # Invoke Diagram workflow
-        result = diagram_graph.invoke({"user_message": req.message})
+        # Invoke Class Diagram workflow
+        result = class_diagram_graph.invoke({"user_message": req.message})
         return {"type": "diagram", "response": result["response"]}
 
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Error generating diagram: {str(e)}"
+            detail=f"Error generating class diagram: {str(e)}"
+        )
+
+@app.post("/api/v1/generate/usecase-diagram")
+async def generate_usecase_diagram(req: AIRequest):
+    """
+    Generate UML Use Case Diagram in Mermaid markdown format.
+
+    Args:
+        req (AIRequest): Request body containing user message
+
+    Returns:
+        dict: Response with use case diagram data
+
+    Example response:
+        {
+            "type": "diagram",
+            "response": {
+                "type": "usecase_diagram",
+                "detail": "```mermaid\\ngraph TD\\n...```"
+            }
+        }
+    """
+    try:
+        # Invoke Use Case Diagram workflow
+        result = usecase_diagram_graph.invoke({"user_message": req.message})
+        return {"type": "diagram", "response": result["response"]}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating use case diagram: {str(e)}"
         )
 
 @app.post("/api/v1/wireframe/generate")
