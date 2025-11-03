@@ -11,6 +11,7 @@ FIGMA_ACCESS_TOKEN = os.getenv("FIGMA_API_TOKEN")
 
 def get_headers() -> Dict[str, str]:
     """Get headers for Figma API requests"""+9
+
     return {
         "X-Figma-Token": FIGMA_ACCESS_TOKEN,
         "Content-Type": "application/json"
