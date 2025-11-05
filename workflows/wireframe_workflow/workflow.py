@@ -33,14 +33,14 @@ def generate_wireframe(state: WireframeState) -> WireframeState:
             }
         } # pyright: ignore[reportReturnType]
 
-def generate_wireframe_html_css(state: WireframeState) -> WireframeState:
+def generate_wireframe_html_css(state: WireframeState) -> Dict:
     """Generate wireframe with HTML, CSS"""
     try:
         result = generate_html_css(state["user_message"])
 
         wireframe_response = WireframeHTMLCSSOutput(response=result)
         
-        return {"response": wireframe_response.model_dump()["response"]} # pyright: ignore[reportReturnType]
+        return {"response": wireframe_response.model_dump()["response"]}
 
     except Exception as e:
         print(f"Error creating HTML, CSS wireframe : {e}")
@@ -51,7 +51,11 @@ def generate_wireframe_html_css(state: WireframeState) -> WireframeState:
             "response": {
                 "content": f"Error creating HTML, CSS wireframe: {str(e)}"
             }
-        } # pyright: ignore[reportReturnType]# Build LangGraph pipeline for Wireframe
+        }
+
+
+# BUILDING THE WORKFLOW
+
 workflow = StateGraph(WireframeState)
 
 # Add node

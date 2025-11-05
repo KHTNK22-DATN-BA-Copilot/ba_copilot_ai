@@ -31,7 +31,6 @@ def generate_html_css(description: str) -> WireframeHTMLCSSResponse:
     - Plain HTML and CSS code for the wireframe in JSON format
     - Ensure correct syntax, precise tags are used for semantic
     - Only return the plain HTML and CSS code, do not include comments, even comments in the code
-    - Return in JSON format "html": "<html>...</html>"
     """
 
     try:
@@ -50,7 +49,7 @@ def generate_html_css(description: str) -> WireframeHTMLCSSResponse:
         )
 
         html_css_generated = completion.choices[0].message.content
-        
+
         # Create response with diagram type and markdown detail
         wireframe_html_css_response = WireframeHTMLCSSResponse(
             content = str(html_css_generated)
