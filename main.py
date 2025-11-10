@@ -206,6 +206,7 @@ async def generate_wireframe(req: AIRequest):
         return {"type": "wireframe", "response": result["response"]}
 
     except Exception as e:
+        print("WIREFRAME ERROR FROM MAIN.PY: ", e)
         raise HTTPException(
             status_code=500,
             detail=f"Error generating wireframe: {str(e)}"
