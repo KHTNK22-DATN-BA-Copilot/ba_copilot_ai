@@ -10,10 +10,9 @@ FIGMA_API_BASE = "https://api.figma.com/v1"
 FIGMA_ACCESS_TOKEN = os.getenv("FIGMA_API_TOKEN")
 
 def get_headers() -> Dict[str, str]:
-    """Get headers for Figma API requests"""+9
-
+    """Get headers for Figma API requests"""
     return {
-        "X-Figma-Token": FIGMA_ACCESS_TOKEN,
+        "X-Figma-Token": FIGMA_ACCESS_TOKEN, # pyright: ignore[reportReturnType]
         "Content-Type": "application/json"
     }
 

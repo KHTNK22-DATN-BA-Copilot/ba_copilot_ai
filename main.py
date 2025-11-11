@@ -2,7 +2,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from workflows import srs_graph, class_diagram_graph, usecase_diagram_graph, wireframe_graph
+from workflows import srs_graph, class_diagram_graph, usecase_diagram_graph, activity_diagram_graph, wireframe_graph
 import os
 from dotenv import load_dotenv
 
@@ -147,6 +147,38 @@ async def generate_usecase_diagram(req: AIRequest):
             detail=f"Error generating use case diagram: {str(e)}"
         )
 
+@app.post("/api/v1/generate/activity-diagram")
+async def generate_activity_diagram(req: AIRequest):
+    """
+    Generate UML Activity Diagram in Mermaid markdown format.
+
+    Args:
+        req (AIRequest): Request body containing user message
+
+    Returns:
+        dict: Response with activity diagram data
+
+    Example response:
+        {
+            "type": "diagram",
+            "response": {
+                "type": "activity_diagram",
+                "detail": "```mermaid\\ngraph TD\\n...```"
+            }
+        }
+    """
+    try:
+        # Invoke Activity Diagram workflow
+        result = activity_diagram_graph.invoke({"user_message": req.message})
+        return {"type": "diagram", "response": result["response"]}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating activity diagram: {str(e)}"
+        )
+
+
 @app.post("/api/v1/wireframe/generate")
 async def generate_wireframe(req: AIRequest):
     """
@@ -174,6 +206,7 @@ async def generate_wireframe(req: AIRequest):
         return {"type": "wireframe", "response": result["response"]}
 
     except Exception as e:
+        print("WIREFRAME ERROR FROM MAIN.PY: ", e)
         raise HTTPException(
             status_code=500,
             detail=f"Error generating wireframe: {str(e)}"

@@ -52,12 +52,10 @@ logs/
 Thumbs.db
 
 # Test files
-test_*.py
-*_test.py
-tests/
 .pytest_cache/
 .coverage
 htmlcov/
+coverage.xml
 
 # Temporary files
 tmp/
