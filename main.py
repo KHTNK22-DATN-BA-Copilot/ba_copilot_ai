@@ -1,10 +1,13 @@
 # ai_service/main.py
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import List, Optional
+from uuid import UUID
 from workflows import srs_graph, class_diagram_graph, usecase_diagram_graph, activity_diagram_graph, wireframe_graph
 import os
 from dotenv import load_dotenv
+import json
 
 # Load environment variables
 load_dotenv()
@@ -26,11 +29,14 @@ app.add_middleware(
 
 class AIRequest(BaseModel):
     message: str
+    document_id: Optional[UUID] = None
+    inputFile: Optional[str] = None
 
     class Config:
         json_schema_extra = {
             "example": {
-                "message": "Create SRS for hotel management system"
+                "message": "Create SRS for hotel management system",
+                "document_id": "123e4567-e89b-12d3-a456-426614174000"
             }
         }
 
@@ -53,12 +59,18 @@ async def health_check():
     }
 
 @app.post("/api/v1/srs/generate")
-async def generate_srs(req: AIRequest):
+async def generate_srs(
+    message: str = Form(...),
+    document_id: Optional[str] = Form(None),
+    files: Optional[List[UploadFile]] = File(None)
+):
     """
     Generate Software Requirements Specification (SRS) document.
 
     Args:
-        req (AIRequest): Request body containing user message
+        message: User message/requirement description
+        document_id: Optional UUID of the document for chat history
+        files: Optional list of files to process (images, PDFs, DOCX, TXT)
 
     Returns:
         dict: Response with SRS data
@@ -75,8 +87,15 @@ async def generate_srs(req: AIRequest):
         }
     """
     try:
+        # Prepare state for workflow
+        state = {
+            "user_message": message,
+            "document_id": document_id,
+            "files": files or []
+        }
+
         # Invoke SRS workflow
-        result = srs_graph.invoke({"user_message": req.message})
+        result = srs_graph.invoke(state)
         return {"type": "srs", "response": result["response"]}
 
     except Exception as e:
@@ -86,12 +105,18 @@ async def generate_srs(req: AIRequest):
         )
 
 @app.post("/api/v1/generate/class-diagram")
-async def generate_class_diagram(req: AIRequest):
+async def generate_class_diagram(
+    message: str = Form(...),
+    document_id: Optional[str] = Form(None),
+    files: Optional[List[UploadFile]] = File(None)
+):
     """
     Generate UML Class Diagram in Mermaid markdown format.
 
     Args:
-        req (AIRequest): Request body containing user message
+        message: User message/requirement description
+        document_id: Optional UUID of the document for chat history
+        files: Optional list of files to process (images, PDFs, DOCX, TXT)
 
     Returns:
         dict: Response with class diagram data
@@ -106,8 +131,15 @@ async def generate_class_diagram(req: AIRequest):
         }
     """
     try:
+        # Prepare state for workflow
+        state = {
+            "user_message": message,
+            "document_id": document_id,
+            "files": files or []
+        }
+
         # Invoke Class Diagram workflow
-        result = class_diagram_graph.invoke({"user_message": req.message})
+        result = class_diagram_graph.invoke(state)
         return {"type": "diagram", "response": result["response"]}
 
     except Exception as e:
@@ -117,12 +149,18 @@ async def generate_class_diagram(req: AIRequest):
         )
 
 @app.post("/api/v1/generate/usecase-diagram")
-async def generate_usecase_diagram(req: AIRequest):
+async def generate_usecase_diagram(
+    message: str = Form(...),
+    document_id: Optional[str] = Form(None),
+    files: Optional[List[UploadFile]] = File(None)
+):
     """
     Generate UML Use Case Diagram in Mermaid markdown format.
 
     Args:
-        req (AIRequest): Request body containing user message
+        message: User message/requirement description
+        document_id: Optional UUID of the document for chat history
+        files: Optional list of files to process (images, PDFs, DOCX, TXT)
 
     Returns:
         dict: Response with use case diagram data
@@ -137,8 +175,15 @@ async def generate_usecase_diagram(req: AIRequest):
         }
     """
     try:
+        # Prepare state for workflow
+        state = {
+            "user_message": message,
+            "document_id": document_id,
+            "files": files or []
+        }
+
         # Invoke Use Case Diagram workflow
-        result = usecase_diagram_graph.invoke({"user_message": req.message})
+        result = usecase_diagram_graph.invoke(state)
         return {"type": "diagram", "response": result["response"]}
 
     except Exception as e:
@@ -148,12 +193,18 @@ async def generate_usecase_diagram(req: AIRequest):
         )
 
 @app.post("/api/v1/generate/activity-diagram")
-async def generate_activity_diagram(req: AIRequest):
+async def generate_activity_diagram(
+    message: str = Form(...),
+    document_id: Optional[str] = Form(None),
+    files: Optional[List[UploadFile]] = File(None)
+):
     """
     Generate UML Activity Diagram in Mermaid markdown format.
 
     Args:
-        req (AIRequest): Request body containing user message
+        message: User message/requirement description
+        document_id: Optional UUID of the document for chat history
+        files: Optional list of files to process (images, PDFs, DOCX, TXT)
 
     Returns:
         dict: Response with activity diagram data
@@ -168,8 +219,15 @@ async def generate_activity_diagram(req: AIRequest):
         }
     """
     try:
+        # Prepare state for workflow
+        state = {
+            "user_message": message,
+            "document_id": document_id,
+            "files": files or []
+        }
+
         # Invoke Activity Diagram workflow
-        result = activity_diagram_graph.invoke({"user_message": req.message})
+        result = activity_diagram_graph.invoke(state)
         return {"type": "diagram", "response": result["response"]}
 
     except Exception as e:
@@ -180,12 +238,18 @@ async def generate_activity_diagram(req: AIRequest):
 
 
 @app.post("/api/v1/wireframe/generate")
-async def generate_wireframe(req: AIRequest):
+async def generate_wireframe(
+    message: str = Form(...),
+    document_id: Optional[str] = Form(None),
+    files: Optional[List[UploadFile]] = File(None)
+):
     """
     Generate wireframe/UI mockup.
 
     Args:
-        req (AIRequest): Request body containing user message
+        message: User message/requirement description
+        document_id: Optional UUID of the document for chat history
+        files: Optional list of files to process (images, PDFs, DOCX, TXT)
 
     Returns:
         dict: Response with wireframe data
@@ -201,8 +265,15 @@ async def generate_wireframe(req: AIRequest):
         }
     """
     try:
+        # Prepare state for workflow
+        state = {
+            "user_message": message,
+            "document_id": document_id,
+            "files": files or []
+        }
+
         # Invoke Wireframe workflow
-        result = wireframe_graph.invoke({"user_message": req.message})
+        result = wireframe_graph.invoke(state)
         return {"type": "wireframe", "response": result["response"]}
 
     except Exception as e:

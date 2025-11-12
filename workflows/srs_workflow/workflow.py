@@ -6,7 +6,8 @@ import os
 import json
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from models.srs import SRSOutput, SRSResponse
-from typing import TypedDict
+from typing import TypedDict, Optional, List
+from workflows.nodes import get_chat_history, process_ocr
 
 # Load API key from environment
 OPENROUTER_API_KEY = os.getenv("OPEN_ROUTER_API_KEY", "")
@@ -14,6 +15,11 @@ OPENROUTER_API_KEY = os.getenv("OPEN_ROUTER_API_KEY", "")
 class SRSState(TypedDict):
     user_message: str
     response: dict
+    document_id: Optional[str]
+    files: Optional[List]
+    file_data: Optional[List]
+    extracted_text: Optional[str]
+    chat_context: Optional[str]
 
 def extract_json(text: str) -> dict:
     """Extract JSON from text response"""
@@ -35,9 +41,24 @@ def generate_srs(state: SRSState) -> SRSState:
         api_key=OPENROUTER_API_KEY,
     )
 
+    # Build comprehensive prompt with context
+    user_message = state['user_message']
+    extracted_text = state.get('extracted_text', '')
+    chat_context = state.get('chat_context', '')
+
+    context_parts = []
+    if chat_context:
+        context_parts.append(f"Context from previous conversation:\n{chat_context}\n")
+    if extracted_text:
+        context_parts.append(f"Extracted content from uploaded files:\n{extracted_text}\n")
+
+    context_str = "\n".join(context_parts)
+
     prompt = f"""
+    {context_str}
+
     You are a professional Business Analyst. Create a detailed Software Requirements Specification (SRS)
-    document for the following requirement: {state['user_message']}
+    document for the following requirement: {user_message}
 
     Return the response in JSON format:
     {{
@@ -100,11 +121,15 @@ def generate_srs(state: SRSState) -> SRSState:
 # Build LangGraph pipeline for SRS
 workflow = StateGraph(SRSState)
 
-# Add node
+# Add nodes in sequence: OCR -> Chat History -> Generate
+workflow.add_node("process_ocr", process_ocr)
+workflow.add_node("get_chat_history", get_chat_history)
 workflow.add_node("generate_srs", generate_srs)
 
-# Set entry point and finish
-workflow.set_entry_point("generate_srs")
+# Set entry point and edges
+workflow.set_entry_point("process_ocr")
+workflow.add_edge("process_ocr", "get_chat_history")
+workflow.add_edge("get_chat_history", "generate_srs")
 workflow.add_edge("generate_srs", END)
 
 # Compile graph

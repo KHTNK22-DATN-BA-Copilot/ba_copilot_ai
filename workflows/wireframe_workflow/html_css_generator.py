@@ -7,18 +7,28 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 # Load API key from environment
 OPENROUTER_API_KEY = os.getenv("OPEN_ROUTER_API_KEY", "")
 
-def generate_html_css(description: str) -> WireframeHTMLCSSResponse:
+def generate_html_css(description: str, extracted_text: str = "", chat_context: str = "") -> WireframeHTMLCSSResponse:
     """Generate wireframe using OpenRouter AI"""
     client = OpenAI(
         base_url="https://openrouter.ai/api/v1",
         api_key=OPENROUTER_API_KEY,
     )
 
+    # Build comprehensive prompt with context
+    context_parts = []
+    if chat_context:
+        context_parts.append(f"Context from previous conversation:\n{chat_context}\n")
+    if extracted_text:
+        context_parts.append(f"Extracted content from uploaded files:\n{extracted_text}\n")
+
+    context_str = "\n".join(context_parts)
+
     prompt = f"""
     ### ROLE
     You are a Principal Frontend Lead, highly specialized in pure HTML, CSS.
 
     ### CONTEXT
+    {context_str}
 
     We need to create a wireframe to satisfy all requirements specified by "{description}", using only plain HTML and CSS
 
