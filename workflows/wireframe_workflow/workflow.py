@@ -12,7 +12,7 @@ from workflows.nodes import get_chat_history, process_ocr
 class WireframeState(TypedDict):
     user_message: str
     response: dict
-    document_id: Optional[str]
+    content_id: Optional[str]
     files: Optional[List]
     file_data: Optional[List]
     extracted_text: Optional[str]

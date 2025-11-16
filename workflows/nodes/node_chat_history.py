@@ -20,7 +20,7 @@ class ChatMessage(TypedDict):
     created_at: str
 
 
-async def fetch_chat_history(document_id: str) -> List[ChatMessage]:
+async def fetch_chat_history(content_id: str) -> List[ChatMessage]:
     """
     Fetch chat history from backend API
 
@@ -33,7 +33,7 @@ async def fetch_chat_history(document_id: str) -> List[ChatMessage]:
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(
-                f"{BACKEND_API_URL}/api/v1/srs/history/{document_id}"
+                f"{BACKEND_API_URL}/api/v1/sessions/list/{content_id}"
             )
             response.raise_for_status()
             data = response.json()
@@ -154,10 +154,10 @@ def get_chat_history(state: Dict[str, Any], model: str = "tngtech/deepseek-r1t2-
     Returns:
         Updated state with chat_context
     """
-    document_id = state.get("document_id")
+    content_id = state.get("content_id")
 
-    if not document_id:
-        print("No document_id provided, skipping chat history")
+    if not content_id:
+        print("No content_id provided, skipping chat history")
         state["chat_context"] = ""
         return state
 
@@ -166,7 +166,7 @@ def get_chat_history(state: Dict[str, Any], model: str = "tngtech/deepseek-r1t2-
         import asyncio
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        history = loop.run_until_complete(fetch_chat_history(document_id))
+        history = loop.run_until_complete(fetch_chat_history(content_id))
         loop.close()
 
         # Get token limit for model

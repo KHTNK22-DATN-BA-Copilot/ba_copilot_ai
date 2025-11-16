@@ -29,14 +29,14 @@ app.add_middleware(
 
 class AIRequest(BaseModel):
     message: str
-    document_id: Optional[UUID] = None
+    content_id: Optional[str] = None
     inputFile: Optional[str] = None
 
     class Config:
         json_schema_extra = {
             "example": {
                 "message": "Create SRS for hotel management system",
-                "document_id": "123e4567-e89b-12d3-a456-426614174000"
+                "content_id": "123e4567-e89b-12d3-a456-426614174000"
             }
         }
 
@@ -61,7 +61,7 @@ async def health_check():
 @app.post("/api/v1/srs/generate")
 async def generate_srs(
     message: str = Form(...),
-    document_id: Optional[str] = Form(None),
+    content_id: Optional[str] = Form(None),
     files: Optional[List[UploadFile]] = File(None)
 ):
     """
@@ -69,7 +69,7 @@ async def generate_srs(
 
     Args:
         message: User message/requirement description
-        document_id: Optional UUID of the document for chat history
+        content_id: Optional ID of the content for chat history
         files: Optional list of files to process (images, PDFs, DOCX, TXT)
 
     Returns:
@@ -90,7 +90,7 @@ async def generate_srs(
         # Prepare state for workflow
         state = {
             "user_message": message,
-            "document_id": document_id,
+            "content_id": content_id,
             "files": files or []
         }
 
@@ -107,7 +107,7 @@ async def generate_srs(
 @app.post("/api/v1/generate/class-diagram")
 async def generate_class_diagram(
     message: str = Form(...),
-    document_id: Optional[str] = Form(None),
+    content_id: Optional[str] = Form(None),
     files: Optional[List[UploadFile]] = File(None)
 ):
     """
@@ -115,7 +115,7 @@ async def generate_class_diagram(
 
     Args:
         message: User message/requirement description
-        document_id: Optional UUID of the document for chat history
+        content_id: Optional ID of the content for chat history
         files: Optional list of files to process (images, PDFs, DOCX, TXT)
 
     Returns:
@@ -134,7 +134,7 @@ async def generate_class_diagram(
         # Prepare state for workflow
         state = {
             "user_message": message,
-            "document_id": document_id,
+            "content_id": content_id,
             "files": files or []
         }
 
@@ -151,7 +151,7 @@ async def generate_class_diagram(
 @app.post("/api/v1/generate/usecase-diagram")
 async def generate_usecase_diagram(
     message: str = Form(...),
-    document_id: Optional[str] = Form(None),
+    content_id: Optional[str] = Form(None),
     files: Optional[List[UploadFile]] = File(None)
 ):
     """
@@ -159,7 +159,7 @@ async def generate_usecase_diagram(
 
     Args:
         message: User message/requirement description
-        document_id: Optional UUID of the document for chat history
+        content_id: Optional ID of the content for chat history
         files: Optional list of files to process (images, PDFs, DOCX, TXT)
 
     Returns:
@@ -178,7 +178,7 @@ async def generate_usecase_diagram(
         # Prepare state for workflow
         state = {
             "user_message": message,
-            "document_id": document_id,
+            "content_id": content_id,
             "files": files or []
         }
 
@@ -195,7 +195,7 @@ async def generate_usecase_diagram(
 @app.post("/api/v1/generate/activity-diagram")
 async def generate_activity_diagram(
     message: str = Form(...),
-    document_id: Optional[str] = Form(None),
+    content_id: Optional[str] = Form(None),
     files: Optional[List[UploadFile]] = File(None)
 ):
     """
@@ -203,7 +203,7 @@ async def generate_activity_diagram(
 
     Args:
         message: User message/requirement description
-        document_id: Optional UUID of the document for chat history
+        content_id: Optional ID of the content for chat history
         files: Optional list of files to process (images, PDFs, DOCX, TXT)
 
     Returns:
@@ -222,7 +222,7 @@ async def generate_activity_diagram(
         # Prepare state for workflow
         state = {
             "user_message": message,
-            "document_id": document_id,
+            "content_id": content_id,
             "files": files or []
         }
 
@@ -240,7 +240,7 @@ async def generate_activity_diagram(
 @app.post("/api/v1/wireframe/generate")
 async def generate_wireframe(
     message: str = Form(...),
-    document_id: Optional[str] = Form(None),
+    content_id: Optional[str] = Form(None),
     files: Optional[List[UploadFile]] = File(None)
 ):
     """
@@ -248,7 +248,7 @@ async def generate_wireframe(
 
     Args:
         message: User message/requirement description
-        document_id: Optional UUID of the document for chat history
+        content_id: Optional ID of the content for chat history
         files: Optional list of files to process (images, PDFs, DOCX, TXT)
 
     Returns:
@@ -268,7 +268,7 @@ async def generate_wireframe(
         # Prepare state for workflow
         state = {
             "user_message": message,
-            "document_id": document_id,
+            "content_id": content_id,
             "files": files or []
         }
 

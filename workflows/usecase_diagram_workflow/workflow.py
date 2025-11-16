@@ -14,7 +14,7 @@ OPENROUTER_API_KEY = os.getenv("OPEN_ROUTER_API_KEY", "")
 class UsecaseDiagramState(TypedDict):
     user_message: str
     response: dict
-    document_id: Optional[str]
+    content_id: Optional[str]
     files: Optional[List]
     file_data: Optional[List]
     extracted_text: Optional[str]
