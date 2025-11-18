@@ -1000,7 +1000,7 @@ cd services\mermaid_validator\nodejs
 node server.js
 
 # Terminal 2: Run tests
-node test-server.js
+npm run test-server
 ```
 
 ---
