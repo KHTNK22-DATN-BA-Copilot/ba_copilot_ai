@@ -63,7 +63,6 @@ temp/
 *.tmp
 
 # Docker
-.dockerignore
 docker-compose.override.yml
 
 # Node modules

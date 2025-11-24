@@ -38,10 +38,22 @@ async function validateMermaid(code) {
     const isWindows = process.platform === 'win32';
     const npxCommand = isWindows ? 'npx.cmd' : 'npx';
 
+    // Puppeteer config for Docker environment (running as root)
+    const puppeteerConfig = path.join(__dirname, 'puppeteer-config.json');
+
     await new Promise((resolve, reject) => {
       execFile(
         npxCommand,
-        ['mmdc', '-i', inputFile, '-o', outputFile, '-q'],
+        [
+          'mmdc',
+          '-i',
+          inputFile,
+          '-o',
+          outputFile,
+          '-q',
+          '--puppeteerConfigFile',
+          puppeteerConfig,
+        ],
         (error, stdout, stderr) => {
           if (error) return reject(stderr || error.message);
           resolve();
