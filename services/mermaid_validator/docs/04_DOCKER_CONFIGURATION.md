@@ -48,14 +48,14 @@ Integrate the Node.js Mermaid validator service into the Docker-based BA Copilot
 
 **Why Embedded (Not Separate Container)?**
 
-| Factor              | Embedded in AI Container | Separate Container |
-|---------------------|--------------------------|-------------------|
-| **Network Complexity** | Simple (localhost)       | Docker networking |
-| **Startup Order**   | Automatic                | Requires depends_on |
-| **Resource Usage**  | Shared container         | Additional overhead |
-| **Deployment**      | Single image             | Two images        |
-| **Security**        | Internal only            | Network exposure  |
-| **Debugging**       | Easier (single logs)     | Multiple log sources |
+| Factor                 | Embedded in AI Container | Separate Container   |
+| ---------------------- | ------------------------ | -------------------- |
+| **Network Complexity** | Simple (localhost)       | Docker networking    |
+| **Startup Order**      | Automatic                | Requires depends_on  |
+| **Resource Usage**     | Shared container         | Additional overhead  |
+| **Deployment**         | Single image             | Two images           |
+| **Security**           | Internal only            | Network exposure     |
+| **Debugging**          | Easier (single logs)     | Multiple log sources |
 
 **Decision: Embedded** ✅
 
@@ -68,6 +68,7 @@ Integrate the Node.js Mermaid validator service into the Docker-based BA Copilot
 **File**: `ba_copilot_ai/Dockerfile`
 
 The Dockerfile has been updated to:
+
 1. Install Node.js 18.x runtime
 2. Copy and install Node.js validator dependencies
 3. Copy validator source code
@@ -168,6 +169,7 @@ temp/
 ```
 
 **Why exclude node_modules?**
+
 - **Faster builds**: Don't copy large node_modules (100MB+)
 - **Fresh install**: Ensures dependencies match package-lock.json
 - **Platform-specific binaries**: Avoids Windows/Mac binaries in Linux container
@@ -185,11 +187,12 @@ Changed default HOST from `localhost` to `0.0.0.0` for Docker compatibility:
 ```javascript
 // Configuration
 const PORT = process.env.PORT || 51234;
-const HOST = process.env.HOST || '0.0.0.0';  // Changed from 'localhost'
+const HOST = process.env.HOST || '0.0.0.0'; // Changed from 'localhost'
 const NODE_ENV = process.env.NODE_ENV || 'development';
 ```
 
 **Why 0.0.0.0?**
+
 - `localhost` (127.0.0.1) only accepts connections from within the container
 - `0.0.0.0` accepts connections from all network interfaces
 - Still internal-only since the port is not exposed in docker-compose.yml
@@ -236,12 +239,18 @@ ai:
     - DEBUG=true
     - LOG_LEVEL=INFO
   ports:
-    - '8000:8000'  # Only FastAPI exposed, validator is internal
+    - '8000:8000' # Only FastAPI exposed, validator is internal
   depends_on:
     postgres:
       condition: service_healthy
   healthcheck:
-    test: ['CMD', 'python', '-c', 'import requests; requests.get("http://localhost:8000/health").raise_for_status()']
+    test:
+      [
+        'CMD',
+        'python',
+        '-c',
+        'import requests; requests.get("http://localhost:8000/health").raise_for_status()',
+      ]
     interval: 10s
     timeout: 5s
     retries: 5
@@ -250,6 +259,7 @@ ai:
 ```
 
 **Key Points**:
+
 - ✅ Validator runs on `localhost:51234` **inside** the AI container
 - ✅ Only port 8000 (FastAPI) is exposed to host
 - ✅ Validator is **not** exposed to external network (security)
@@ -342,19 +352,19 @@ logger = logging.getLogger(__name__)
 class MermaidSubprocessManager:
     """
     Manages Node.js Mermaid validator subprocess lifecycle.
-    
+
     In Docker, the validator starts automatically with the container.
     This manager simply provides an HTTP client to communicate with it.
     """
-    
+
     def __init__(self, base_url: str = "http://localhost:51234"):
         self.base_url = base_url
         self.client = httpx.AsyncClient(timeout=10.0)
-    
+
     async def health_check(self) -> bool:
         """
         Check if validator service is healthy.
-        
+
         Returns:
             True if healthy, False otherwise
         """
@@ -364,17 +374,17 @@ class MermaidSubprocessManager:
         except Exception as e:
             logger.warning(f"Validator health check failed: {e}")
             return False
-    
+
     async def validate(self, mermaid_code: str) -> dict:
         """
         Validate Mermaid diagram code.
-        
+
         Args:
             mermaid_code: Mermaid diagram code to validate
-        
+
         Returns:
             Validation result dictionary
-        
+
         Raises:
             httpx.HTTPError: If validation request fails
         """
@@ -388,7 +398,7 @@ class MermaidSubprocessManager:
         except httpx.HTTPError as e:
             logger.error(f"Validation request failed: {e}")
             raise
-    
+
     async def close(self):
         """Close HTTP client"""
         await self.client.aclose()
@@ -410,18 +420,18 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """
     Application lifespan manager.
-    
+
     Startup:
         - Create validator client
         - Wait for validator to be ready
-    
+
     Shutdown:
         - Close validator client
     """
     # Startup
     logger.info("Initializing Mermaid validator client...")
     validator = MermaidSubprocessManager()
-    
+
     # Wait for validator to be ready (with retries)
     max_retries = 30
     for i in range(max_retries):
@@ -432,12 +442,12 @@ async def lifespan(app: FastAPI):
         await asyncio.sleep(1)
     else:
         logger.warning("⚠️ Validator not ready, proceeding without validation")
-    
+
     # Store in app state
     app.state.validator = validator
-    
+
     yield
-    
+
     # Shutdown
     logger.info("Closing validator client...")
     await validator.close()
@@ -470,24 +480,24 @@ async def test_validator_health():
 async def test_validate_valid_diagram():
     """Test validation of valid diagram"""
     manager = MermaidSubprocessManager()
-    
+
     result = await manager.validate("graph TD\nA-->B")
-    
+
     assert result["valid"] is True
     assert result["diagram_type"] == "flowchart"
-    
+
     await manager.close()
 
 @pytest.mark.asyncio
 async def test_validate_invalid_diagram():
     """Test validation of invalid diagram"""
     manager = MermaidSubprocessManager()
-    
+
     result = await manager.validate("graph TD\nA[Start\nB[End]")
-    
+
     assert result["valid"] is False
     assert "errors" in result
-    
+
     await manager.close()
 ```
 
@@ -521,18 +531,19 @@ docker stats ba-copilot-ai --no-stream
 ```
 
 **Breakdown**:
+
 - Python FastAPI: ~300MB
 - Node.js validator: ~100MB
 - System overhead: ~50MB
 
 ### Validation Performance
 
-| Diagram Type | Size (lines) | Validation Time |
-|--------------|--------------|-----------------|
-| Class Diagram | 10           | 150-250ms       |
-| Sequence Diagram | 15        | 200-300ms       |
-| Flowchart    | 20           | 180-280ms       |
-| Complex Class | 50          | 400-600ms       |
+| Diagram Type     | Size (lines) | Validation Time |
+| ---------------- | ------------ | --------------- |
+| Class Diagram    | 10           | 150-250ms       |
+| Sequence Diagram | 15           | 200-300ms       |
+| Flowchart        | 20           | 180-280ms       |
+| Complex Class    | 50           | 400-600ms       |
 
 **Performance Target**: < 500ms for p95
 
@@ -543,11 +554,13 @@ docker stats ba-copilot-ai --no-stream
 ### Issue 1: Validator Not Starting
 
 **Symptom**:
+
 ```
 ⚠️ Validator not ready, proceeding without validation
 ```
 
 **Debug**:
+
 ```powershell
 # Check if Node.js is installed
 docker exec ba-copilot-ai node --version
@@ -560,6 +573,7 @@ docker exec ba-copilot-ai cat /app/services/mermaid_validator/nodejs/*.log
 ```
 
 **Solution**:
+
 ```powershell
 # Rebuild AI container
 docker-compose build --no-cache ai
@@ -569,11 +583,13 @@ docker-compose up -d ai
 ### Issue 2: Validation Timeout
 
 **Symptom**:
+
 ```
 Validation request failed: Read timeout
 ```
 
 **Debug**:
+
 ```powershell
 # Test validator manually
 docker exec ba-copilot-ai curl -X POST http://localhost:51234/validate \
@@ -583,6 +599,7 @@ docker exec ba-copilot-ai curl -X POST http://localhost:51234/validate \
 
 **Solution**:
 Increase timeout in `subprocess_manager.py`:
+
 ```python
 self.client = httpx.AsyncClient(timeout=30.0)  # Increase from 10s
 ```
@@ -590,17 +607,20 @@ self.client = httpx.AsyncClient(timeout=30.0)  # Increase from 10s
 ### Issue 3: npm install Fails During Build
 
 **Symptom**:
+
 ```
 ERROR: npm ERR! Failed to download package
 ```
 
 **Solution**:
+
 ```powershell
 # Use npm cache mirror
 docker-compose build --build-arg NPM_REGISTRY=https://registry.npmjs.org ai
 ```
 
 Or update Dockerfile:
+
 ```dockerfile
 RUN npm config set registry https://registry.npmjs.org && \
     npm ci --only=production
@@ -609,11 +629,13 @@ RUN npm config set registry https://registry.npmjs.org && \
 ### Issue 4: Port Already in Use
 
 **Symptom**:
+
 ```
 Error: listen EADDRINUSE: address already in use :::51234
 ```
 
 **Debug**:
+
 ```powershell
 # Check if port is in use on host
 netstat -ano | findstr :51234
@@ -624,6 +646,7 @@ docker exec ba-copilot-ai lsof -i :51234
 
 **Solution**:
 Change PORT in `.env`:
+
 ```bash
 PORT=51235  # Use different port
 ```
