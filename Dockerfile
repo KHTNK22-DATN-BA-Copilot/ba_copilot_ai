@@ -70,5 +70,30 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
 
-# Run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Create startup script to run both Node.js validator and FastAPI
+RUN echo '#!/bin/bash\n\
+set -e\n\
+echo "Starting Mermaid Validator Service..."\n\
+cd /app/services/mermaid_validator/nodejs\n\
+PORT=51234 HOST=localhost node server.js &\n\
+VALIDATOR_PID=$!\n\
+echo "Validator started with PID: $VALIDATOR_PID on port 51234"\n\
+\n\
+# Wait for validator to be ready\n\
+echo "Waiting for validator to be ready..."\n\
+for i in {1..30}; do\n\
+    if curl -f http://localhost:51234/health >/dev/null 2>&1; then\n\
+        echo "Validator is ready!"\n\
+        break\n\
+    fi\n\
+    echo "Attempt $i/30: Validator not ready yet..."\n\
+    sleep 1\n\
+done\n\
+\n\
+cd /app\n\
+echo "Starting FastAPI application..."\n\
+exec uvicorn main:app --host 0.0.0.0 --port 8000 --reload\n\
+' > /app/start.sh && chmod +x /app/start.sh
+
+# Run the startup script
+CMD ["/bin/bash", "/app/start.sh"]

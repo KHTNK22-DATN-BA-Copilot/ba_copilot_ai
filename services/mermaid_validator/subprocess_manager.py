@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class MermaidSubprocessManager:
     def __init__(self, base_url: str = "http://localhost:51234"):
         self.base_url = base_url
-        self.client = httpx.AsyncClient(timeout=10.0)
+        self.client = httpx.AsyncClient(timeout=30.0)
     
     async def health_check(self) -> bool:
         """
@@ -25,7 +25,7 @@ class MermaidSubprocessManager:
             True if healthy, False otherwise
         """
         try:
-            response = await self.client.get('f{self.base_url}/health')
+            response = await self.client.get(f'{self.base_url}/health')
             return response.status_code == 200
         except Exception as e:
             logger.warning(f"Validator health check failed: {e}")

@@ -39,6 +39,13 @@ class TestFullIntegration:
     """Comprehensive integration test suite"""
     
     @pytest_asyncio.fixture(scope="class")
+    def event_loop(self):
+        """Create an event loop for the test class"""
+        loop = asyncio.new_event_loop()
+        yield loop
+        loop.close()
+    
+    @pytest_asyncio.fixture(scope="class")
     async def test_context(self):
         """Setup test context with shared state"""
         context = {

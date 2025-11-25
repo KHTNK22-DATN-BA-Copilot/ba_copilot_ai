@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from workflows.activity_diagram_workflow import activity_diagram_graph
-from models.diagram import DiagramResponse, DiagramOutput
+
 
 
 class TestActivityDiagramWorkflow:
