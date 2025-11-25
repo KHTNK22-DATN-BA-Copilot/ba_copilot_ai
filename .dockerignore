@@ -1,0 +1,99 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+.tox/
+htmlcov/
+*.cover
+.hypothesis/
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment files (keep .env.example)
+.env
+.env.local
+.env.*.local
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation (keep for reference)
+# docs/
+# *.md
+# README.md
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Node.js (for validator service)
+services/mermaid_validator/nodejs/node_modules/
+services/mermaid_validator/nodejs/temp/
+services/mermaid_validator/nodejs/*.log
+services/mermaid_validator/nodejs/.env
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+services/mermaid_validator/nodejs/temp/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Test files
+tests/__pycache__/
+*_test.py
+test_*.py
+
+# Models (if large)
+# models/*.bin
+# models/*.safetensors

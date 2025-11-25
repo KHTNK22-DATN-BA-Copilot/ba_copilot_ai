@@ -1,13 +1,67 @@
-# ai_service/main.py
+# FastAPI framework and HTTP error handling
 from fastapi import FastAPI, HTTPException
+
+# CORS middleware for cross-origin requests
 from fastapi.middleware.cors import CORSMiddleware
+
+# Pydantic for request/response data validation
 from pydantic import BaseModel
+
+# Import workflow graphs for AI-powered generation
 from workflows import srs_graph, class_diagram_graph, usecase_diagram_graph, activity_diagram_graph, wireframe_graph
+
+# OS/environment variable management
 import os
 from dotenv import load_dotenv
 
+# Logging setup
+import logging
+
+# subprocess imports
+import asyncio
+from contextlib import asynccontextmanager
+from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
+
 # Load environment variables
 load_dotenv()
+
+logger = logging.getLogger(__name__)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Application lifespan manager.
+
+    Startup:
+        - Create validator client
+        - Wait for validator to be ready
+
+    Shutdown:
+        - Close validator client
+    """
+    # Startup
+    logger.info("Initializing Mermaid validator client...")
+    validator = MermaidSubprocessManager()
+
+    # Wait for validator to be ready (retries if fail)
+    max_retries = 30
+    for i in range(max_retries):
+        if await validator.health_check():
+            logger.info("✅ Mermaid validator is ready")
+            break
+        logger.info(f"⏳ Waiting for validator to be ready... ({i+1}/{max_retries})")
+        await asyncio.sleep(1 + i)
+    else:
+        logger.warning("⚠️ Validator not ready, proceeding without validation")
+
+    # Store in app state
+    app.state.validator = validator
+
+    yield
+
+    # Shutdown
+    logger.info("Closing validator client...")
+    await validator.close()
 
 app = FastAPI(
     title="AI Service - BA Copilot",

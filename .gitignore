@@ -63,5 +63,10 @@ temp/
 *.tmp
 
 # Docker
-.dockerignore
 docker-compose.override.yml
+
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
