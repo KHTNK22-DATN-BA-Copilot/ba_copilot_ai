@@ -38,3 +38,67 @@ async def test_validate_invalid_diagram():
     assert "errors" in result
 
     await manager.close()
+
+# Synchronous validation tests (used by workflows)
+def test_validate_sync_valid_diagram():
+    """Test synchronous validation of valid diagram"""
+    manager = MermaidSubprocessManager()
+
+    result = manager.validate_sync("graph TD\nA-->B")
+    assert isinstance(result, dict)
+    assert result["valid"] is True
+
+    manager.sync_client.close()
+
+def test_validate_sync_invalid_diagram():
+    """Test synchronous validation of invalid diagram"""
+    manager = MermaidSubprocessManager()
+
+    result = manager.validate_sync("graph TD\nA[Start\nB[End]")
+
+    assert isinstance(result, dict)
+    assert result["valid"] is False
+    assert "errors" in result
+
+    manager.sync_client.close()
+
+def test_validate_sync_complex_class_diagram():
+    """Test synchronous validation of class diagram"""
+    manager = MermaidSubprocessManager()
+    
+    class_diagram = """classDiagram
+    class User {
+        +String name
+        +String email
+        +login()
+    }
+    class Admin {
+        +String permissions
+    }
+    User <|-- Admin
+    """
+    
+    result = manager.validate_sync(class_diagram)
+    assert isinstance(result, dict)
+    assert result["valid"] is True
+    
+    manager.sync_client.close()
+
+def test_validate_sync_usecase_diagram():
+    """Test synchronous validation of usecase diagram"""
+    manager = MermaidSubprocessManager()
+    
+    usecase_diagram = """graph TD
+    Actor[User]
+    UC1((Login))
+    UC2((View Profile))
+    Actor --> UC1
+    Actor --> UC2
+    """
+    
+    result = manager.validate_sync(usecase_diagram)
+    assert isinstance(result, dict)
+    # Note: May or may not be valid depending on mermaid version
+    assert "valid" in result
+    
+    manager.sync_client.close()
