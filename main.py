@@ -33,40 +33,43 @@ async def lifespan(app: FastAPI):
     Application lifespan manager.
 
     Startup:
-        - Create validator client
-        - Wait for validator to be ready
+        - Check if validator service is available
+        - Log validator status
 
     Shutdown:
-        - Close validator client
+        - Cleanup if needed
     """
-    # Startup
-    logger.info("Initializing Mermaid validator client...")
+    # Startup - Check validator availability
+    logger.info("Checking Mermaid validator service...")
     validator = MermaidSubprocessManager()
 
     # Wait for validator to be ready (retries if fail)
     max_retries = 30
+    validator_ready = False
     for i in range(max_retries):
         if await validator.health_check():
-            logger.info("✅ Mermaid validator is ready")
+            logger.info("✅ Mermaid validator service is ready")
+            validator_ready = True
             break
         logger.info(f"⏳ Waiting for validator to be ready... ({i+1}/{max_retries})")
-        await asyncio.sleep(1 + i)
-    else:
-        logger.warning("⚠️ Validator not ready, proceeding without validation")
-
-    # Store in app state
-    app.state.validator = validator
+        await asyncio.sleep(1)
+    
+    if not validator_ready:
+        logger.warning("⚠️ Validator not ready, diagram validation may fail")
+    
+    # Close the health check validator instance
+    await validator.close()
 
     yield
 
     # Shutdown
-    logger.info("Closing validator client...")
-    await validator.close()
+    logger.info("AI Service shutting down...")
 
 app = FastAPI(
     title="AI Service - BA Copilot",
     description="AI service for generating SRS, Wireframes, and Diagrams",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # CORS middleware
