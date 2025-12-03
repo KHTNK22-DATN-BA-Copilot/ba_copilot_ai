@@ -221,19 +221,12 @@ def finalize_response(state: ActivityDiagramState) -> ActivityDiagramState:
 workflow = StateGraph(ActivityDiagramState)
 
 # Add nodes
-# Add nodes
 workflow.add_node("generate_activity_diagram", generate_activity_diagram_description)
-workflow.add_node("validate_diagram", validate_diagram)
-workflow.add_node("finalize_response", finalize_response)
 workflow.add_node("validate_diagram", validate_diagram)
 workflow.add_node("finalize_response", finalize_response)
 
 # Set entry point and edges
-# Set entry point and edges
 workflow.set_entry_point("generate_activity_diagram")
-workflow.add_edge("generate_activity_diagram", "validate_diagram")
-workflow.add_edge("validate_diagram", "finalize_response")
-workflow.add_edge("finalize_response", END)
 workflow.add_edge("generate_activity_diagram", "validate_diagram")
 workflow.add_edge("validate_diagram", "finalize_response")
 workflow.add_edge("finalize_response", END)

@@ -168,19 +168,12 @@ def finalize_response(state: ClassDiagramState) -> ClassDiagramState:
 workflow = StateGraph(ClassDiagramState)
 
 # Add nodes
-# Add nodes
 workflow.add_node("generate_class_diagram", generate_class_diagram_description)
-workflow.add_node("validate_diagram", validate_diagram)
-workflow.add_node("finalize_response", finalize_response)
 workflow.add_node("validate_diagram", validate_diagram)
 workflow.add_node("finalize_response", finalize_response)
 
 # Set entry point and edges
-# Set entry point and edges
 workflow.set_entry_point("generate_class_diagram")
-workflow.add_edge("generate_class_diagram", "validate_diagram")
-workflow.add_edge("validate_diagram", "finalize_response")
-workflow.add_edge("finalize_response", END)
 workflow.add_edge("generate_class_diagram", "validate_diagram")
 workflow.add_edge("validate_diagram", "finalize_response")
 workflow.add_edge("finalize_response", END)

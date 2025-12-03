@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class MermaidSubprocessManager:
-    def __init__(self, base_url: str = "http://localhost:51234", max_retries: int = 3):
+    def __init__(self, base_url: str = "http://localhost:51234", max_retries: int = 5):
         self.base_url = base_url
         self.max_retries = max_retries
         # Optimized timeout: 30s is sufficient for most validations (8-15s typical)
