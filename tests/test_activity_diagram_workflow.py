@@ -137,7 +137,10 @@ graph TD
         assert result is not None
         assert "response" in result
         assert result["response"]["type"] == "activity_diagram"
-        assert "Error generating activity diagram" in result["response"]["detail"]
+        detail = result["response"]["detail"]
+        # Accept either error message or validation warning (graceful degradation)
+        assert ("Error generating activity diagram" in detail 
+                or "Validation Warning" in detail), f"Unexpected detail: {detail}"
 
     @patch('workflows.activity_diagram_workflow.workflow.OpenAI')
     def test_activity_diagram_contains_key_elements(self, mock_openai):

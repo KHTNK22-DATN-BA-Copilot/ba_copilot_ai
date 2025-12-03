@@ -67,8 +67,8 @@ class TestFullIntegration:
             f"{BACKEND_URL}/api/v1/auth/register",
             json={
                 "email": TEST_USER["email"],
-                "password": TEST_USER["password"],
-                "full_name": TEST_USER["full_name"]
+                "name": TEST_USER["full_name"],  # Backend expects 'name'
+                "passwordhash": TEST_USER["password"]  # Backend expects 'passwordhash'
             }
         )
         

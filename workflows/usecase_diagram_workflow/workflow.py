@@ -5,8 +5,12 @@ import sys
 import os
 import re
 import logging
+import re
+import logging
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from models.diagram import DiagramOutput, DiagramResponse
+from typing import TypedDict, Optional
+from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
 from typing import TypedDict, Optional
 from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
 
@@ -15,9 +19,14 @@ OPENROUTER_API_KEY = os.getenv("OPEN_ROUTER_API_KEY", "")
 
 logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
+
 class UsecaseDiagramState(TypedDict):
     user_message: str
     response: dict
+    raw_diagram: Optional[str]
+    validation_result: Optional[dict]
+    retry_count: int
     raw_diagram: Optional[str]
     validation_result: Optional[dict]
     retry_count: int
@@ -78,6 +87,7 @@ def generate_usecase_diagram_description(state: UsecaseDiagramState) -> UsecaseD
         markdown_diagram = completion.choices[0].message.content
 
         # Store raw diagram for validation
+        # type: ignore[return-value] - Partial state update is valid for LangGraph
         return {
             "raw_diagram": markdown_diagram,
             "retry_count": 0
@@ -86,12 +96,72 @@ def generate_usecase_diagram_description(state: UsecaseDiagramState) -> UsecaseD
     except Exception as e:
         print(f"Error generating use case diagram: {e}")
         # Fallback response
+        # type: ignore[return-value] - Partial state update is valid for LangGraph
         return {
             "response": {
                 "type": "usecase_diagram",
                 "detail": f"Error generating use case diagram: {str(e)}"
             }
         }
+
+def extract_mermaid_code(markdown_text: str) -> str:
+    """Extract mermaid code from markdown fenced code block"""
+    pattern = r'```mermaid\s*\n(.*?)```'
+    match = re.search(pattern, markdown_text, re.DOTALL)
+    if match:
+        return match.group(1).strip()
+    return markdown_text.strip()
+
+def validate_diagram(state: UsecaseDiagramState) -> UsecaseDiagramState:
+    """Validate the generated mermaid diagram"""
+    raw_diagram = state.get("raw_diagram", "")
+    if not raw_diagram:
+        logger.error("No diagram to validate")
+        return {
+            "validation_result": {"valid": False, "errors": ["No diagram generated"]}
+        }
+    
+    # Extract mermaid code from markdown
+    mermaid_code = extract_mermaid_code(raw_diagram)
+    
+    validator = MermaidSubprocessManager()
+    try:
+        result = validator.validate_sync(mermaid_code)
+        logger.info(f"Validation result: {result.get('valid', False)}")
+        return {"validation_result": result}
+    except Exception as e:
+        logger.error(f"Validation failed: {e}")
+        return {
+            "validation_result": {"valid": False, "errors": [str(e)]}
+        }
+    finally:
+        validator.sync_client.close()
+
+def finalize_response(state: UsecaseDiagramState) -> UsecaseDiagramState:
+    """Create final response based on validation result"""
+    validation_result = state.get("validation_result", {})
+    raw_diagram = state.get("raw_diagram", "")
+    
+    if validation_result.get("valid", False):
+        # Validation passed
+        diagram_response = DiagramResponse(
+            type="usecase_diagram",
+            detail=raw_diagram
+        )
+        output = DiagramOutput(type="diagram", response=diagram_response)
+        return {"response": output.model_dump()["response"]}
+    else:
+        # Validation failed - still return the diagram but log the error
+        errors = validation_result.get("errors", [])
+        logger.warning(f"Usecase diagram validation failed: {errors}")
+        
+        # Return diagram anyway with a warning in the metadata
+        diagram_response = DiagramResponse(
+            type="usecase_diagram",
+            detail=raw_diagram + f"\n\n<!-- Validation Warning: {errors} -->"
+        )
+        output = DiagramOutput(type="diagram", response=diagram_response)
+        return {"response": output.model_dump()["response"]}
 
 def extract_mermaid_code(markdown_text: str) -> str:
     """Extract mermaid code from markdown fenced code block"""

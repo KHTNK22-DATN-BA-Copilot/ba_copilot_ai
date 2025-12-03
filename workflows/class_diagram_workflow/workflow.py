@@ -5,8 +5,12 @@ import sys
 import os
 import re
 import logging
+import re
+import logging
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from models.diagram import DiagramOutput, DiagramResponse
+from typing import TypedDict, Optional
+from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
 from typing import TypedDict, Optional
 from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
 
@@ -15,9 +19,14 @@ OPENROUTER_API_KEY = os.getenv("OPEN_ROUTER_API_KEY", "")
 
 logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
+
 class ClassDiagramState(TypedDict):
     user_message: str
     response: dict
+    raw_diagram: Optional[str]
+    validation_result: Optional[dict]
+    retry_count: int
     raw_diagram: Optional[str]
     validation_result: Optional[dict]
     retry_count: int
@@ -79,6 +88,7 @@ def generate_class_diagram_description(state: ClassDiagramState) -> ClassDiagram
         markdown_diagram = completion.choices[0].message.content
 
         # Store raw diagram for validation
+        # type: ignore[return-value] - Partial state update is valid for LangGraph
         return {
             "raw_diagram": markdown_diagram,
             "retry_count": 0
@@ -87,6 +97,7 @@ def generate_class_diagram_description(state: ClassDiagramState) -> ClassDiagram
     except Exception as e:
         print(f"Error generating class diagram: {e}")
         # Fallback response
+        # type: ignore[return-value] - Partial state update is valid for LangGraph
         return {
             "response": {
                 "type": "class_diagram",
@@ -100,7 +111,6 @@ def extract_mermaid_code(markdown_text: str) -> str:
     match = re.search(pattern, markdown_text, re.DOTALL)
     if match:
         return match.group(1).strip()
-    # If no code block found, return the original text
     return markdown_text.strip()
 
 def validate_diagram(state: ClassDiagramState) -> ClassDiagramState:
