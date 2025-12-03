@@ -5,8 +5,12 @@ import sys
 import os
 import re
 import logging
+import re
+import logging
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from models.diagram import DiagramOutput, DiagramResponse
+from typing import TypedDict, Optional
+from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
 from typing import TypedDict, Optional
 from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
 
@@ -15,9 +19,14 @@ OPENROUTER_API_KEY = os.getenv("OPEN_ROUTER_API_KEY", "")
 
 logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
+
 class ClassDiagramState(TypedDict):
     user_message: str
     response: dict
+    raw_diagram: Optional[str]
+    validation_result: Optional[dict]
+    retry_count: int
     raw_diagram: Optional[str]
     validation_result: Optional[dict]
     retry_count: int
@@ -159,12 +168,19 @@ def finalize_response(state: ClassDiagramState) -> ClassDiagramState:
 workflow = StateGraph(ClassDiagramState)
 
 # Add nodes
+# Add nodes
 workflow.add_node("generate_class_diagram", generate_class_diagram_description)
+workflow.add_node("validate_diagram", validate_diagram)
+workflow.add_node("finalize_response", finalize_response)
 workflow.add_node("validate_diagram", validate_diagram)
 workflow.add_node("finalize_response", finalize_response)
 
 # Set entry point and edges
+# Set entry point and edges
 workflow.set_entry_point("generate_class_diagram")
+workflow.add_edge("generate_class_diagram", "validate_diagram")
+workflow.add_edge("validate_diagram", "finalize_response")
+workflow.add_edge("finalize_response", END)
 workflow.add_edge("generate_class_diagram", "validate_diagram")
 workflow.add_edge("validate_diagram", "finalize_response")
 workflow.add_edge("finalize_response", END)
