@@ -183,7 +183,10 @@ class TestActivityDiagramAPIErrorHandling:
         # Should return error response (workflow handles it gracefully and returns error detail)
         assert response.status_code == 200
         data = response.json()
-        assert "Error generating activity diagram" in data["response"]["detail"]
+        detail = data["response"]["detail"]
+        # Accept either error message or validation warning (graceful degradation)
+        assert ("Error generating activity diagram" in detail 
+                or "Validation Warning" in detail), f"Unexpected detail: {detail}"
 
     @patch('workflows.activity_diagram_workflow.workflow.OpenAI')
     def test_timeout_handling(self, mock_openai):

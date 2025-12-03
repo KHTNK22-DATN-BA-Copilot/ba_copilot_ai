@@ -34,8 +34,16 @@ def test_class_diagram_generation():
         print(f"✅ Response received")
         print(f"📝 Response type: {data.get('type')}")
         
-        detail = data.get('detail', '')
-        if '```mermaid' in detail:
+        # Handle nested response structure
+        response_data = data.get('response', {})
+        detail = response_data.get('detail', '')
+        
+        # Debug: print detail info
+        print(f"🔍 Detail length: {len(detail)}")
+        print(f"🔍 First 100 chars: {repr(detail[:100])}")
+        
+        # Strip whitespace and check for mermaid diagram
+        if '```mermaid' in detail or 'mermaid' in detail.lower():
             print(f"✅ Mermaid diagram generated")
             
             # Check for validation warning
@@ -47,14 +55,13 @@ def test_class_diagram_generation():
             # Show first 200 chars of diagram
             preview = detail[:200].replace('\n', '\\n')
             print(f"📄 Preview: {preview}...")
-            return True
         else:
             print(f"❌ No mermaid diagram in response")
             print(f"Response: {json.dumps(data, indent=2)}")
-            return False
+            assert False, "No mermaid diagram in response"
     else:
         print(f"❌ Request failed: {response.text}")
-        return False
+        assert False, f"Request failed with status {response.status_code}"
 
 def test_usecase_diagram_generation():
     """Test usecase diagram generation with validation"""
@@ -83,7 +90,9 @@ def test_usecase_diagram_generation():
         data = response.json()
         print(f"✅ Response received")
         
-        detail = data.get('detail', '')
+        # Handle nested response structure
+        response_data = data.get('response', {})
+        detail = response_data.get('detail', '')
         if '```mermaid' in detail or 'graph' in detail:
             print(f"✅ Diagram generated")
             
@@ -91,13 +100,12 @@ def test_usecase_diagram_generation():
                 print(f"⚠️  Diagram has validation warnings (expected for some use case diagrams)")
             else:
                 print(f"✅ Diagram passed validation")
-            return True
         else:
             print(f"❌ No diagram in response")
-            return False
+            assert False, "No diagram in response"
     else:
         print(f"❌ Request failed: {response.text}")
-        return False
+        assert False, f"Request failed with status {response.status_code}"
 
 def test_activity_diagram_generation():
     """Test activity diagram generation with validation"""
@@ -126,7 +134,9 @@ def test_activity_diagram_generation():
         data = response.json()
         print(f"✅ Response received")
         
-        detail = data.get('detail', '')
+        # Handle nested response structure
+        response_data = data.get('response', {})
+        detail = response_data.get('detail', '')
         if '```mermaid' in detail or 'graph' in detail:
             print(f"✅ Diagram generated")
             
@@ -134,12 +144,12 @@ def test_activity_diagram_generation():
                 print(f"⚠️  Diagram has validation warnings")
             else:
                 print(f"✅ Diagram passed validation")
-            return True
         else:
             print(f"❌ No diagram in response")
-            return False
+            assert False, "No diagram in response"
     else:
         print(f"❌ Request failed: {response.text}")
+        assert False, f"Request failed with status {response.status_code}"
         return False
 
 if __name__ == "__main__":

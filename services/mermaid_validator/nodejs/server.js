@@ -21,10 +21,20 @@
  * @version 1.0.0
  */
 
+const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const { validateMermaid } = require('./validator');
+
+// Response cache for identical diagrams (max 100 entries, 10 min TTL)
+const CACHE_MAX_SIZE = 100;
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const responseCache = new Map();
+
+// Request rate limiting (max 10 concurrent validations)
+let activeValidations = 0;
+const MAX_CONCURRENT = 10;
 
 // Configuration
 const PORT = process.env.PORT || 51234;
@@ -88,15 +98,54 @@ app.post('/validate', async (req, res) => {
       });
     }
 
+    // Check cache first
+    const codeHash = crypto.createHash('md5').update(code).digest('hex');
+    const cached = responseCache.get(codeHash);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      console.log(
+        `[CACHE HIT] Returning cached result (${Date.now() - startTime}ms)`
+      );
+      return res.json({
+        ...cached.result,
+        cached: true,
+        duration_ms: Date.now() - startTime,
+      });
+    }
+
+    // Rate limiting
+    if (activeValidations >= MAX_CONCURRENT) {
+      return res.status(429).json({
+        valid: false,
+        error: 'Too many concurrent validations. Please retry later.',
+        active_count: activeValidations,
+        timestamp: Date.now(),
+      });
+    }
+
+    activeValidations++;
+
     // Validate Mermaid code
     const result = await validateMermaid(code);
+
+    // Cache successful validations
+    if (result.valid) {
+      responseCache.set(codeHash, { result, timestamp: Date.now() });
+
+      // Evict oldest entry if cache is full
+      if (responseCache.size > CACHE_MAX_SIZE) {
+        const firstKey = responseCache.keys().next().value;
+        responseCache.delete(firstKey);
+      }
+    }
 
     // Add timing information
     const duration = Date.now() - startTime;
     result.duration_ms = duration;
 
     console.log(
-      `Validation completed in ${duration}ms - valid: ${result.valid}`
+      `[${result.valid ? 'PASS' : 'FAIL'}] ${
+        result.diagram_type || 'unknown'
+      } (${duration}ms)`
     );
 
     res.json(result);
@@ -109,6 +158,8 @@ app.post('/validate', async (req, res) => {
       message: error.message,
       timestamp: Date.now(),
     });
+  } finally {
+    activeValidations--;
   }
 });
 
