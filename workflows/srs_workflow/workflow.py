@@ -73,7 +73,7 @@ def generate_srs(state: SRSState) -> SRSState:
         )
 
         result_content = completion.choices[0].message.content
-        srs_data = extract_json(result_content)
+        srs_data = extract_json(str(result_content))
 
         srs_response = SRSResponse(
             title=srs_data.get("title", "Software Requirements Specification"),
@@ -83,12 +83,16 @@ def generate_srs(state: SRSState) -> SRSState:
         )
 
         output = SRSOutput(type="srs", response=srs_response)
-        return {"response": output.model_dump()["response"]}
+        return {
+            "user_message": state.get("user_message",""),
+            "response": output.model_dump()["response"]
+            }
 
     except Exception as e:
         print(f"Error generating SRS: {e}")
         # Fallback response
         return {
+            "user_message": state.get("user_message",""),
             "response": {
                 "title": "Software Requirements Specification",
                 "functional_requirements": "Error generating requirements",

@@ -22,8 +22,8 @@ logger = logging.getLogger(__name__)
 logger = logging.getLogger(__name__)
 
 class UsecaseDiagramState(TypedDict):
-    user_message: str
-    response: dict
+    user_message: Optional[str]
+    response: Optional[dict]
     raw_diagram: Optional[str]
     validation_result: Optional[dict]
     retry_count: int
@@ -98,6 +98,7 @@ def generate_usecase_diagram_description(state: UsecaseDiagramState) -> UsecaseD
         # Fallback response
         # type: ignore[return-value] - Partial state update is valid for LangGraph
         return {
+            "user_message": state.get("user_message",""),
             "response": {
                 "type": "usecase_diagram",
                 "detail": f"Error generating use case diagram: {str(e)}"
