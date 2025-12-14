@@ -157,7 +157,7 @@ def get_chat_history(state: Dict[str, Any], model: str = MODEL) -> Dict[str, Any
         chat_context = format_chat_context(history, max_context_tokens)
         state["chat_context"] = chat_context
 
-        print(f"Chat history processed: {len(history)} messages, {estimate_tokens(chat_context)} tokens")
+        print(f"Chat history processed: {len(history)} messages, {_estimate_tokens(chat_context)} tokens")
     except Exception as e:
         print(f"Failed to fetch chat history: {e}. Continuing without history context.")
         state["chat_context"] = ""

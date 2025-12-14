@@ -61,7 +61,7 @@ async def health_check():
 @app.post("/api/v1/srs/generate")
 async def generate_srs(
     message: str = Form(...),
-    content_id: Optional[str] = Form(None),
+    content_id: Optional[str] = Form(None, description="Optional content ID for chat history (can be empty)"),
     storage_paths: Optional[List[str]] = Form(None)
 ):
     """
@@ -69,7 +69,7 @@ async def generate_srs(
 
     Args:
         message: User message/requirement description
-        content_id: Optional ID of the content for chat history
+        content_id: Optional ID of the content for chat history (can be empty or null)
         storage_paths: Optional list of files to process in supabase (images, PDFs, DOCX, TXT)
 
     Returns:
@@ -87,10 +87,13 @@ async def generate_srs(
         }
     """
     try:
+        # Handle empty string as None for content_id
+        effective_content_id = content_id if content_id and content_id.strip() else None
+
         # Prepare state for workflow
         state = {
             "user_message": message,
-            "content_id": content_id,
+            "content_id": effective_content_id,
             "storage_paths": storage_paths or []
         }
 
@@ -107,7 +110,7 @@ async def generate_srs(
 @app.post("/api/v1/generate/class-diagram")
 async def generate_class_diagram(
     message: str = Form(...),
-    content_id: Optional[str] = Form(None),
+    content_id: Optional[str] = Form(None, description="Optional content ID for chat history (can be empty)"),
     storage_paths: Optional[List[str]] = Form(None)
 ):
     """
@@ -115,7 +118,7 @@ async def generate_class_diagram(
 
     Args:
         message: User message/requirement description
-        content_id: Optional ID of the content for chat history
+        content_id: Optional ID of the content for chat history (can be empty or null)
         storage_paths: Optional list of files to process in supabase (images, PDFs, DOCX, TXT)
     Returns:
         dict: Response with class diagram data
@@ -130,10 +133,13 @@ async def generate_class_diagram(
         }
     """
     try:
+        # Handle empty string as None for content_id
+        effective_content_id = content_id if content_id and content_id.strip() else None
+
         # Prepare state for workflow
         state = {
             "user_message": message,
-            "content_id": content_id,
+            "content_id": effective_content_id,
             "storage_paths": storage_paths or []
         }
 
@@ -150,7 +156,7 @@ async def generate_class_diagram(
 @app.post("/api/v1/generate/usecase-diagram")
 async def generate_usecase_diagram(
     message: str = Form(...),
-    content_id: Optional[str] = Form(None),
+    content_id: Optional[str] = Form(None, description="Optional content ID for chat history (can be empty)"),
     storage_paths: Optional[List[str]] = Form(None)
 ):
     """
@@ -158,7 +164,7 @@ async def generate_usecase_diagram(
 
     Args:
         message: User message/requirement description
-        content_id: Optional ID of the content for chat history
+        content_id: Optional ID of the content for chat history (can be empty or null)
         storage_paths: Optional list of files to process in supabase (images, PDFs, DOCX, TXT)
 
     Returns:
@@ -174,10 +180,13 @@ async def generate_usecase_diagram(
         }
     """
     try:
+        # Handle empty string as None for content_id
+        effective_content_id = content_id if content_id and content_id.strip() else None
+
         # Prepare state for workflow
         state = {
             "user_message": message,
-            "content_id": content_id,
+            "content_id": effective_content_id,
             "storage_paths": storage_paths or []
         }
 
@@ -194,7 +203,7 @@ async def generate_usecase_diagram(
 @app.post("/api/v1/generate/activity-diagram")
 async def generate_activity_diagram(
     message: str = Form(...),
-    content_id: Optional[str] = Form(None),
+    content_id: Optional[str] = Form(None, description="Optional content ID for chat history (can be empty)"),
     storage_paths: Optional[List[str]] = Form(None)
 ):
     """
@@ -202,7 +211,7 @@ async def generate_activity_diagram(
 
     Args:
         message: User message/requirement description
-        content_id: Optional ID of the content for chat history
+        content_id: Optional ID of the content for chat history (can be empty or null)
         storage_paths: Optional list of files to process in supabase (images, PDFs, DOCX, TXT)
 
     Returns:
@@ -218,10 +227,13 @@ async def generate_activity_diagram(
         }
     """
     try:
+        # Handle empty string as None for content_id
+        effective_content_id = content_id if content_id and content_id.strip() else None
+
         # Prepare state for workflow
         state = {
             "user_message": message,
-            "content_id": content_id,
+            "content_id": effective_content_id,
             "storage_paths": storage_paths or []
         }
 
