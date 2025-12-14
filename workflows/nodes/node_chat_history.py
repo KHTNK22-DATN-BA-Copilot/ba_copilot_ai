@@ -1,18 +1,18 @@
 # workflows/nodes/node_chat_history.py
 import os
+import sys
 import httpx
-from openai import OpenAI
 from typing import TypedDict, List, Dict, Any
 
-# Load API key from environment
-OPENROUTER_API_KEY = os.getenv("OPEN_ROUTER_API_KEY", "")
-BACKEND_API_URL = os.getenv("BACKEND_API_URL", "http://localhost:8010")
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from connect_model import (
+    get_model_client,
+    MODEL,
+    MAX_CONTEXT_TOKENS,
+    estimate_tokens as _estimate_tokens
+)
 
-# Model token limits
-MODEL_TOKEN_LIMITS = {
-    "tngtech/deepseek-r1t2-chimera:free": 8000,
-    "default": 4000
-}
+BACKEND_API_URL = os.getenv("BACKEND_API_URL", "http://localhost:8010")
 
 class ChatMessage(TypedDict):
     role: str
@@ -25,7 +25,7 @@ async def fetch_chat_history(content_id: str) -> List[ChatMessage]:
     Fetch chat history from backend API
 
     Args:
-        document_id: The document ID to fetch history for
+        content_id: The content ID to fetch history for context
 
     Returns:
         List of chat messages
@@ -37,26 +37,14 @@ async def fetch_chat_history(content_id: str) -> List[ChatMessage]:
             )
             response.raise_for_status()
             data = response.json()
+            print(f"Fetched chat history: {data}")
             return data.get("history", [])
     except Exception as e:
         print(f"Error fetching chat history: {e}")
         return []
 
 
-def estimate_tokens(text: str) -> int:
-    """
-    Estimate token count (rough approximation: 1 token ≈ 4 characters)
-
-    Args:
-        text: The text to estimate tokens for
-
-    Returns:
-        Estimated token count
-    """
-    return len(text) // 4
-
-
-def summarize_chat_history(history: List[ChatMessage], model: str = "tngtech/deepseek-r1t2-chimera:free") -> str:
+def summarize_chat_history(history: List[ChatMessage], model: str = MODEL) -> str:
     """
     Summarize chat history using AI model
 
@@ -68,10 +56,7 @@ def summarize_chat_history(history: List[ChatMessage], model: str = "tngtech/dee
         Summarized chat history
     """
     try:
-        client = OpenAI(
-            base_url="https://openrouter.ai/api/v1",
-            api_key=OPENROUTER_API_KEY,
-        )
+        model_client = get_model_client()
 
         # Format chat history for summarization
         formatted_history = "\n".join([
@@ -87,18 +72,14 @@ def summarize_chat_history(history: List[ChatMessage], model: str = "tngtech/dee
         Provide a clear and concise summary that captures the main points and context.
         """
 
-        completion = client.chat.completions.create(
-            extra_headers={
-                "HTTP-Referer": "http://localhost:8000",
-                "X-Title": "BA-Copilot",
-            },
-            model=model,
+        completion = model_client.chat_completion(
             messages=[
                 {
                     "role": "user",
                     "content": prompt
                 }
-            ]
+            ],
+            model=model
         )
 
         return completion.choices[0].message.content
@@ -112,7 +93,7 @@ def summarize_chat_history(history: List[ChatMessage], model: str = "tngtech/dee
         ])
 
 
-def format_chat_context(history: List[ChatMessage], max_tokens: int = 2000) -> str:
+def format_chat_context(history: List[ChatMessage], max_tokens: int = MAX_CONTEXT_TOKENS) -> str:
     """
     Format chat history into context string, summarizing if necessary
 
@@ -133,7 +114,7 @@ def format_chat_context(history: List[ChatMessage], max_tokens: int = 2000) -> s
     ])
 
     # Check if it exceeds token limit
-    estimated_tokens = estimate_tokens(formatted)
+    estimated_tokens = _estimate_tokens(formatted)
 
     if estimated_tokens > max_tokens:
         print(f"Chat history exceeds token limit ({estimated_tokens} > {max_tokens}), summarizing...")
@@ -143,12 +124,12 @@ def format_chat_context(history: List[ChatMessage], max_tokens: int = 2000) -> s
     return f"Previous conversation:\n{formatted}"
 
 
-def get_chat_history(state: Dict[str, Any], model: str = "tngtech/deepseek-r1t2-chimera:free") -> Dict[str, Any]:
+def get_chat_history(state: Dict[str, Any], model: str = MODEL) -> Dict[str, Any]:
     """
     Node function to fetch and process chat history
 
     Args:
-        state: Current workflow state containing document_id
+        state: Current workflow state containing content_id
         model: AI model being used (for token limit calculation)
 
     Returns:
@@ -169,11 +150,8 @@ def get_chat_history(state: Dict[str, Any], model: str = "tngtech/deepseek-r1t2-
         history = loop.run_until_complete(fetch_chat_history(content_id))
         loop.close()
 
-        # Get token limit for model
-        token_limit = MODEL_TOKEN_LIMITS.get(model, MODEL_TOKEN_LIMITS["default"])
-
         # Reserve 50% of tokens for chat context
-        max_context_tokens = token_limit // 2
+        max_context_tokens = MAX_CONTEXT_TOKENS // 2
 
         # Format and add to state
         chat_context = format_chat_context(history, max_context_tokens)

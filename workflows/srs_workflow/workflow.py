@@ -1,23 +1,19 @@
 # workflows/srs_workflow/workflow.py
 from langgraph.graph import StateGraph, END
-from openai import OpenAI
 import sys
 import os
 import json
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from models.srs import SRSOutput, SRSResponse
 from typing import TypedDict, Optional, List
-from workflows.nodes import get_chat_history, process_ocr
-
-# Load API key from environment
-OPENROUTER_API_KEY = os.getenv("OPEN_ROUTER_API_KEY", "")
+from workflows.nodes import get_chat_history, get_content_file
+from connect_model import get_model_client, MODEL
 
 class SRSState(TypedDict):
     user_message: str
     response: dict
     content_id: Optional[str]
-    files: Optional[List]
-    file_data: Optional[List]
+    storage_paths: Optional[List]
     extracted_text: Optional[str]
     chat_context: Optional[str]
 
@@ -36,10 +32,7 @@ def extract_json(text: str) -> dict:
 
 def generate_srs(state: SRSState) -> SRSState:
     """Generate SRS document using OpenRouter AI"""
-    client = OpenAI(
-        base_url="https://openrouter.ai/api/v1",
-        api_key=OPENROUTER_API_KEY,
-    )
+    model_client = get_model_client()
 
     # Build comprehensive prompt with context
     user_message = state['user_message']
@@ -79,18 +72,14 @@ def generate_srs(state: SRSState) -> SRSState:
     """
 
     try:
-        completion = client.chat.completions.create(
-            extra_headers={
-                "HTTP-Referer": "http://localhost:8000",
-                "X-Title": "BA-Copilot",
-            },
-            model="tngtech/deepseek-r1t2-chimera:free",
+        completion = model_client.chat_completion(
             messages=[
                 {
                     "role": "user",
                     "content": prompt
                 }
-            ]
+            ],
+            model=MODEL
         )
 
         result_content = completion.choices[0].message.content
@@ -121,14 +110,14 @@ def generate_srs(state: SRSState) -> SRSState:
 # Build LangGraph pipeline for SRS
 workflow = StateGraph(SRSState)
 
-# Add nodes in sequence: OCR -> Chat History -> Generate
-workflow.add_node("process_ocr", process_ocr)
+# Add nodes in sequence: Get Content File -> Chat History -> Generate
+workflow.add_node("get_content_file", get_content_file)
 workflow.add_node("get_chat_history", get_chat_history)
 workflow.add_node("generate_srs", generate_srs)
 
 # Set entry point and edges
-workflow.set_entry_point("process_ocr")
-workflow.add_edge("process_ocr", "get_chat_history")
+workflow.set_entry_point("get_content_file")
+workflow.add_edge("get_content_file", "get_chat_history")
 workflow.add_edge("get_chat_history", "generate_srs")
 workflow.add_edge("generate_srs", END)
 

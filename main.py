@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 from uuid import UUID
-from workflows import srs_graph, class_diagram_graph, usecase_diagram_graph, activity_diagram_graph, wireframe_graph
+from workflows import srs_graph, class_diagram_graph, usecase_diagram_graph, activity_diagram_graph
 import os
 from dotenv import load_dotenv
 import json
@@ -14,8 +14,8 @@ load_dotenv()
 
 app = FastAPI(
     title="AI Service - BA Copilot",
-    description="AI service for generating SRS, Wireframes, and Diagrams",
-    version="1.0.0"
+    description="AI service for supporting Planning, Analysis, and Design phases in SDLC.",
+    version="1.0"
 )
 
 # CORS middleware
@@ -30,7 +30,7 @@ app.add_middleware(
 class AIRequest(BaseModel):
     message: str
     content_id: Optional[str] = None
-    inputFile: Optional[str] = None
+    storage_paths: Optional[str] = None
 
     class Config:
         json_schema_extra = {
@@ -45,7 +45,7 @@ async def root():
     """Root endpoint"""
     return {
         "service": "BA Copilot AI Service",
-        "version": "1.0.0",
+        "version": "1.0",
         "status": "running"
     }
 
@@ -62,7 +62,7 @@ async def health_check():
 async def generate_srs(
     message: str = Form(...),
     content_id: Optional[str] = Form(None),
-    files: Optional[List[UploadFile]] = File(None)
+    storage_paths: Optional[List[str]] = Form(None)
 ):
     """
     Generate Software Requirements Specification (SRS) document.
@@ -70,7 +70,7 @@ async def generate_srs(
     Args:
         message: User message/requirement description
         content_id: Optional ID of the content for chat history
-        files: Optional list of files to process (images, PDFs, DOCX, TXT)
+        storage_paths: Optional list of files to process in supabase (images, PDFs, DOCX, TXT)
 
     Returns:
         dict: Response with SRS data
@@ -91,7 +91,7 @@ async def generate_srs(
         state = {
             "user_message": message,
             "content_id": content_id,
-            "files": files or []
+            "storage_paths": storage_paths or []
         }
 
         # Invoke SRS workflow
@@ -108,7 +108,7 @@ async def generate_srs(
 async def generate_class_diagram(
     message: str = Form(...),
     content_id: Optional[str] = Form(None),
-    files: Optional[List[UploadFile]] = File(None)
+    storage_paths: Optional[List[str]] = Form(None)
 ):
     """
     Generate UML Class Diagram in Mermaid markdown format.
@@ -116,8 +116,7 @@ async def generate_class_diagram(
     Args:
         message: User message/requirement description
         content_id: Optional ID of the content for chat history
-        files: Optional list of files to process (images, PDFs, DOCX, TXT)
-
+        storage_paths: Optional list of files to process in supabase (images, PDFs, DOCX, TXT)
     Returns:
         dict: Response with class diagram data
 
@@ -135,7 +134,7 @@ async def generate_class_diagram(
         state = {
             "user_message": message,
             "content_id": content_id,
-            "files": files or []
+            "storage_paths": storage_paths or []
         }
 
         # Invoke Class Diagram workflow
@@ -152,7 +151,7 @@ async def generate_class_diagram(
 async def generate_usecase_diagram(
     message: str = Form(...),
     content_id: Optional[str] = Form(None),
-    files: Optional[List[UploadFile]] = File(None)
+    storage_paths: Optional[List[str]] = Form(None)
 ):
     """
     Generate UML Use Case Diagram in Mermaid markdown format.
@@ -160,7 +159,7 @@ async def generate_usecase_diagram(
     Args:
         message: User message/requirement description
         content_id: Optional ID of the content for chat history
-        files: Optional list of files to process (images, PDFs, DOCX, TXT)
+        storage_paths: Optional list of files to process in supabase (images, PDFs, DOCX, TXT)
 
     Returns:
         dict: Response with use case diagram data
@@ -179,7 +178,7 @@ async def generate_usecase_diagram(
         state = {
             "user_message": message,
             "content_id": content_id,
-            "files": files or []
+            "storage_paths": storage_paths or []
         }
 
         # Invoke Use Case Diagram workflow
@@ -196,7 +195,7 @@ async def generate_usecase_diagram(
 async def generate_activity_diagram(
     message: str = Form(...),
     content_id: Optional[str] = Form(None),
-    files: Optional[List[UploadFile]] = File(None)
+    storage_paths: Optional[List[str]] = Form(None)
 ):
     """
     Generate UML Activity Diagram in Mermaid markdown format.
@@ -204,7 +203,7 @@ async def generate_activity_diagram(
     Args:
         message: User message/requirement description
         content_id: Optional ID of the content for chat history
-        files: Optional list of files to process (images, PDFs, DOCX, TXT)
+        storage_paths: Optional list of files to process in supabase (images, PDFs, DOCX, TXT)
 
     Returns:
         dict: Response with activity diagram data
@@ -223,7 +222,7 @@ async def generate_activity_diagram(
         state = {
             "user_message": message,
             "content_id": content_id,
-            "files": files or []
+            "storage_paths": storage_paths or []
         }
 
         # Invoke Activity Diagram workflow
@@ -235,54 +234,3 @@ async def generate_activity_diagram(
             status_code=500,
             detail=f"Error generating activity diagram: {str(e)}"
         )
-
-
-@app.post("/api/v1/wireframe/generate")
-async def generate_wireframe(
-    message: str = Form(...),
-    content_id: Optional[str] = Form(None),
-    files: Optional[List[UploadFile]] = File(None)
-):
-    """
-    Generate wireframe/UI mockup.
-
-    Args:
-        message: User message/requirement description
-        content_id: Optional ID of the content for chat history
-        files: Optional list of files to process (images, PDFs, DOCX, TXT)
-
-    Returns:
-        dict: Response with wireframe data
-
-    Example response:
-        {
-            "type": "wireframe",
-            "response": {
-                "figma_link": "https://...",
-                "editable": true,
-                "description": "..."
-            }
-        }
-    """
-    try:
-        # Prepare state for workflow
-        state = {
-            "user_message": message,
-            "content_id": content_id,
-            "files": files or []
-        }
-
-        # Invoke Wireframe workflow
-        result = wireframe_graph.invoke(state)
-        return {"type": "wireframe", "response": result["response"]}
-
-    except Exception as e:
-        print("WIREFRAME ERROR FROM MAIN.PY: ", e)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error generating wireframe: {str(e)}"
-        )
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
