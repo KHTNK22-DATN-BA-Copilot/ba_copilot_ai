@@ -7,6 +7,12 @@ from models.diagram import DiagramOutput, DiagramResponse
 from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
+from openai import OpenAI
+import re
+import logging
+from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
+
+logger = logging.getLogger(__name__)
 
 class ClassDiagramState(TypedDict):
     user_message: str
@@ -15,6 +21,9 @@ class ClassDiagramState(TypedDict):
     storage_paths: Optional[List]
     extracted_text: Optional[str]
     chat_context: Optional[str]
+    raw_diagram: Optional[str]
+    validation_result: Optional[dict]
+    retry_count: int
 
 def generate_class_diagram_description(state: ClassDiagramState) -> ClassDiagramState:
     """Generate class diagram in markdown format using OpenRouter AI"""
@@ -98,6 +107,65 @@ def generate_class_diagram_description(state: ClassDiagramState) -> ClassDiagram
                 "detail": f"Error generating class diagram: {str(e)}"
             }
         }
+     
+def extract_mermaid_code(markdown_text: str) -> str:
+    """Extract mermaid code from markdown fenced code block"""
+    pattern = r'```mermaid\s*\n(.*?)```'
+    match = re.search(pattern, markdown_text, re.DOTALL)
+    if match:
+        return match.group(1).strip()
+    return markdown_text.strip()
+
+def validate_diagram(state: ClassDiagramState) -> ClassDiagramState:
+    """Validate the generated mermaid diagram"""
+    raw_diagram = state.get("raw_diagram", "")
+    if not raw_diagram:
+        logger.error("No diagram to validate")
+        return {
+            "validation_result": {"valid": False, "errors": ["No diagram generated"]}
+        }
+    
+    # Extract mermaid code from markdown
+    mermaid_code = extract_mermaid_code(raw_diagram)
+    
+    validator = MermaidSubprocessManager()
+    try:
+        result = validator.validate_sync(mermaid_code)
+        logger.info(f"Validation result: {result.get('valid', False)}")
+        return {"validation_result": result}
+    except Exception as e:
+        logger.error(f"Validation failed: {e}")
+        return {
+            "validation_result": {"valid": False, "errors": [str(e)]}
+        }
+    finally:
+        validator.sync_client.close()
+
+def finalize_response(state: ClassDiagramState) -> ClassDiagramState:
+    """Create final response based on validation result"""
+    validation_result = state.get("validation_result", {})
+    raw_diagram = state.get("raw_diagram", "")
+    
+    if validation_result.get("valid", False):
+        # Validation passed
+        diagram_response = DiagramResponse(
+            type="class_diagram",
+            detail=raw_diagram
+        )
+        output = DiagramOutput(type="diagram", response=diagram_response)
+        return {"response": output.model_dump()["response"]}
+    else:
+        # Validation failed - still return the diagram but log the error
+        errors = validation_result.get("errors", [])
+        logger.warning(f"Class diagram validation failed: {errors}")
+        
+        # Return diagram anyway with a warning in the metadata
+        diagram_response = DiagramResponse(
+            type="class_diagram",
+            detail=raw_diagram + f"\n\n<!-- Validation Warning: {errors} -->"
+        )
+        output = DiagramOutput(type="diagram", response=diagram_response)
+        return {"response": output.model_dump()["response"]}
 
 # Build LangGraph pipeline for Class Diagram
 workflow = StateGraph(ClassDiagramState)
@@ -106,12 +174,15 @@ workflow = StateGraph(ClassDiagramState)
 workflow.add_node("get_content_file", get_content_file)
 workflow.add_node("get_chat_history", get_chat_history)
 workflow.add_node("generate_class_diagram", generate_class_diagram_description)
+workflow.add_node("validate_diagram", validate_diagram)
+workflow.add_node("finalize_response", finalize_response)
 
 # Set entry point and edges
 workflow.set_entry_point("get_content_file")
 workflow.add_edge("get_content_file", "get_chat_history")
 workflow.add_edge("get_chat_history", "generate_class_diagram")
-workflow.add_edge("generate_class_diagram", END)
-
+workflow.add_edge("generate_class_diagram", "validate_diagram")
+workflow.add_edge("validate_diagram", "finalize_response")
+workflow.add_edge("finalize_response", END)
 # Compile graph
 class_diagram_graph = workflow.compile()
