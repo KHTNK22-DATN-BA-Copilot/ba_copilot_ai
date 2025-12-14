@@ -1,11 +1,11 @@
-# FastAPI framework and HTTP error handling
-from fastapi import FastAPI, HTTPException
-
-# CORS middleware for cross-origin requests
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-
-# Pydantic for request/response data validation
 from pydantic import BaseModel
+from typing import List, Optional
+from uuid import UUID
+import os
+from dotenv import load_dotenv
+import json
 
 # Import workflow graphs for AI-powered generation
 from workflows import (
@@ -21,10 +21,6 @@ from workflows import (
     scope_statement_graph,
     product_roadmap_graph
 )
-
-# OS/environment variable management
-import os
-from dotenv import load_dotenv
 
 # Logging setup
 import logging
@@ -79,7 +75,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="AI Service - BA Copilot",
-    description="AI service for generating SRS, Wireframes, and Diagrams",
+    description="AI service for supporting Planning, Analysis, and Design phases in SDLC.",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -95,11 +91,14 @@ app.add_middleware(
 
 class AIRequest(BaseModel):
     message: str
+    content_id: Optional[str] = None
+    storage_paths: Optional[str] = None
 
     class Config:
         json_schema_extra = {
             "example": {
-                "message": "Create SRS for hotel management system"
+                "message": "Create SRS for hotel management system",
+                "content_id": "123e4567-e89b-12d3-a456-426614174000"
             }
         }
 
@@ -108,7 +107,7 @@ async def root():
     """Root endpoint"""
     return {
         "service": "BA Copilot AI Service",
-        "version": "1.0.0",
+        "version": "1.0",
         "status": "running"
     }
 
@@ -122,12 +121,18 @@ async def health_check():
     }
 
 @app.post("/api/v1/srs/generate")
-async def generate_srs(req: AIRequest):
+async def generate_srs(
+    message: str = Form(...),
+    content_id: Optional[str] = Form(None, description="Optional content ID for chat history (can be empty)"),
+    storage_paths: Optional[List[str]] = Form(None)
+):
     """
     Generate Software Requirements Specification (SRS) document.
 
     Args:
-        req (AIRequest): Request body containing user message
+        message: User message/requirement description
+        content_id: Optional ID of the content for chat history (can be empty or null)
+        storage_paths: Optional list of files to process in supabase (images, PDFs, DOCX, TXT)
 
     Returns:
         dict: Response with SRS data
@@ -144,8 +149,18 @@ async def generate_srs(req: AIRequest):
         }
     """
     try:
+        # Handle empty string as None for content_id
+        effective_content_id = content_id if content_id and content_id.strip() else None
+
+        # Prepare state for workflow
+        state = {
+            "user_message": message,
+            "content_id": effective_content_id,
+            "storage_paths": storage_paths or []
+        }
+
         # Invoke SRS workflow
-        result = srs_graph.invoke({"user_message": req.message})
+        result = srs_graph.invoke(state)
         return {"type": "srs", "response": result["response"]}
 
     except Exception as e:
@@ -155,13 +170,18 @@ async def generate_srs(req: AIRequest):
         )
 
 @app.post("/api/v1/generate/class-diagram")
-async def generate_class_diagram(req: AIRequest):
+async def generate_class_diagram(
+    message: str = Form(...),
+    content_id: Optional[str] = Form(None, description="Optional content ID for chat history (can be empty)"),
+    storage_paths: Optional[List[str]] = Form(None)
+):
     """
     Generate UML Class Diagram in Mermaid markdown format.
 
     Args:
-        req (AIRequest): Request body containing user message
-
+        message: User message/requirement description
+        content_id: Optional ID of the content for chat history (can be empty or null)
+        storage_paths: Optional list of files to process in supabase (images, PDFs, DOCX, TXT)
     Returns:
         dict: Response with class diagram data
 
@@ -175,8 +195,18 @@ async def generate_class_diagram(req: AIRequest):
         }
     """
     try:
+        # Handle empty string as None for content_id
+        effective_content_id = content_id if content_id and content_id.strip() else None
+
+        # Prepare state for workflow
+        state = {
+            "user_message": message,
+            "content_id": effective_content_id,
+            "storage_paths": storage_paths or []
+        }
+
         # Invoke Class Diagram workflow
-        result = class_diagram_graph.invoke({"user_message": req.message})
+        result = class_diagram_graph.invoke(state)
         return {"type": "diagram", "response": result["response"]}
 
     except Exception as e:
@@ -186,12 +216,18 @@ async def generate_class_diagram(req: AIRequest):
         )
 
 @app.post("/api/v1/generate/usecase-diagram")
-async def generate_usecase_diagram(req: AIRequest):
+async def generate_usecase_diagram(
+    message: str = Form(...),
+    content_id: Optional[str] = Form(None, description="Optional content ID for chat history (can be empty)"),
+    storage_paths: Optional[List[str]] = Form(None)
+):
     """
     Generate UML Use Case Diagram in Mermaid markdown format.
 
     Args:
-        req (AIRequest): Request body containing user message
+        message: User message/requirement description
+        content_id: Optional ID of the content for chat history (can be empty or null)
+        storage_paths: Optional list of files to process in supabase (images, PDFs, DOCX, TXT)
 
     Returns:
         dict: Response with use case diagram data
@@ -206,8 +242,18 @@ async def generate_usecase_diagram(req: AIRequest):
         }
     """
     try:
+        # Handle empty string as None for content_id
+        effective_content_id = content_id if content_id and content_id.strip() else None
+
+        # Prepare state for workflow
+        state = {
+            "user_message": message,
+            "content_id": effective_content_id,
+            "storage_paths": storage_paths or []
+        }
+
         # Invoke Use Case Diagram workflow
-        result = usecase_diagram_graph.invoke({"user_message": req.message})
+        result = usecase_diagram_graph.invoke(state)
         return {"type": "diagram", "response": result["response"]}
 
     except Exception as e:
@@ -217,12 +263,18 @@ async def generate_usecase_diagram(req: AIRequest):
         )
 
 @app.post("/api/v1/generate/activity-diagram")
-async def generate_activity_diagram(req: AIRequest):
+async def generate_activity_diagram(
+    message: str = Form(...),
+    content_id: Optional[str] = Form(None, description="Optional content ID for chat history (can be empty)"),
+    storage_paths: Optional[List[str]] = Form(None)
+):
     """
     Generate UML Activity Diagram in Mermaid markdown format.
 
     Args:
-        req (AIRequest): Request body containing user message
+        message: User message/requirement description
+        content_id: Optional ID of the content for chat history (can be empty or null)
+        storage_paths: Optional list of files to process in supabase (images, PDFs, DOCX, TXT)
 
     Returns:
         dict: Response with activity diagram data
@@ -237,8 +289,18 @@ async def generate_activity_diagram(req: AIRequest):
         }
     """
     try:
+        # Handle empty string as None for content_id
+        effective_content_id = content_id if content_id and content_id.strip() else None
+
+        # Prepare state for workflow
+        state = {
+            "user_message": message,
+            "content_id": effective_content_id,
+            "storage_paths": storage_paths or []
+        }
+
         # Invoke Activity Diagram workflow
-        result = activity_diagram_graph.invoke({"user_message": req.message})
+        result = activity_diagram_graph.invoke(state)
         return {"type": "diagram", "response": result["response"]}
 
     except Exception as e:
@@ -246,7 +308,6 @@ async def generate_activity_diagram(req: AIRequest):
             status_code=500,
             detail=f"Error generating activity diagram: {str(e)}"
         )
-
 
 @app.post("/api/v1/wireframe/generate")
 async def generate_wireframe(req: AIRequest):

@@ -8,8 +8,14 @@ services:
       - "8000:8000"
     environment:
       - OPEN_ROUTER_API_KEY=${OPEN_ROUTER_API_KEY}
+      - OPENROUTER_REFERER=${OPENROUTER_REFERER:-http://localhost:8000}
+      - OPENROUTER_TITLE=${OPENROUTER_TITLE:-BA-Copilot}
       - FIGMA_API_TOKEN=${FIGMA_API_TOKEN}
+      - BACKEND_API_URL=${BACKEND_API_URL:-http://localhost:8010}
       - DATABASE_URL=${DATABASE_URL:-postgresql://user:password@db:5432/ba_copilot}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - SUPABASE_BUCKET=${SUPABASE_BUCKET:-uploads}
     env_file:
       - .env
     volumes:

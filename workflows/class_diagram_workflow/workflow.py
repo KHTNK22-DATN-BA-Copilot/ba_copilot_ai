@@ -1,45 +1,51 @@
 # workflows/class_diagram_workflow/workflow.py
 from langgraph.graph import StateGraph, END
-from openai import OpenAI
 import sys
 import os
-import re
-import logging
-import re
-import logging
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from models.diagram import DiagramOutput, DiagramResponse
-from typing import TypedDict, Optional
+from typing import TypedDict, Optional, List
+from workflows.nodes import get_chat_history, get_content_file
+from connect_model import get_model_client, MODEL
+from openai import OpenAI
+import re
+import logging
 from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
-from typing import TypedDict, Optional
-from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
-
-# Load API key from environment
-OPENROUTER_API_KEY = os.getenv("OPEN_ROUTER_API_KEY", "")
-
-logger = logging.getLogger(__name__)
 
 logger = logging.getLogger(__name__)
 
 class ClassDiagramState(TypedDict):
     user_message: str
     response: dict
-    raw_diagram: Optional[str]
-    validation_result: Optional[dict]
-    retry_count: int
+    content_id: Optional[str]
+    storage_paths: Optional[List]
+    extracted_text: Optional[str]
+    chat_context: Optional[str]
     raw_diagram: Optional[str]
     validation_result: Optional[dict]
     retry_count: int
 
 def generate_class_diagram_description(state: ClassDiagramState) -> ClassDiagramState:
     """Generate class diagram in markdown format using OpenRouter AI"""
-    client = OpenAI(
-        base_url="https://openrouter.ai/api/v1",
-        api_key=OPENROUTER_API_KEY,
-    )
+    model_client = get_model_client()
+
+    # Build comprehensive prompt with context
+    user_message = state['user_message']
+    extracted_text = state.get('extracted_text', '')
+    chat_context = state.get('chat_context', '')
+
+    context_parts = []
+    if chat_context:
+        context_parts.append(f"Context from previous conversation:\n{chat_context}\n")
+    if extracted_text:
+        context_parts.append(f"Extracted content from uploaded files:\n{extracted_text}\n")
+
+    context_str = "\n".join(context_parts)
 
     prompt = f"""
-    Create a detailed UML Class Diagram in Mermaid markdown format based on the requirement: {state['user_message']}
+    {context_str}
+
+    Create a detailed UML Class Diagram in Mermaid markdown format based on the requirement: {user_message}
 
     The diagram should include:
     - Classes with their attributes (name, type, visibility: +public, -private, #protected)
@@ -71,40 +77,37 @@ def generate_class_diagram_description(state: ClassDiagramState) -> ClassDiagram
     """
 
     try:
-        completion = client.chat.completions.create(
-            extra_headers={
-                "HTTP-Referer": "http://localhost:8000",
-                "X-Title": "BA-Copilot",
-            },
-            model="tngtech/deepseek-r1t2-chimera:free",
+        completion = model_client.chat_completion(
             messages=[
                 {
                     "role": "user",
                     "content": prompt
                 }
-            ]
+            ],
+            model=MODEL
         )
 
         markdown_diagram = completion.choices[0].message.content
 
-        # Store raw diagram for validation
-        # type: ignore[return-value] - Partial state update is valid for LangGraph
-        return {
-            "raw_diagram": markdown_diagram,
-            "retry_count": 0
-        }
+        # Create response with diagram type and markdown detail
+        diagram_response = DiagramResponse(
+            type="class_diagram",
+            detail=markdown_diagram
+        )
+        output = DiagramOutput(type="diagram", response=diagram_response)
+
+        return {"response": output.model_dump()["response"]}
 
     except Exception as e:
         print(f"Error generating class diagram: {e}")
         # Fallback response
-        # type: ignore[return-value] - Partial state update is valid for LangGraph
         return {
             "response": {
                 "type": "class_diagram",
                 "detail": f"Error generating class diagram: {str(e)}"
             }
         }
-
+     
 def extract_mermaid_code(markdown_text: str) -> str:
     """Extract mermaid code from markdown fenced code block"""
     pattern = r'```mermaid\s*\n(.*?)```'
@@ -167,16 +170,19 @@ def finalize_response(state: ClassDiagramState) -> ClassDiagramState:
 # Build LangGraph pipeline for Class Diagram
 workflow = StateGraph(ClassDiagramState)
 
-# Add nodes
+# Add nodes in sequence: Get Content File -> Chat History -> Generate
+workflow.add_node("get_content_file", get_content_file)
+workflow.add_node("get_chat_history", get_chat_history)
 workflow.add_node("generate_class_diagram", generate_class_diagram_description)
 workflow.add_node("validate_diagram", validate_diagram)
 workflow.add_node("finalize_response", finalize_response)
 
 # Set entry point and edges
-workflow.set_entry_point("generate_class_diagram")
+workflow.set_entry_point("get_content_file")
+workflow.add_edge("get_content_file", "get_chat_history")
+workflow.add_edge("get_chat_history", "generate_class_diagram")
 workflow.add_edge("generate_class_diagram", "validate_diagram")
 workflow.add_edge("validate_diagram", "finalize_response")
 workflow.add_edge("finalize_response", END)
-
 # Compile graph
 class_diagram_graph = workflow.compile()

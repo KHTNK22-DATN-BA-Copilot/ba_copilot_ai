@@ -30,6 +30,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-liberation \
     libappindicator3-1 \
     xdg-utils \
+    tesseract-ocr \
+    tesseract-ocr-eng \
+    libtesseract-dev \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
@@ -76,4 +79,3 @@ RUN chmod +x /app/start.sh
 
 # Run the startup script
 CMD ["/bin/bash", "/app/start.sh"]
-

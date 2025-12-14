@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from workflows.activity_diagram_workflow import activity_diagram_graph
-
+from models.diagram import DiagramResponse, DiagramOutput
 
 
 class TestActivityDiagramWorkflow:
@@ -137,10 +137,7 @@ graph TD
         assert result is not None
         assert "response" in result
         assert result["response"]["type"] == "activity_diagram"
-        detail = result["response"]["detail"]
-        # Accept either error message or validation warning (graceful degradation)
-        assert ("Error generating activity diagram" in detail 
-                or "Validation Warning" in detail), f"Unexpected detail: {detail}"
+        assert "Error generating activity diagram" in result["response"]["detail"]
 
     @patch('workflows.activity_diagram_workflow.workflow.OpenAI')
     def test_activity_diagram_contains_key_elements(self, mock_openai):
