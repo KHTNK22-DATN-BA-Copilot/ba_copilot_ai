@@ -8,7 +8,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 # Import workflow graphs for AI-powered generation
-from workflows import srs_graph, class_diagram_graph, usecase_diagram_graph, activity_diagram_graph, wireframe_graph
+from workflows import (
+    srs_graph,
+    class_diagram_graph,
+    usecase_diagram_graph,
+    activity_diagram_graph,
+    wireframe_graph,
+    stakeholder_register_graph,
+    high_level_requirements_graph,
+    requirements_management_plan_graph,
+    business_case_graph,
+    scope_statement_graph,
+    product_roadmap_graph
+)
 
 # OS/environment variable management
 import os
@@ -267,6 +279,188 @@ async def generate_wireframe(req: AIRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Error generating wireframe: {str(e)}"
+        )
+
+# Planning Document Services
+
+@app.post("/api/v1/generate/stakeholder-register")
+async def generate_stakeholder_register(req: AIRequest):
+    """
+    Generate Stakeholder Register document.
+
+    Args:
+        req (AIRequest): Request body containing user message
+
+    Returns:
+        dict: Response with stakeholder register data
+
+    Example response:
+        {
+            "type": "stakeholder-register",
+            "response": {
+                "title": "Stakeholder Register - Project Name",
+                "content": "# Stakeholder Register\n\n..."
+            }
+        }
+    """
+    try:
+        result = stakeholder_register_graph.invoke({"user_message": req.message})
+        return {"type": "stakeholder-register", "response": result["response"]}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating stakeholder register: {str(e)}"
+        )
+
+@app.post("/api/v1/generate/high-level-requirements")
+async def generate_high_level_requirements(req: AIRequest):
+    """
+    Generate High-Level Requirements document.
+
+    Args:
+        req (AIRequest): Request body containing user message
+
+    Returns:
+        dict: Response with high-level requirements data
+
+    Example response:
+        {
+            "type": "high-level-requirements",
+            "response": {
+                "title": "High-Level Requirements - Project Name",
+                "content": "# High-Level Requirements\n\n..."
+            }
+        }
+    """
+    try:
+        result = high_level_requirements_graph.invoke({"user_message": req.message})
+        return {"type": "high-level-requirements", "response": result["response"]}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating high-level requirements: {str(e)}"
+        )
+
+@app.post("/api/v1/generate/requirements-management-plan")
+async def generate_requirements_management_plan(req: AIRequest):
+    """
+    Generate Requirements Management Plan document.
+
+    Args:
+        req (AIRequest): Request body containing user message
+
+    Returns:
+        dict: Response with requirements management plan data
+
+    Example response:
+        {
+            "type": "requirements-management-plan",
+            "response": {
+                "title": "Requirements Management Plan - Project Name",
+                "content": "# Requirements Management Plan\n\n..."
+            }
+        }
+    """
+    try:
+        result = requirements_management_plan_graph.invoke({"user_message": req.message})
+        return {"type": "requirements-management-plan", "response": result["response"]}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating requirements management plan: {str(e)}"
+        )
+
+@app.post("/api/v1/generate/business-case")
+async def generate_business_case(req: AIRequest):
+    """
+    Generate Business Case document with cost-benefit analysis and ROI projections.
+
+    Args:
+        req (AIRequest): Request body containing user message with project details
+
+    Returns:
+        dict: Response with business case document data
+
+    Example response:
+        {
+            "type": "business-case",
+            "response": {
+                "title": "Business Case - Project Name",
+                "content": "# Business Case Document\n\n..."
+            }
+        }
+    """
+    try:
+        result = business_case_graph.invoke({"user_message": req.message})
+        return {"type": "business-case", "response": result["response"]}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating business case: {str(e)}"
+        )
+
+@app.post("/api/v1/generate/scope-statement")
+async def generate_scope_statement(req: AIRequest):
+    """
+    Generate Scope Statement document defining project scope, deliverables, and boundaries.
+
+    Args:
+        req (AIRequest): Request body containing user message with project details
+
+    Returns:
+        dict: Response with scope statement document data
+
+    Example response:
+        {
+            "type": "scope-statement",
+            "response": {
+                "title": "Scope Statement - Project Name",
+                "content": "# Scope Statement\n\n..."
+            }
+        }
+    """
+    try:
+        result = scope_statement_graph.invoke({"user_message": req.message})
+        return {"type": "scope-statement", "response": result["response"]}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating scope statement: {str(e)}"
+        )
+
+@app.post("/api/v1/generate/product-roadmap")
+async def generate_product_roadmap(req: AIRequest):
+    """
+    Generate Product Roadmap diagram showing timeline and milestones.
+
+    Args:
+        req (AIRequest): Request body containing user message with roadmap requirements
+
+    Returns:
+        dict: Response with product roadmap diagram (Mermaid gantt chart)
+
+    Example response:
+        {
+            "type": "diagram",
+            "response": {
+                "type": "product_roadmap",
+                "detail": "```mermaid\\ngantt\\n...```"
+            }
+        }
+    """
+    try:
+        result = product_roadmap_graph.invoke({"user_message": req.message})
+        return {"type": "diagram", "response": result["response"]}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating product roadmap: {str(e)}"
         )
 
 if __name__ == "__main__":
