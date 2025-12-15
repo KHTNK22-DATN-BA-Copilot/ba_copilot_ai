@@ -1,11 +1,9 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
-from uuid import UUID
 import os
 from dotenv import load_dotenv
-import json
 
 # Import workflow graphs for AI-powered generation
 from workflows import (
@@ -92,13 +90,14 @@ app.add_middleware(
 class AIRequest(BaseModel):
     message: str
     content_id: Optional[str] = None
-    storage_paths: Optional[str] = None
+    storage_paths: Optional[List[str]] = None
 
     class Config:
         json_schema_extra = {
             "example": {
                 "message": "Create SRS for hotel management system",
-                "content_id": "123e4567-e89b-12d3-a456-426614174000"
+                "content_id": "123e4567-e89b-12d3-a456-426614174000",
+                "storage_paths": ["folder/file1.txt", "folder/file2.pdf"]
             }
         }
 
@@ -121,18 +120,12 @@ async def health_check():
     }
 
 @app.post("/api/v1/srs/generate")
-async def generate_srs(
-    message: str = Form(...),
-    content_id: Optional[str] = Form(None, description="Optional content ID for chat history (can be empty)"),
-    storage_paths: Optional[List[str]] = Form(None)
-):
+async def generate_srs(req: AIRequest):
     """
     Generate Software Requirements Specification (SRS) document.
 
     Args:
-        message: User message/requirement description
-        content_id: Optional ID of the content for chat history (can be empty or null)
-        storage_paths: Optional list of files to process in supabase (images, PDFs, DOCX, TXT)
+        req (AIRequest): Request body containing message, content_id, storage_paths
 
     Returns:
         dict: Response with SRS data
@@ -150,13 +143,13 @@ async def generate_srs(
     """
     try:
         # Handle empty string as None for content_id
-        effective_content_id = content_id if content_id and content_id.strip() else None
+        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
 
         # Prepare state for workflow
         state = {
-            "user_message": message,
+            "user_message": req.message,
             "content_id": effective_content_id,
-            "storage_paths": storage_paths or []
+            "storage_paths": req.storage_paths or []
         }
 
         # Invoke SRS workflow
@@ -170,18 +163,13 @@ async def generate_srs(
         )
 
 @app.post("/api/v1/generate/class-diagram")
-async def generate_class_diagram(
-    message: str = Form(...),
-    content_id: Optional[str] = Form(None, description="Optional content ID for chat history (can be empty)"),
-    storage_paths: Optional[List[str]] = Form(None)
-):
+async def generate_class_diagram(req: AIRequest):
     """
     Generate UML Class Diagram in Mermaid markdown format.
 
     Args:
-        message: User message/requirement description
-        content_id: Optional ID of the content for chat history (can be empty or null)
-        storage_paths: Optional list of files to process in supabase (images, PDFs, DOCX, TXT)
+        req (AIRequest): Request body containing message, content_id, storage_paths
+
     Returns:
         dict: Response with class diagram data
 
@@ -196,13 +184,13 @@ async def generate_class_diagram(
     """
     try:
         # Handle empty string as None for content_id
-        effective_content_id = content_id if content_id and content_id.strip() else None
+        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
 
         # Prepare state for workflow
         state = {
-            "user_message": message,
+            "user_message": req.message,
             "content_id": effective_content_id,
-            "storage_paths": storage_paths or []
+            "storage_paths": req.storage_paths or []
         }
 
         # Invoke Class Diagram workflow
@@ -216,18 +204,12 @@ async def generate_class_diagram(
         )
 
 @app.post("/api/v1/generate/usecase-diagram")
-async def generate_usecase_diagram(
-    message: str = Form(...),
-    content_id: Optional[str] = Form(None, description="Optional content ID for chat history (can be empty)"),
-    storage_paths: Optional[List[str]] = Form(None)
-):
+async def generate_usecase_diagram(req: AIRequest):
     """
     Generate UML Use Case Diagram in Mermaid markdown format.
 
     Args:
-        message: User message/requirement description
-        content_id: Optional ID of the content for chat history (can be empty or null)
-        storage_paths: Optional list of files to process in supabase (images, PDFs, DOCX, TXT)
+        req (AIRequest): Request body containing message, content_id, storage_paths
 
     Returns:
         dict: Response with use case diagram data
@@ -243,13 +225,13 @@ async def generate_usecase_diagram(
     """
     try:
         # Handle empty string as None for content_id
-        effective_content_id = content_id if content_id and content_id.strip() else None
+        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
 
         # Prepare state for workflow
         state = {
-            "user_message": message,
+            "user_message": req.message,
             "content_id": effective_content_id,
-            "storage_paths": storage_paths or []
+            "storage_paths": req.storage_paths or []
         }
 
         # Invoke Use Case Diagram workflow
@@ -263,18 +245,12 @@ async def generate_usecase_diagram(
         )
 
 @app.post("/api/v1/generate/activity-diagram")
-async def generate_activity_diagram(
-    message: str = Form(...),
-    content_id: Optional[str] = Form(None, description="Optional content ID for chat history (can be empty)"),
-    storage_paths: Optional[List[str]] = Form(None)
-):
+async def generate_activity_diagram(req: AIRequest):
     """
     Generate UML Activity Diagram in Mermaid markdown format.
 
     Args:
-        message: User message/requirement description
-        content_id: Optional ID of the content for chat history (can be empty or null)
-        storage_paths: Optional list of files to process in supabase (images, PDFs, DOCX, TXT)
+        req (AIRequest): Request body containing message, content_id, storage_paths
 
     Returns:
         dict: Response with activity diagram data
@@ -290,13 +266,13 @@ async def generate_activity_diagram(
     """
     try:
         # Handle empty string as None for content_id
-        effective_content_id = content_id if content_id and content_id.strip() else None
+        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
 
         # Prepare state for workflow
         state = {
-            "user_message": message,
+            "user_message": req.message,
             "content_id": effective_content_id,
-            "storage_paths": storage_paths or []
+            "storage_paths": req.storage_paths or []
         }
 
         # Invoke Activity Diagram workflow
@@ -315,7 +291,7 @@ async def generate_wireframe(req: AIRequest):
     Generate wireframe/UI mockup.
 
     Args:
-        req (AIRequest): Request body containing user message
+        req (AIRequest): Request body containing message, content_id, storage_paths
 
     Returns:
         dict: Response with wireframe data
@@ -331,8 +307,18 @@ async def generate_wireframe(req: AIRequest):
         }
     """
     try:
+        # Handle empty string as None for content_id
+        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
+
+        # Prepare state for workflow
+        state = {
+            "user_message": req.message,
+            "content_id": effective_content_id,
+            "storage_paths": req.storage_paths or []
+        }
+
         # Invoke Wireframe workflow
-        result = wireframe_graph.invoke({"user_message": req.message})
+        result = wireframe_graph.invoke(state)
         return {"type": "wireframe", "response": result["response"]}
 
     except Exception as e:
@@ -350,7 +336,7 @@ async def generate_stakeholder_register(req: AIRequest):
     Generate Stakeholder Register document.
 
     Args:
-        req (AIRequest): Request body containing user message
+        req (AIRequest): Request body containing message, content_id, storage_paths
 
     Returns:
         dict: Response with stakeholder register data
@@ -365,7 +351,17 @@ async def generate_stakeholder_register(req: AIRequest):
         }
     """
     try:
-        result = stakeholder_register_graph.invoke({"user_message": req.message})
+        # Handle empty string as None for content_id
+        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
+
+        # Prepare state for workflow
+        state = {
+            "user_message": req.message,
+            "content_id": effective_content_id,
+            "storage_paths": req.storage_paths or []
+        }
+
+        result = stakeholder_register_graph.invoke(state)
         return {"type": "stakeholder-register", "response": result["response"]}
 
     except Exception as e:
@@ -380,7 +376,7 @@ async def generate_high_level_requirements(req: AIRequest):
     Generate High-Level Requirements document.
 
     Args:
-        req (AIRequest): Request body containing user message
+        req (AIRequest): Request body containing message, content_id, storage_paths
 
     Returns:
         dict: Response with high-level requirements data
@@ -395,7 +391,17 @@ async def generate_high_level_requirements(req: AIRequest):
         }
     """
     try:
-        result = high_level_requirements_graph.invoke({"user_message": req.message})
+        # Handle empty string as None for content_id
+        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
+
+        # Prepare state for workflow
+        state = {
+            "user_message": req.message,
+            "content_id": effective_content_id,
+            "storage_paths": req.storage_paths or []
+        }
+
+        result = high_level_requirements_graph.invoke(state)
         return {"type": "high-level-requirements", "response": result["response"]}
 
     except Exception as e:
@@ -410,7 +416,7 @@ async def generate_requirements_management_plan(req: AIRequest):
     Generate Requirements Management Plan document.
 
     Args:
-        req (AIRequest): Request body containing user message
+        req (AIRequest): Request body containing message, content_id, storage_paths
 
     Returns:
         dict: Response with requirements management plan data
@@ -425,7 +431,17 @@ async def generate_requirements_management_plan(req: AIRequest):
         }
     """
     try:
-        result = requirements_management_plan_graph.invoke({"user_message": req.message})
+        # Handle empty string as None for content_id
+        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
+
+        # Prepare state for workflow
+        state = {
+            "user_message": req.message,
+            "content_id": effective_content_id,
+            "storage_paths": req.storage_paths or []
+        }
+
+        result = requirements_management_plan_graph.invoke(state)
         return {"type": "requirements-management-plan", "response": result["response"]}
 
     except Exception as e:
@@ -440,7 +456,7 @@ async def generate_business_case(req: AIRequest):
     Generate Business Case document with cost-benefit analysis and ROI projections.
 
     Args:
-        req (AIRequest): Request body containing user message with project details
+        req (AIRequest): Request body containing message, content_id, storage_paths
 
     Returns:
         dict: Response with business case document data
@@ -455,7 +471,17 @@ async def generate_business_case(req: AIRequest):
         }
     """
     try:
-        result = business_case_graph.invoke({"user_message": req.message})
+        # Handle empty string as None for content_id
+        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
+
+        # Prepare state for workflow
+        state = {
+            "user_message": req.message,
+            "content_id": effective_content_id,
+            "storage_paths": req.storage_paths or []
+        }
+
+        result = business_case_graph.invoke(state)
         return {"type": "business-case", "response": result["response"]}
 
     except Exception as e:
@@ -470,7 +496,7 @@ async def generate_scope_statement(req: AIRequest):
     Generate Scope Statement document defining project scope, deliverables, and boundaries.
 
     Args:
-        req (AIRequest): Request body containing user message with project details
+        req (AIRequest): Request body containing message, content_id, storage_paths
 
     Returns:
         dict: Response with scope statement document data
@@ -485,7 +511,17 @@ async def generate_scope_statement(req: AIRequest):
         }
     """
     try:
-        result = scope_statement_graph.invoke({"user_message": req.message})
+        # Handle empty string as None for content_id
+        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
+
+        # Prepare state for workflow
+        state = {
+            "user_message": req.message,
+            "content_id": effective_content_id,
+            "storage_paths": req.storage_paths or []
+        }
+
+        result = scope_statement_graph.invoke(state)
         return {"type": "scope-statement", "response": result["response"]}
 
     except Exception as e:
@@ -500,7 +536,7 @@ async def generate_product_roadmap(req: AIRequest):
     Generate Product Roadmap diagram showing timeline and milestones.
 
     Args:
-        req (AIRequest): Request body containing user message with roadmap requirements
+        req (AIRequest): Request body containing message, content_id, storage_paths
 
     Returns:
         dict: Response with product roadmap diagram (Mermaid gantt chart)
@@ -515,7 +551,17 @@ async def generate_product_roadmap(req: AIRequest):
         }
     """
     try:
-        result = product_roadmap_graph.invoke({"user_message": req.message})
+        # Handle empty string as None for content_id
+        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
+
+        # Prepare state for workflow
+        state = {
+            "user_message": req.message,
+            "content_id": effective_content_id,
+            "storage_paths": req.storage_paths or []
+        }
+
+        result = product_roadmap_graph.invoke(state)
         return {"type": "diagram", "response": result["response"]}
 
     except Exception as e:
