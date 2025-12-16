@@ -17,7 +17,11 @@ from workflows import (
     requirements_management_plan_graph,
     business_case_graph,
     scope_statement_graph,
-    product_roadmap_graph
+    product_roadmap_graph,
+    feasibility_study_graph,
+    cost_benefit_analysis_graph,
+    risk_register_graph,
+    compliance_graph
 )
 
 # Logging setup
@@ -568,6 +572,188 @@ async def generate_product_roadmap(req: AIRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Error generating product roadmap: {str(e)}"
+        )
+
+@app.post("/api/v1/generate/feasibility-study")
+async def generate_feasibility_study(req: AIRequest):
+    """
+    Generate Feasibility Study Report analyzing technical, operational, economic, schedule, and legal feasibility.
+
+    Args:
+        req (AIRequest): Request body containing message, content_id, storage_paths
+
+    Returns:
+        dict: Response with feasibility study document data
+
+    Example response:
+        {
+            "type": "feasibility-study",
+            "response": {
+                "title": "Feasibility Study - Project Name",
+                "executive_summary": "...",
+                "technical_feasibility": "...",
+                "operational_feasibility": "...",
+                "economic_feasibility": "...",
+                "schedule_feasibility": "...",
+                "legal_feasibility": "...",
+                "detail": "..."
+            }
+        }
+    """
+    try:
+        # Handle empty string as None for content_id
+        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
+
+        # Prepare state for workflow
+        state = {
+            "user_message": req.message,
+            "content_id": effective_content_id,
+            "storage_paths": req.storage_paths or []
+        }
+
+        result = feasibility_study_graph.invoke(state)
+        return {"type": "feasibility-study", "response": result["response"]}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating feasibility study: {str(e)}"
+        )
+
+@app.post("/api/v1/generate/cost-benefit-analysis")
+async def generate_cost_benefit_analysis(req: AIRequest):
+    """
+    Generate Cost-Benefit Analysis document with ROI, NPV, and payback period calculations.
+
+    Args:
+        req (AIRequest): Request body containing message, content_id, storage_paths
+
+    Returns:
+        dict: Response with cost-benefit analysis document data
+
+    Example response:
+        {
+            "type": "cost-benefit-analysis",
+            "response": {
+                "title": "Cost-Benefit Analysis - Project Name",
+                "executive_summary": "...",
+                "cost_analysis": "...",
+                "benefit_analysis": "...",
+                "roi_calculation": "...",
+                "npv_analysis": "...",
+                "payback_period": "...",
+                "detail": "..."
+            }
+        }
+    """
+    try:
+        # Handle empty string as None for content_id
+        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
+
+        # Prepare state for workflow
+        state = {
+            "user_message": req.message,
+            "content_id": effective_content_id,
+            "storage_paths": req.storage_paths or []
+        }
+
+        result = cost_benefit_analysis_graph.invoke(state)
+        return {"type": "cost-benefit-analysis", "response": result["response"]}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating cost-benefit analysis: {str(e)}"
+        )
+
+@app.post("/api/v1/generate/risk-register")
+async def generate_risk_register(req: AIRequest):
+    """
+    Generate Risk Register document with comprehensive risk identification, assessment, and mitigation planning.
+
+    Args:
+        req (AIRequest): Request body containing message, content_id, storage_paths
+
+    Returns:
+        dict: Response with risk register document data
+
+    Example response:
+        {
+            "type": "risk-register",
+            "response": {
+                "title": "Risk Register - Project Name",
+                "executive_summary": "...",
+                "risk_identification": "...",
+                "risk_assessment": "...",
+                "mitigation_strategies": "...",
+                "contingency_plans": "...",
+                "detail": "..."
+            }
+        }
+    """
+    try:
+        # Handle empty string as None for content_id
+        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
+
+        # Prepare state for workflow
+        state = {
+            "user_message": req.message,
+            "content_id": effective_content_id,
+            "storage_paths": req.storage_paths or []
+        }
+
+        result = risk_register_graph.invoke(state)
+        return {"type": "risk-register", "response": result["response"]}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating risk register: {str(e)}"
+        )
+
+@app.post("/api/v1/generate/compliance")
+async def generate_compliance(req: AIRequest):
+    """
+    Generate Compliance document analyzing legal and regulatory compliance requirements.
+
+    Args:
+        req (AIRequest): Request body containing message, content_id, storage_paths
+
+    Returns:
+        dict: Response with compliance document data
+
+    Example response:
+        {
+            "type": "compliance",
+            "response": {
+                "title": "Compliance Document - Project Name",
+                "executive_summary": "...",
+                "regulatory_requirements": "...",
+                "legal_requirements": "...",
+                "compliance_status": "...",
+                "recommendations": "...",
+                "detail": "..."
+            }
+        }
+    """
+    try:
+        # Handle empty string as None for content_id
+        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
+
+        # Prepare state for workflow
+        state = {
+            "user_message": req.message,
+            "content_id": effective_content_id,
+            "storage_paths": req.storage_paths or []
+        }
+
+        result = compliance_graph.invoke(state)
+        return {"type": "compliance", "response": result["response"]}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating compliance document: {str(e)}"
         )
 
 if __name__ == "__main__":
