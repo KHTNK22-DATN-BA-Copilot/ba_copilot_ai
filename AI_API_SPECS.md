@@ -4,9 +4,49 @@
 
 This document defines the API specifications for AI-powered document generation services in the BA Copilot AI system. These services generate various business analysis artifacts using LLM APIs.
 
-**Version:** 1.0  
-**Last Updated:** December 11, 2025  
+**Version:** 2.0
+**Last Updated:** December 16, 2025
 **Repository:** ba_copilot_ai
+
+---
+
+## Unified Request Format
+
+All API endpoints use a **unified request format** (`AIRequest`):
+
+```json
+{
+  "message": "string",           // Required: User message/prompt describing what to generate
+  "content_id": "string | null", // Optional: Content ID for chat history context
+  "storage_paths": ["string"]    // Optional: List of file paths in Supabase Storage
+}
+```
+
+### Request Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `message` | string | Yes | The user's prompt/description for document generation |
+| `content_id` | string \| null | No | UUID linking to conversation history in database |
+| `storage_paths` | string[] \| null | No | Array of file paths in Supabase Storage to extract context from |
+
+### Example Request
+
+```json
+{
+  "message": "Create a stakeholder register for an E-commerce Platform project involving retail customers, business administrators, and external payment vendors",
+  "content_id": "123e4567-e89b-12d3-a456-426614174000",
+  "storage_paths": ["uploads/project_brief.pdf", "uploads/team_org_chart.xlsx"]
+}
+```
+
+### Context Enrichment
+
+The system automatically enriches requests with:
+1. **Chat History**: Previous conversation context retrieved via `content_id`
+2. **File Content**: Text extracted from files specified in `storage_paths`
+
+This context is passed to the LLM along with the user's message for more accurate and relevant document generation.
 
 ---
 
@@ -86,21 +126,9 @@ Content-Type: application/json
 
 ```json
 {
-  "project_name": "E-commerce Platform Development",
-  "project_context": "Building a new online marketplace for retail products",
-  "known_stakeholders": [
-    {
-      "name": "John Smith",
-      "role": "Product Owner",
-      "department": "Product Management"
-    },
-    {
-      "name": "Sarah Johnson", 
-      "role": "Development Team Lead",
-      "department": "Engineering"
-    }
-  ],
-  "additional_context": "Project involves multiple departments and external vendors"
+  "message": "Create a stakeholder register for E-commerce Platform Development project. Building a new online marketplace for retail products. Known stakeholders include John Smith (Product Owner, Product Management), Sarah Johnson (Development Team Lead, Engineering). Project involves multiple departments and external vendors.",
+  "content_id": "123e4567-e89b-12d3-a456-426614174000",
+  "storage_paths": ["uploads/project_charter.pdf"]
 }
 ```
 
@@ -157,15 +185,9 @@ Return only JSON, no additional text.
 
 ```json
 {
-  "project_name": "E-commerce Platform",
-  "business_objectives": [
-    "Increase online sales by 30%",
-    "Improve customer experience",
-    "Reduce operational costs"
-  ],
-  "target_users": ["Retail customers", "Business administrators", "Customer support agents"],
-  "constraints": ["Budget: $500K", "Timeline: 6 months", "Must integrate with existing ERP"],
-  "additional_context": "Platform must support multi-currency and multiple payment methods"
+  "message": "Create high-level requirements for E-commerce Platform. Business objectives: Increase online sales by 30%, Improve customer experience, Reduce operational costs. Target users: Retail customers, Business administrators, Customer support agents. Constraints: Budget $500K, Timeline 6 months, Must integrate with existing ERP. Platform must support multi-currency and multiple payment methods.",
+  "content_id": "123e4567-e89b-12d3-a456-426614174000",
+  "storage_paths": ["uploads/business_requirements.docx"]
 }
 ```
 
@@ -193,11 +215,9 @@ Return only JSON, no additional text.
 
 ```json
 {
-  "project_name": "E-commerce Platform",
-  "project_phase": "Initiation",
-  "team_size": 15,
-  "methodology": "Agile Scrum",
-  "additional_context": "Distributed team across multiple time zones"
+  "message": "Create a requirements management plan for E-commerce Platform. Project phase: Initiation. Team size: 15. Methodology: Agile Scrum. Distributed team across multiple time zones.",
+  "content_id": "123e4567-e89b-12d3-a456-426614174000",
+  "storage_paths": null
 }
 ```
 
@@ -227,17 +247,9 @@ Return only JSON, no additional text.
 
 ```json
 {
-  "project_name": "E-commerce Platform",
-  "problem_statement": "Current manual ordering process is inefficient and limiting business growth",
-  "proposed_solution": "Develop automated e-commerce platform with integrated payment and inventory management",
-  "estimated_investment": 500000,
-  "expected_benefits": [
-    "30% increase in sales revenue",
-    "40% reduction in order processing time",
-    "Improved customer satisfaction"
-  ],
-  "timeline": "6 months",
-  "strategic_alignment": ["Digital transformation initiative", "Customer experience improvement"]
+  "message": "Create a business case for E-commerce Platform. Problem: Current manual ordering process is inefficient and limiting business growth. Solution: Develop automated e-commerce platform with integrated payment and inventory management. Investment: $500,000. Expected benefits: 30% increase in sales revenue, 40% reduction in order processing time, Improved customer satisfaction. Timeline: 6 months. Strategic alignment: Digital transformation initiative, Customer experience improvement.",
+  "content_id": "123e4567-e89b-12d3-a456-426614174000",
+  "storage_paths": ["uploads/financial_projections.xlsx", "uploads/market_analysis.pdf"]
 }
 ```
 
@@ -263,15 +275,35 @@ Return only JSON, no additional text.
 
 **Description:** Generates a detailed project scope statement defining what is included and excluded from the project.
 
-**Request/Response:** Similar structure to business case with comprehensive scope definition including in-scope, out-of-scope, deliverables, constraints, assumptions, dependencies, and approval sections.
+**Request Body:**
+
+```json
+{
+  "message": "Create a scope statement for E-commerce Platform. Define in-scope: product catalog, shopping cart, payment processing, user management. Out-of-scope: mobile app, international shipping. Timeline: 6 months. Budget: $500K.",
+  "content_id": "123e4567-e89b-12d3-a456-426614174000",
+  "storage_paths": ["uploads/project_requirements.pdf"]
+}
+```
+
+**Response:** Similar structure to business case with comprehensive scope definition including in-scope, out-of-scope, deliverables, constraints, assumptions, dependencies, and approval sections.
 
 ---
 
-### 2.3 Product Roadmap Document Generation  
+### 2.3 Product Roadmap Document Generation
 
 **Endpoint:** `POST /api/v1/generate/product-roadmap`
 
 **Description:** Generates a product roadmap diagram showing timeline and milestones.
+
+**Request Body:**
+
+```json
+{
+  "message": "Create a product roadmap for E-commerce Platform. Phases: Planning (Jan), Design (Feb), Development (Mar-May), Testing (Jun), Deployment (Jul). Include milestones for MVP, beta release, and production launch.",
+  "content_id": "123e4567-e89b-12d3-a456-426614174000",
+  "storage_paths": null
+}
+```
 
 **Response Type:** Diagram (Mermaid gantt chart)
 
@@ -409,21 +441,9 @@ Return only JSON, no additional text.
 
 ```json
 {
-  "project_name": "E-commerce Platform",
-  "requirements": [
-    {
-      "id": "FR-001",
-      "description": "User registration",
-      "priority": "High"
-    }
-  ],
-  "test_cases": [
-    {
-      "id": "TC-001",
-      "requirement_id": "FR-001",
-      "status": "Passed"
-    }
-  ]
+  "message": "Create a requirements traceability matrix for E-commerce Platform. Requirements: FR-001 (User registration, High priority), FR-002 (Product search, High priority). Test cases: TC-001 (FR-001, Passed), TC-002 (FR-002, Pending).",
+  "content_id": "123e4567-e89b-12d3-a456-426614174000",
+  "storage_paths": ["uploads/requirements_spec.xlsx", "uploads/test_results.csv"]
 }
 ```
 
@@ -443,13 +463,15 @@ Return only JSON, no additional text.
 
 ## 8. Common Request/Response Patterns
 
-### 8.1 Standard Markdown Document Request
+### 8.1 Unified Request Format (AIRequest)
+
+All endpoints use the same request format:
 
 ```json
 {
-  "project_name": "string",
-  "project_context": "string",
-  "additional_context": "string"
+  "message": "string",           // Required: Description of what to generate
+  "content_id": "string | null", // Optional: Content ID for chat history
+  "storage_paths": ["string"]    // Optional: File paths in Supabase Storage
 }
 ```
 
@@ -465,17 +487,7 @@ Return only JSON, no additional text.
 }
 ```
 
-### 8.3 Standard Diagram Request
-
-```json
-{
-  "diagram_type": "string",
-  "description": "string",
-  "components": ["list", "of", "components"]
-}
-```
-
-### 8.4 Standard Diagram Response
+### 8.3 Standard Diagram Response
 
 ```json
 {
@@ -487,18 +499,33 @@ Return only JSON, no additional text.
 }
 ```
 
+### 8.4 HTML/CSS Wireframe Response
+
+```json
+{
+  "type": "wireframe",
+  "response": {
+    "content": "<html>...</html>"
+  }
+}
+```
+
 ---
 
 ## 9. LLM Prompt Guidelines
 
-### 9.1 Prompt Structure for Markdown Documents
+### 9.1 Prompt Structure with Context Enrichment
+
+All prompts now include context enrichment from chat history and uploaded files:
 
 ```
+{context_from_chat_history}
+
+{extracted_content_from_uploaded_files}
+
 You are a professional Business Analyst. Create a comprehensive {DOCUMENT_TYPE} for:
 
-Project Name: {project_name}
-Context: {context}
-Requirements: {requirements}
+{user_message}
 
 Return JSON format:
 {
@@ -514,10 +541,13 @@ Return only JSON, no additional text.
 ### 9.2 Prompt Structure for Diagrams
 
 ```
+{context_from_chat_history}
+
+{extracted_content_from_uploaded_files}
+
 Create a detailed {DIAGRAM_TYPE} in Mermaid markdown format for:
 
-Requirements: {requirements}
-Components: {components}
+{user_message}
 
 Include:
 - {diagram_specific_elements}
@@ -525,6 +555,20 @@ Include:
 IMPORTANT: Return ONLY the Mermaid code block starting with ```mermaid and ending with ```
 No explanatory text before or after.
 ```
+
+### 9.3 Context Sources
+
+The system enriches prompts with context from two sources:
+
+1. **Chat History** (`content_id`):
+   - Retrieved from database via `get_chat_history` node
+   - Provides conversation continuity
+   - Format: "Context from previous conversation:\n{chat_context}"
+
+2. **Uploaded Files** (`storage_paths`):
+   - Retrieved from Supabase Storage via `get_content_file` node
+   - Extracts text from PDF, DOCX, TXT, CSV, XLSX files
+   - Format: "Extracted content from uploaded files:\n{extracted_text}"
 
 ---
 
@@ -555,26 +599,79 @@ All endpoints follow standard error response format:
 
 ### 11.1 Workflow Integration
 
-Each document type should be implemented as a LangGraph workflow in `ba_copilot_ai/workflows/` following existing patterns:
+Each document type is implemented as a LangGraph workflow in `ba_copilot_ai/workflows/` following this standard pattern:
 
 ```python
 from langgraph.graph import StateGraph, END
-from openai import OpenAI
-from models.document import DocumentOutput, DocumentResponse
+from typing import TypedDict, Optional, List
+from workflows.nodes import get_chat_history, get_content_file
+from connect_model import get_model_client, MODEL
+
+class DocumentState(TypedDict):
+    user_message: str
+    response: dict
+    content_id: Optional[str]
+    storage_paths: Optional[List]
+    extracted_text: Optional[str]
+    chat_context: Optional[str]
 
 def generate_document(state: DocumentState) -> DocumentState:
-    # LLM call to generate document
-    # Return structured response
-    pass
+    model_client = get_model_client()
 
+    # Build context from chat history and uploaded files
+    user_message = state.get('user_message', '')
+    extracted_text = state.get('extracted_text', '')
+    chat_context = state.get('chat_context', '')
+
+    context_parts = []
+    if chat_context:
+        context_parts.append(f"Context from previous conversation:\n{chat_context}\n")
+    if extracted_text:
+        context_parts.append(f"Extracted content from uploaded files:\n{extracted_text}\n")
+
+    context_str = "\n".join(context_parts)
+
+    prompt = f"""
+    {context_str}
+
+    You are a professional Business Analyst. Create a comprehensive document for:
+
+    {user_message}
+
+    Return JSON format with title and content fields.
+    """
+
+    completion = model_client.chat_completion(
+        messages=[{"role": "user", "content": prompt}],
+        model=MODEL
+    )
+
+    # Process response and return
+    return {"response": {...}}
+
+# Build workflow with standard node sequence
 workflow = StateGraph(DocumentState)
-workflow.add_node("generate", generate_document)
-workflow.set_entry_point("generate")
-workflow.add_edge("generate", END)
+workflow.add_node("get_content_file", get_content_file)
+workflow.add_node("get_chat_history", get_chat_history)
+workflow.add_node("generate_document", generate_document)
+
+workflow.set_entry_point("get_content_file")
+workflow.add_edge("get_content_file", "get_chat_history")
+workflow.add_edge("get_chat_history", "generate_document")
+workflow.add_edge("generate_document", END)
+
 document_graph = workflow.compile()
 ```
 
-### 11.2 Model Definitions
+### 11.2 Standard Workflow Node Sequence
+
+All workflows follow this node sequence:
+
+1. **get_content_file** - Extracts text from files in `storage_paths` via Supabase Storage
+2. **get_chat_history** - Retrieves conversation context via `content_id`
+3. **generate_**** - Main generation node that uses context + user message
+
+### 11.3 Model Definitions
 
 Create Pydantic models in `ba_copilot_ai/models/` for each document type:
 
@@ -588,6 +685,17 @@ class DocumentResponse(BaseModel):
 class DocumentOutput(BaseModel):
     type: str  # Document identifier
     response: DocumentResponse
+```
+
+### 11.4 Centralized Model Connection
+
+All workflows use the centralized `connect_model.py` module:
+
+```python
+from connect_model import get_model_client, MODEL
+
+model_client = get_model_client()  # Singleton pattern
+completion = model_client.chat_completion(messages=[...], model=MODEL)
 ```
 
 ---
@@ -644,6 +752,22 @@ All generated documents should include:
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** December 11, 2025  
+## 14. Changelog
+
+### Version 2.0 (December 16, 2025)
+- **Breaking Change**: Unified all endpoints to use `AIRequest` format with `message`, `content_id`, `storage_paths`
+- Added context enrichment from chat history and uploaded files
+- Standardized workflow pattern with `get_content_file` -> `get_chat_history` -> `generate_*` nodes
+- Centralized AI model connection via `connect_model.py` module
+- Updated all request body examples to use new format
+
+### Version 1.0 (December 11, 2025)
+- Initial specification document
+- Defined response patterns for markdown and diagram documents
+- Documented all API endpoints for document generation
+
+---
+
+**Document Version:** 2.0
+**Last Updated:** December 16, 2025
 **Status:** Complete

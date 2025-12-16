@@ -1,18 +1,20 @@
 # workflows/high_level_requirements_workflow/workflow.py
 from langgraph.graph import StateGraph, END
-from openai import OpenAI
 import sys
 import os
 import json
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from typing import TypedDict
-
-# Load API key from environment
-OPENROUTER_API_KEY = os.getenv("OPEN_ROUTER_API_KEY", "")
+from typing import TypedDict, Optional, List
+from workflows.nodes import get_chat_history, get_content_file
+from connect_model import get_model_client, MODEL
 
 class HighLevelRequirementsState(TypedDict):
     user_message: str
     response: dict
+    content_id: Optional[str]
+    storage_paths: Optional[List]
+    extracted_text: Optional[str]
+    chat_context: Optional[str]
 
 def extract_json(text: str) -> dict:
     """Extract JSON from text response"""
@@ -29,15 +31,27 @@ def extract_json(text: str) -> dict:
 
 def generate_high_level_requirements(state: HighLevelRequirementsState) -> HighLevelRequirementsState:
     """Generate High-Level Requirements document using OpenRouter AI"""
-    client = OpenAI(
-        base_url="https://openrouter.ai/api/v1",
-        api_key=OPENROUTER_API_KEY,
-    )
+    model_client = get_model_client()
+
+    # Build comprehensive prompt with context
+    user_message = state['user_message']
+    extracted_text = state.get('extracted_text', '')
+    chat_context = state.get('chat_context', '')
+
+    context_parts = []
+    if chat_context:
+        context_parts.append(f"Context from previous conversation:\n{chat_context}\n")
+    if extracted_text:
+        context_parts.append(f"Extracted content from uploaded files:\n{extracted_text}\n")
+
+    context_str = "\n".join(context_parts)
 
     prompt = f"""
+    {context_str}
+
     You are a professional Business Analyst. Create a comprehensive High-Level Requirements document for the following project:
 
-    Project Requirements: {state['user_message']}
+    Project Requirements: {user_message}
 
     Return the response in JSON format with this structure:
     {{
@@ -65,18 +79,14 @@ def generate_high_level_requirements(state: HighLevelRequirementsState) -> HighL
     """
 
     try:
-        completion = client.chat.completions.create(
-            extra_headers={
-                "HTTP-Referer": "http://localhost:8000",
-                "X-Title": "BA-Copilot",
-            },
-            model="tngtech/deepseek-r1t2-chimera:free",
+        completion = model_client.chat_completion(
             messages=[
                 {
                     "role": "user",
                     "content": prompt
                 }
-            ]
+            ],
+            model=MODEL
         )
 
         result_content = completion.choices[0].message.content
@@ -102,11 +112,15 @@ def generate_high_level_requirements(state: HighLevelRequirementsState) -> HighL
 # Build LangGraph pipeline for High-Level Requirements
 workflow = StateGraph(HighLevelRequirementsState)
 
-# Add node
+# Add nodes in sequence: Get Content File -> Chat History -> Generate
+workflow.add_node("get_content_file", get_content_file)
+workflow.add_node("get_chat_history", get_chat_history)
 workflow.add_node("generate_high_level_requirements", generate_high_level_requirements)
 
-# Set entry point and finish
-workflow.set_entry_point("generate_high_level_requirements")
+# Set entry point and edges
+workflow.set_entry_point("get_content_file")
+workflow.add_edge("get_content_file", "get_chat_history")
+workflow.add_edge("get_chat_history", "generate_high_level_requirements")
 workflow.add_edge("generate_high_level_requirements", END)
 
 # Compile graph

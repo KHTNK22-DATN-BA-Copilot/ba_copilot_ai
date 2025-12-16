@@ -1,18 +1,20 @@
 # workflows/stakeholder_register_workflow/workflow.py
 from langgraph.graph import StateGraph, END
-from openai import OpenAI
 import sys
 import os
 import json
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from typing import TypedDict
-
-# Load API key from environment
-OPENROUTER_API_KEY = os.getenv("OPEN_ROUTER_API_KEY", "")
+from typing import TypedDict, Optional, List
+from workflows.nodes import get_chat_history, get_content_file
+from connect_model import get_model_client, MODEL
 
 class StakeholderRegisterState(TypedDict):
     user_message: str
     response: dict
+    content_id: Optional[str]
+    storage_paths: Optional[List]
+    extracted_text: Optional[str]
+    chat_context: Optional[str]
 
 def extract_json(text: str) -> dict:
     """Extract JSON from text response"""
@@ -29,15 +31,27 @@ def extract_json(text: str) -> dict:
 
 def generate_stakeholder_register(state: StakeholderRegisterState) -> StakeholderRegisterState:
     """Generate Stakeholder Register document using OpenRouter AI"""
-    client = OpenAI(
-        base_url="https://openrouter.ai/api/v1",
-        api_key=OPENROUTER_API_KEY,
-    )
+    model_client = get_model_client()
+
+    # Build comprehensive prompt with context
+    user_message = state['user_message']
+    extracted_text = state.get('extracted_text', '')
+    chat_context = state.get('chat_context', '')
+
+    context_parts = []
+    if chat_context:
+        context_parts.append(f"Context from previous conversation:\n{chat_context}\n")
+    if extracted_text:
+        context_parts.append(f"Extracted content from uploaded files:\n{extracted_text}\n")
+
+    context_str = "\n".join(context_parts)
 
     prompt = f"""
+    {context_str}
+
     You are a professional Business Analyst. Create a comprehensive Stakeholder Register document for the following project:
 
-    Project Requirements: {state['user_message']}
+    Project Requirements: {user_message}
 
     Return the response in JSON format with this structure:
     {{
@@ -68,18 +82,14 @@ def generate_stakeholder_register(state: StakeholderRegisterState) -> Stakeholde
     """
 
     try:
-        completion = client.chat.completions.create(
-            extra_headers={
-                "HTTP-Referer": "http://localhost:8000",
-                "X-Title": "BA-Copilot",
-            },
-            model="tngtech/deepseek-r1t2-chimera:free",
+        completion = model_client.chat_completion(
             messages=[
                 {
                     "role": "user",
                     "content": prompt
                 }
-            ]
+            ],
+            model=MODEL
         )
 
         result_content = completion.choices[0].message.content
@@ -90,16 +100,12 @@ def generate_stakeholder_register(state: StakeholderRegisterState) -> Stakeholde
             "content": doc_data.get("content", "")
         }
 
-        return {
-            "user_message": state.get("user_message",""),
-            "response": response_data
-        }
+        return {"response": response_data}
 
     except Exception as e:
         print(f"Error generating Stakeholder Register: {e}")
         # Fallback response
         return {
-            "user_message": "",
             "response": {
                 "title": "Stakeholder Register",
                 "content": f"Error generating document: {str(e)}"
@@ -109,11 +115,15 @@ def generate_stakeholder_register(state: StakeholderRegisterState) -> Stakeholde
 # Build LangGraph pipeline for Stakeholder Register
 workflow = StateGraph(StakeholderRegisterState)
 
-# Add node
+# Add nodes in sequence: Get Content File -> Chat History -> Generate
+workflow.add_node("get_content_file", get_content_file)
+workflow.add_node("get_chat_history", get_chat_history)
 workflow.add_node("generate_stakeholder_register", generate_stakeholder_register)
 
-# Set entry point and finish
-workflow.set_entry_point("generate_stakeholder_register")
+# Set entry point and edges
+workflow.set_entry_point("get_content_file")
+workflow.add_edge("get_content_file", "get_chat_history")
+workflow.add_edge("get_chat_history", "generate_stakeholder_register")
 workflow.add_edge("generate_stakeholder_register", END)
 
 # Compile graph

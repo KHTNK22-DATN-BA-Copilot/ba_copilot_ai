@@ -1,38 +1,52 @@
 # workflows/product_roadmap_workflow/workflow.py
 from langgraph.graph import StateGraph, END
-from openai import OpenAI
 import sys
 import os
 import re
 import logging
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from models.product_roadmap import ProductRoadmapOutput, ProductRoadmapResponse
-from typing import TypedDict, Optional
+from typing import TypedDict, Optional, List
+from workflows.nodes import get_chat_history, get_content_file
+from connect_model import get_model_client, MODEL
 from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
-
-# Load API key from environment
-OPENROUTER_API_KEY = os.getenv("OPEN_ROUTER_API_KEY", "")
 
 logger = logging.getLogger(__name__)
 
 class ProductRoadmapState(TypedDict):
     user_message: Optional[str]
     response: Optional[dict]
+    content_id: Optional[str]
+    storage_paths: Optional[List]
+    extracted_text: Optional[str]
+    chat_context: Optional[str]
     raw_diagram: Optional[str]
     validation_result: Optional[dict]
     retry_count: int
 
 def generate_product_roadmap_diagram(state: ProductRoadmapState) -> ProductRoadmapState:
     """Generate product roadmap Gantt diagram using OpenRouter AI"""
-    client = OpenAI(
-        base_url="https://openrouter.ai/api/v1",
-        api_key=OPENROUTER_API_KEY,
-    )
+    model_client = get_model_client()
+
+    # Build comprehensive prompt with context
+    user_message = state.get('user_message', '')
+    extracted_text = state.get('extracted_text', '')
+    chat_context = state.get('chat_context', '')
+
+    context_parts = []
+    if chat_context:
+        context_parts.append(f"Context from previous conversation:\n{chat_context}\n")
+    if extracted_text:
+        context_parts.append(f"Extracted content from uploaded files:\n{extracted_text}\n")
+
+    context_str = "\n".join(context_parts)
 
     prompt = f"""
+    {context_str}
+
     Create a detailed Product Roadmap as a Mermaid Gantt chart based on the following project:
 
-    {state['user_message']}
+    {user_message}
 
     The roadmap should include:
     - Project phases (Planning, Design, Development, Testing, Deployment)
@@ -67,24 +81,19 @@ def generate_product_roadmap_diagram(state: ProductRoadmapState) -> ProductRoadm
     """
 
     try:
-        completion = client.chat.completions.create(
-            extra_headers={
-                "HTTP-Referer": "http://localhost:8000",
-                "X-Title": "BA-Copilot",
-            },
-            model="tngtech/deepseek-r1t2-chimera:free",
+        completion = model_client.chat_completion(
             messages=[
                 {
                     "role": "user",
                     "content": prompt
                 }
-            ]
+            ],
+            model=MODEL
         )
 
         markdown_diagram = completion.choices[0].message.content
 
         # Store raw diagram for validation
-        # type: ignore[return-value] - Partial state update is valid for LangGraph
         return {
             "raw_diagram": markdown_diagram,
             "retry_count": 0
@@ -93,9 +102,7 @@ def generate_product_roadmap_diagram(state: ProductRoadmapState) -> ProductRoadm
     except Exception as e:
         logger.error(f"Error generating product roadmap: {e}")
         # Fallback response
-        # type: ignore[return-value] - Partial state update is valid for LangGraph
         return {
-            "user_message": state.get("user_message", ""),
             "response": {
                 "type": "product-roadmap",
                 "detail": f"Error generating product roadmap: {str(e)}"
@@ -118,10 +125,10 @@ def validate_diagram(state: ProductRoadmapState) -> ProductRoadmapState:
         return {
             "validation_result": {"valid": False, "errors": ["No diagram generated"]}
         }
-    
+
     # Extract mermaid code from markdown
     mermaid_code = extract_mermaid_code(raw_diagram)
-    
+
     validator = MermaidSubprocessManager()
     try:
         result = validator.validate_sync(mermaid_code)
@@ -139,7 +146,7 @@ def finalize_response(state: ProductRoadmapState) -> ProductRoadmapState:
     """Create final response based on validation result"""
     validation_result = state.get("validation_result", {})
     raw_diagram = state.get("raw_diagram", "")
-    
+
     if validation_result.get("valid", False):
         # Validation passed
         diagram_response = ProductRoadmapResponse(
@@ -152,7 +159,7 @@ def finalize_response(state: ProductRoadmapState) -> ProductRoadmapState:
         # Validation failed - still return the diagram but log the error
         errors = validation_result.get("errors", [])
         logger.warning(f"Product roadmap validation failed: {errors}")
-        
+
         # Return diagram anyway with a warning in the metadata
         diagram_response = ProductRoadmapResponse(
             type="product-roadmap",
@@ -164,13 +171,17 @@ def finalize_response(state: ProductRoadmapState) -> ProductRoadmapState:
 # Build LangGraph pipeline for Product Roadmap
 workflow = StateGraph(ProductRoadmapState)
 
-# Add nodes
+# Add nodes in sequence: Get Content File -> Chat History -> Generate -> Validate -> Finalize
+workflow.add_node("get_content_file", get_content_file)
+workflow.add_node("get_chat_history", get_chat_history)
 workflow.add_node("generate_product_roadmap", generate_product_roadmap_diagram)
 workflow.add_node("validate_diagram", validate_diagram)
 workflow.add_node("finalize_response", finalize_response)
 
 # Set entry point and edges
-workflow.set_entry_point("generate_product_roadmap")
+workflow.set_entry_point("get_content_file")
+workflow.add_edge("get_content_file", "get_chat_history")
+workflow.add_edge("get_chat_history", "generate_product_roadmap")
 workflow.add_edge("generate_product_roadmap", "validate_diagram")
 workflow.add_edge("validate_diagram", "finalize_response")
 workflow.add_edge("finalize_response", END)
