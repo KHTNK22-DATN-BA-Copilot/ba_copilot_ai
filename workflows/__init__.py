@@ -17,6 +17,9 @@ from .feasibility_study_workflow import feasibility_study_graph
 from .cost_benefit_analysis_workflow import cost_benefit_analysis_graph
 from .risk_register_workflow import risk_register_graph
 from .compliance_workflow import compliance_graph
+from .hld_arch_workflow import hld_arch_graph
+from .hld_cloud_workflow import hld_cloud_graph
+from .hld_tech_workflow import hld_tech_graph
 
 __all__ = [
     "srs_graph",
@@ -33,5 +36,8 @@ __all__ = [
     "feasibility_study_graph",
     "cost_benefit_analysis_graph",
     "risk_register_graph",
-    "compliance_graph"
+    "compliance_graph",
+    "hld_arch_graph",
+    "hld_cloud_graph",
+    "hld_tech_graph"
 ]

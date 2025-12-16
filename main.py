@@ -14,14 +14,17 @@ from workflows import (
     wireframe_graph,
     stakeholder_register_graph,
     high_level_requirements_graph,
-    requirements_management_plan_graph,
+    requirements_management_plan_workflow,
     business_case_graph,
     scope_statement_graph,
     product_roadmap_graph,
     feasibility_study_graph,
     cost_benefit_analysis_graph,
     risk_register_graph,
-    compliance_graph
+    compliance_graph,
+    hld_arch_graph,
+    hld_cloud_graph,
+    hld_tech_graph
 )
 
 # Logging setup
@@ -754,6 +757,144 @@ async def generate_compliance(req: AIRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Error generating compliance document: {str(e)}"
+        )
+
+# ===========================
+# Phase 4: High-Level Design Phase
+# ===========================
+
+@app.post("/api/v1/generate/hld-arch")
+async def generate_hld_arch(req: AIRequest):
+    """
+    Generate High-Level Architecture Diagram using Mermaid syntax.
+
+    Args:
+        req (AIRequest): Request body containing message, content_id, storage_paths
+
+    Returns:
+        dict: Response with architecture diagram data
+
+    Example response:
+        {
+            "type": "hld-arch",
+            "response": {
+                "type": "diagram",
+                "detail": "graph TD\n  A[Client] --> B[Server]\n  ..."
+            }
+        }
+    """
+    try:
+        # Handle empty string as None for content_id
+        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
+
+        # Prepare state for workflow
+        state = {
+            "user_message": req.message,
+            "content_id": effective_content_id,
+            "storage_paths": req.storage_paths or []
+        }
+
+        result = hld_arch_graph.invoke(state)
+        return {"type": "hld-arch", "response": result["response"]}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating architecture diagram: {str(e)}"
+        )
+
+@app.post("/api/v1/generate/hld-cloud")
+async def generate_hld_cloud(req: AIRequest):
+    """
+    Generate Cloud Infrastructure Setup document.
+
+    Args:
+        req (AIRequest): Request body containing message, content_id, storage_paths
+
+    Returns:
+        dict: Response with cloud infrastructure document
+
+    Example response:
+        {
+            "type": "hld-cloud",
+            "response": {
+                "title": "Cloud Infrastructure Setup - Project Name",
+                "cloud_provider": "AWS",
+                "infrastructure_components": "...",
+                "deployment_architecture": "...",
+                "scaling_strategy": "...",
+                "security_measures": "...",
+                "monitoring_logging": "...",
+                "cost_estimation": "...",
+                "detail": "..."
+            }
+        }
+    """
+    try:
+        # Handle empty string as None for content_id
+        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
+
+        # Prepare state for workflow
+        state = {
+            "user_message": req.message,
+            "content_id": effective_content_id,
+            "storage_paths": req.storage_paths or []
+        }
+
+        result = hld_cloud_graph.invoke(state)
+        return {"type": "hld-cloud", "response": result["response"]}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating cloud infrastructure document: {str(e)}"
+        )
+
+@app.post("/api/v1/generate/hld-tech")
+async def generate_hld_tech(req: AIRequest):
+    """
+    Generate Technology Stack Selection document.
+
+    Args:
+        req (AIRequest): Request body containing message, content_id, storage_paths
+
+    Returns:
+        dict: Response with technology stack document
+
+    Example response:
+        {
+            "type": "hld-tech",
+            "response": {
+                "title": "Technology Stack Selection - Project Name",
+                "frontend_technologies": "...",
+                "backend_technologies": "...",
+                "database_technologies": "...",
+                "infrastructure_technologies": "...",
+                "integration_technologies": "...",
+                "selection_rationale": "...",
+                "risk_mitigation": "...",
+                "detail": "..."
+            }
+        }
+    """
+    try:
+        # Handle empty string as None for content_id
+        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
+
+        # Prepare state for workflow
+        state = {
+            "user_message": req.message,
+            "content_id": effective_content_id,
+            "storage_paths": req.storage_paths or []
+        }
+
+        result = hld_tech_graph.invoke(state)
+        return {"type": "hld-tech", "response": result["response"]}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating technology stack document: {str(e)}"
         )
 
 if __name__ == "__main__":
