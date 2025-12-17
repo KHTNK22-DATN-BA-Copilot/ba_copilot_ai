@@ -14,7 +14,7 @@ from workflows import (
     wireframe_graph,
     stakeholder_register_graph,
     high_level_requirements_graph,
-    requirements_management_plan_workflow,
+    requirements_management_plan_graph,
     business_case_graph,
     scope_statement_graph,
     product_roadmap_graph,
@@ -24,7 +24,11 @@ from workflows import (
     compliance_graph,
     hld_arch_graph,
     hld_cloud_graph,
-    hld_tech_graph
+    hld_tech_graph,
+    lld_arch_graph,
+    lld_db_graph,
+    lld_api_graph,
+    lld_pseudo_graph
 )
 
 # Logging setup
@@ -895,6 +899,183 @@ async def generate_hld_tech(req: AIRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Error generating technology stack document: {str(e)}"
+        )
+
+# ===========================
+# Phase 5: Low-Level Design Phase
+# ===========================
+
+@app.post("/api/v1/generate/lld-arch")
+async def generate_lld_arch(req: AIRequest):
+    """
+    Generate Low-Level Design Architecture Diagram (component, deployment diagrams).
+
+    Args:
+        req (AIRequest): Request body containing message, content_id, storage_paths
+
+    Returns:
+        dict: Response with detailed architecture diagram
+
+    Example response:
+        {
+            "type": "lld-arch",
+            "response": {
+                "type": "lld-arch",
+                "detail": "```mermaid\ngraph TB\n  subgraph..."
+            }
+        }
+    """
+    try:
+        # Handle empty string as None for content_id
+        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
+
+        # Prepare state for workflow
+        state = {
+            "user_message": req.message,
+            "content_id": effective_content_id,
+            "storage_paths": req.storage_paths or []
+        }
+
+        result = lld_arch_graph.invoke(state)
+        return {"type": "lld-arch", "response": result["response"]}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating LLD architecture diagram: {str(e)}"
+        )
+
+@app.post("/api/v1/generate/lld-db")
+async def generate_lld_db(req: AIRequest):
+    """
+    Generate Database Schema ERD (Entity-Relationship Diagram).
+
+    Args:
+        req (AIRequest): Request body containing message, content_id, storage_paths
+
+    Returns:
+        dict: Response with database ERD diagram
+
+    Example response:
+        {
+            "type": "lld-db",
+            "response": {
+                "type": "database-schema",
+                "detail": "```mermaid\nerDiagram\n  CUSTOMER ||--o{ ORDER..."
+            }
+        }
+    """
+    try:
+        # Handle empty string as None for content_id
+        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
+
+        # Prepare state for workflow
+        state = {
+            "user_message": req.message,
+            "content_id": effective_content_id,
+            "storage_paths": req.storage_paths or []
+        }
+
+        result = lld_db_graph.invoke(state)
+        return {"type": "lld-db", "response": result["response"]}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating database schema: {str(e)}"
+        )
+
+@app.post("/api/v1/generate/lld-api")
+async def generate_lld_api(req: AIRequest):
+    """
+    Generate API Specifications Document (OpenAPI/Swagger format).
+
+    Args:
+        req (AIRequest): Request body containing message, content_id, storage_paths
+
+    Returns:
+        dict: Response with API specifications document
+
+    Example response:
+        {
+            "type": "lld-api",
+            "response": {
+                "title": "API Specifications - Project Name",
+                "api_overview": "...",
+                "authentication": "...",
+                "endpoints": "...",
+                "data_models": "...",
+                "error_handling": "...",
+                "rate_limiting": "...",
+                "versioning": "...",
+                "detail": "..."
+            }
+        }
+    """
+    try:
+        # Handle empty string as None for content_id
+        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
+
+        # Prepare state for workflow
+        state = {
+            "user_message": req.message,
+            "content_id": effective_content_id,
+            "storage_paths": req.storage_paths or []
+        }
+
+        result = lld_api_graph.invoke(state)
+        return {"type": "lld-api", "response": result["response"]}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating API specifications: {str(e)}"
+        )
+
+@app.post("/api/v1/generate/lld-pseudo")
+async def generate_lld_pseudo(req: AIRequest):
+    """
+    Generate Pseudocode Document with algorithm logic and complexity analysis.
+
+    Args:
+        req (AIRequest): Request body containing message, content_id, storage_paths
+
+    Returns:
+        dict: Response with pseudocode document
+
+    Example response:
+        {
+            "type": "lld-pseudo",
+            "response": {
+                "title": "Pseudocode - Algorithm Name",
+                "algorithm_overview": "...",
+                "input_output": "...",
+                "pseudocode": "...",
+                "complexity_analysis": "...",
+                "edge_cases": "...",
+                "implementation_notes": "...",
+                "detail": "..."
+            }
+        }
+    """
+    try:
+        # Handle empty string as None for content_id
+        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
+
+        # Prepare state for workflow
+        state = {
+            "user_message": req.message,
+            "content_id": effective_content_id,
+            "storage_paths": req.storage_paths or []
+        }
+
+        result = lld_pseudo_graph.invoke(state)
+        return {"type": "lld-pseudo", "response": result["response"]}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating pseudocode: {str(e)}"
         )
 
 if __name__ == "__main__":
