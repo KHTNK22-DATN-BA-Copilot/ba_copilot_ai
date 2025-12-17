@@ -13,6 +13,13 @@ from .requirements_management_plan_workflow import requirements_management_plan_
 from .business_case_workflow import business_case_graph
 from .scope_statement_workflow import scope_statement_graph
 from .product_roadmap_workflow import product_roadmap_graph
+from .feasibility_study_workflow import feasibility_study_graph
+from .cost_benefit_analysis_workflow import cost_benefit_analysis_graph
+from .risk_register_workflow import risk_register_graph
+from .compliance_workflow import compliance_graph
+from .hld_arch_workflow import hld_arch_graph
+from .hld_cloud_workflow import hld_cloud_graph
+from .hld_tech_workflow import hld_tech_graph
 
 __all__ = [
     "srs_graph",
@@ -25,5 +32,12 @@ __all__ = [
     "requirements_management_plan_graph",
     "business_case_graph",
     "scope_statement_graph",
-    "product_roadmap_graph"
+    "product_roadmap_graph",
+    "feasibility_study_graph",
+    "cost_benefit_analysis_graph",
+    "risk_register_graph",
+    "compliance_graph",
+    "hld_arch_graph",
+    "hld_cloud_graph",
+    "hld_tech_graph"
 ]
