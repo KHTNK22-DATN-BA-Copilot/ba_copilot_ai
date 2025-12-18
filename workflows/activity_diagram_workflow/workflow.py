@@ -3,7 +3,6 @@ from langgraph.graph import StateGraph, END
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from openai import OpenAI
 import re
 import logging
 from models.diagram import DiagramOutput, DiagramResponse

@@ -7,12 +7,23 @@ services:
     ports:
       - "8000:8000"
     environment:
+      # OpenRouter AI Configuration
       - OPEN_ROUTER_API_KEY=${OPEN_ROUTER_API_KEY}
       - OPENROUTER_REFERER=${OPENROUTER_REFERER:-http://localhost:8000}
       - OPENROUTER_TITLE=${OPENROUTER_TITLE:-BA-Copilot}
+      - MODEL=${MODEL:-tngtech/deepseek-r1t2-chimera:free}
+      # Figma Integration
       - FIGMA_API_TOKEN=${FIGMA_API_TOKEN}
+      # Backend API
       - BACKEND_API_URL=${BACKEND_API_URL:-http://localhost:8010}
-      - DATABASE_URL=${DATABASE_URL:-postgresql://user:password@db:5432/ba_copilot}
+      # Database Connection (shared with backend)
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres123@db:5432/bacopilot_db}
+      - DB_HOST=${DB_HOST:-db}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_NAME=${DB_NAME:-bacopilot_db}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres123}
+      # Supabase Storage
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_KEY=${SUPABASE_KEY}
       - SUPABASE_BUCKET=${SUPABASE_BUCKET:-uploads}
@@ -30,13 +41,18 @@ services:
     image: postgres:15-alpine
     container_name: ba-copilot-db
     environment:
-      - POSTGRES_USER=${POSTGRES_USER:-user}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
-      - POSTGRES_DB=${POSTGRES_DB:-ba_copilot}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres123}
+      - POSTGRES_DB=${POSTGRES_DB:-bacopilot_db}
     ports:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d bacopilot_db']
+      interval: 10s
+      timeout: 3s
+      retries: 5
     restart: unless-stopped
     networks:
       - ba-network
