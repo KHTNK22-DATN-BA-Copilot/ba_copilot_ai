@@ -24,6 +24,9 @@ from .lld_arch_workflow import lld_arch_graph
 from .lld_db_workflow import lld_db_graph
 from .lld_api_workflow import lld_api_graph
 from .lld_pseudo_workflow import lld_pseudo_graph
+from .uiux_wireframe_workflow import uiux_wireframe_graph
+from .uiux_mockup_workflow import uiux_mockup_graph
+from .uiux_prototype_workflow import uiux_prototype_graph
 
 __all__ = [
     "srs_graph",
@@ -33,7 +36,7 @@ __all__ = [
     "wireframe_graph",
     "stakeholder_register_graph",
     "high_level_requirements_graph",
-    "requirements_management_plan_graph",
+    "requirements_management_plan_workflow",
     "business_case_graph",
     "scope_statement_graph",
     "product_roadmap_graph",
@@ -47,5 +50,8 @@ __all__ = [
     "lld_arch_graph",
     "lld_db_graph",
     "lld_api_graph",
-    "lld_pseudo_graph"
+    "lld_pseudo_graph",
+    "uiux_wireframe_graph",
+    "uiux_mockup_graph",
+    "uiux_prototype_graph"
 ]

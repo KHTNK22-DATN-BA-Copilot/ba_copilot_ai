@@ -28,7 +28,10 @@ from workflows import (
     lld_arch_graph,
     lld_db_graph,
     lld_api_graph,
-    lld_pseudo_graph
+    lld_pseudo_graph,
+    uiux_wireframe_graph,
+    uiux_mockup_graph,
+    uiux_prototype_graph
 )
 
 # Logging setup
@@ -1076,6 +1079,97 @@ async def generate_lld_pseudo(req: AIRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Error generating pseudocode: {str(e)}"
+        )
+
+# ========================================
+# Phase 6: UI/UX Design Phase
+# ========================================
+
+@app.post("/api/v1/generate/uiux-wireframe")
+async def generate_uiux_wireframe(req: AIRequest):
+    """
+    Generate UI/UX wireframe with layout and component specifications.
+
+    Args:
+        req (AIRequest): Request body containing message, content_id, storage_paths
+
+    Returns:
+        dict: Response with wireframe specifications
+    """
+    try:
+        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
+
+        state = {
+            "message": req.message,
+            "content_id": effective_content_id,
+            "storage_paths": req.storage_paths or []
+        }
+
+        result = uiux_wireframe_graph.invoke(state)
+        return {"type": "uiux-wireframe", "response": result["response"]}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating wireframe: {str(e)}"
+        )
+
+@app.post("/api/v1/generate/uiux-mockup")
+async def generate_uiux_mockup(req: AIRequest):
+    """
+    Generate high-fidelity UI/UX mockup with design specifications.
+
+    Args:
+        req (AIRequest): Request body containing message, content_id, storage_paths
+
+    Returns:
+        dict: Response with mockup specifications
+    """
+    try:
+        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
+
+        state = {
+            "message": req.message,
+            "content_id": effective_content_id,
+            "storage_paths": req.storage_paths or []
+        }
+
+        result = uiux_mockup_graph.invoke(state)
+        return {"type": "uiux-mockup", "response": result["response"]}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating mockup: {str(e)}"
+        )
+
+@app.post("/api/v1/generate/uiux-prototype")
+async def generate_uiux_prototype(req: AIRequest):
+    """
+    Generate interactive prototype specifications and user flow documentation.
+
+    Args:
+        req (AIRequest): Request body containing message, content_id, storage_paths
+
+    Returns:
+        dict: Response with prototype specifications
+    """
+    try:
+        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
+
+        state = {
+            "message": req.message,
+            "content_id": effective_content_id,
+            "storage_paths": req.storage_paths or []
+        }
+
+        result = uiux_prototype_graph.invoke(state)
+        return {"type": "uiux-prototype", "response": result["response"]}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating prototype: {str(e)}"
         )
 
 if __name__ == "__main__":
