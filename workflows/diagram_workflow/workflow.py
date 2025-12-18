@@ -1,15 +1,12 @@
 # workflows/diagram_workflow/workflow.py
 from langgraph.graph import StateGraph, END
-from openai import OpenAI
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from figma_mcp import generate_figma_diagram
 from models.diagram import DiagramOutput, DiagramResponse
 from typing import TypedDict
-
-# Load API key from environment
-OPENROUTER_API_KEY = os.getenv("OPEN_ROUTER_API_KEY", "")
+from connect_model import get_model_client, MODEL
 
 class DiagramState(TypedDict):
     user_message: str
@@ -17,10 +14,7 @@ class DiagramState(TypedDict):
 
 def generate_diagram_description(state: DiagramState) -> DiagramState:
     """Generate diagram description using OpenRouter AI"""
-    client = OpenAI(
-        base_url="https://openrouter.ai/api/v1",
-        api_key=OPENROUTER_API_KEY,
-    )
+    model_client = get_model_client()
 
     prompt = f"""
     Create a detailed description for a diagram based on the requirement: {state['user_message']}
@@ -35,18 +29,14 @@ def generate_diagram_description(state: DiagramState) -> DiagramState:
     """
 
     try:
-        completion = client.chat.completions.create(
-            extra_headers={
-                "HTTP-Referer": "http://localhost:8000",
-                "X-Title": "BA-Copilot",
-            },
-            model="tngtech/deepseek-r1t2-chimera:free",
+        completion = model_client.chat_completion(
             messages=[
                 {
                     "role": "user",
                     "content": prompt
                 }
-            ]
+            ],
+            model=MODEL
         )
 
         description = completion.choices[0].message.content

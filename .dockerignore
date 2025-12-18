@@ -35,7 +35,7 @@ ENV/
 *~
 .DS_Store
 
-# Testing
+# Testing cache (exclude cache, but keep test files)
 .pytest_cache/
 .coverage
 .tox/
@@ -45,7 +45,6 @@ htmlcov/
 
 # Logs
 *.log
-logs/
 *.log.*
 
 # Database
@@ -63,7 +62,8 @@ logs/
 .gitignore
 .gitattributes
 
-# Documentation (keep for reference)
+# Documentation (keep for development)
+# Uncomment to exclude in production:
 # docs/
 # *.md
 # README.md
@@ -89,11 +89,11 @@ services/mermaid_validator/nodejs/temp/
 Thumbs.db
 .DS_Store
 
-# Test files
-tests/__pycache__/
-*_test.py
-test_*.py
+# Keep test files for running tests in container
+# tests/ - DO NOT EXCLUDE
+# Test cache is excluded above
 
-# Models (if large)
+# Models (exclude large model files if any)
 # models/*.bin
 # models/*.safetensors
+# models/__pycache__/ is already excluded by __pycache__/ pattern
