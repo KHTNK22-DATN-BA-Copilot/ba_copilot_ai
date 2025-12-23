@@ -31,7 +31,8 @@ from workflows import (
     lld_pseudo_graph,
     uiux_wireframe_graph,
     uiux_mockup_graph,
-    uiux_prototype_graph
+    uiux_prototype_graph,
+    rtm_graph
 )
 
 # Logging setup
@@ -1171,6 +1172,54 @@ async def generate_uiux_prototype(req: AIRequest):
             status_code=500,
             detail=f"Error generating prototype: {str(e)}"
         )
+
+
+# ========================================
+# Phase 7: Testing & Quality Assurance Phase
+# ========================================
+
+@app.post("/api/v1/generate/rtm")
+async def generate_rtm(req: AIRequest):
+    """
+    Generate Requirements Traceability Matrix (RTM) document.
+
+    Maps requirements to design, implementation, and test cases to ensure complete coverage.
+
+    Args:
+        req (AIRequest): Request body containing message, content_id, storage_paths
+
+    Returns:
+        dict: Response with RTM document data
+
+    Example response:
+        {
+            "type": "rtm",
+            "response": {
+                "title": "Requirements Traceability Matrix - Project Name",
+                "content": "# Requirements Traceability Matrix\n\n..."
+            }
+        }
+    """
+    try:
+        # Handle empty string as None for content_id
+        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
+
+        # Prepare state for workflow
+        state = {
+            "user_message": req.message,
+            "content_id": effective_content_id,
+            "storage_paths": req.storage_paths or []
+        }
+
+        result = rtm_graph.invoke(state)
+        return {"type": "rtm", "response": result["response"]}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating RTM: {str(e)}"
+        )
+
 
 if __name__ == "__main__":
     import uvicorn
