@@ -28,6 +28,7 @@ from .uiux_wireframe_workflow import uiux_wireframe_graph
 from .uiux_mockup_workflow import uiux_mockup_graph
 from .uiux_prototype_workflow import uiux_prototype_graph
 from .rtm_workflow import rtm_graph
+from .metadata_extraction_workflow import metadata_extraction_graph
 
 __all__ = [
     "srs_graph",
@@ -55,5 +56,6 @@ __all__ = [
     "uiux_wireframe_graph",
     "uiux_mockup_graph",
     "uiux_prototype_graph",
-    "rtm_graph"
+    "rtm_graph",
+    "metadata_extraction_graph"
 ]

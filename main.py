@@ -32,7 +32,15 @@ from workflows import (
     uiux_wireframe_graph,
     uiux_mockup_graph,
     uiux_prototype_graph,
-    rtm_graph
+    rtm_graph,
+    metadata_extraction_graph
+)
+
+# Import metadata extraction models
+from models.metadata_extraction import (
+    MetadataExtractionRequest,
+    MetadataExtractionResponse,
+    ALL_DOCUMENT_TYPES
 )
 
 # Logging setup
@@ -1219,6 +1227,97 @@ async def generate_rtm(req: AIRequest):
             status_code=500,
             detail=f"Error generating RTM: {str(e)}"
         )
+
+
+# ============================================================================
+# Metadata Extraction Endpoints
+# ============================================================================
+
+@app.post("/api/v1/metadata/extract", response_model=MetadataExtractionResponse)
+async def extract_metadata(req: MetadataExtractionRequest):
+    """
+    Extract metadata from uploaded document content.
+    
+    Analyzes markdown content to detect which BA document types are present
+    and extracts their line ranges. Returns detection results for all 26
+    supported document types.
+    
+    Args:
+        req (MetadataExtractionRequest): Request containing document_id, content, filename
+        
+    Returns:
+        MetadataExtractionResponse: Detection results for all document types
+        
+    Example response:
+        {
+            "document_id": "abc-123",
+            "type": "metadata_extraction",
+            "response": [
+                {"type": "business-case", "line_start": 1, "line_end": 50},
+                {"type": "srs", "line_start": 52, "line_end": 150},
+                {"type": "scope-statement", "line_start": -1, "line_end": -1},
+                ...
+            ]
+        }
+    """
+    try:
+        # Prepare state for workflow
+        state = {
+            "document_id": req.document_id,
+            "content": req.content,
+            "filename": req.filename,
+            "total_lines": 0,
+            "phase1_results": None,
+            "phase2_results": None,
+            "phase3_results": None,
+            "phase4_results": None,
+            "phase5_results": None,
+            "phase6_results": None,
+            "phase7_results": None,
+            "additional_results": None,
+            "response": None,
+        }
+        
+        # Invoke metadata extraction workflow
+        result = metadata_extraction_graph.invoke(state)
+        
+        # Extract response from workflow result
+        response_data = result.get("response", {})
+        
+        return MetadataExtractionResponse(**response_data)
+        
+    except Exception as e:
+        logger.error(f"Error extracting metadata: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error extracting metadata: {str(e)}"
+        )
+
+
+@app.get("/api/v1/metadata/document-types")
+async def get_document_types():
+    """
+    Get list of all supported document types for metadata extraction.
+    
+    Returns:
+        dict: List of all 26 supported document type identifiers
+        
+    Example response:
+        {
+            "document_types": [
+                "stakeholder-register",
+                "high-level-requirements",
+                "business-case",
+                "srs",
+                ...
+            ],
+            "total_count": 26
+        }
+    """
+    return {
+        "document_types": ALL_DOCUMENT_TYPES,
+        "total_count": len(ALL_DOCUMENT_TYPES)
+    }
 
 
 if __name__ == "__main__":
