@@ -50,8 +50,11 @@ def generate_feasibility_study(state: FeasibilityStudyState) -> FeasibilityStudy
     prompt = f"""
     {context_str}
 
-    You are a professional Business Analyst. Create a comprehensive Feasibility Study Report
-    for the following requirement: {user_message}
+    ### ROLE
+    You are a professional Business Analyst. With strong expertise in conducting feasibility studies to evaluate the viability of projects from multiple dimensions including technical, operational, economic, schedule, and legal aspects.
+    
+    ### CONTEXT
+    Create a comprehensive Feasibility Study Report for the following requirement: {user_message}
 
     Analyze the project from multiple feasibility dimensions:
     1. Technical Feasibility - Can the project be technically implemented with current technology?
@@ -60,6 +63,16 @@ def generate_feasibility_study(state: FeasibilityStudyState) -> FeasibilityStudy
     4. Schedule Feasibility - Can the project be completed within the required timeframe?
     5. Legal Feasibility - Are there any legal or regulatory barriers?
 
+    ### INSTRUCTIONS
+    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
+    2. Create a comprehensive Feasibility Study document covering all specified sections.
+    3. Ensure clarity, completeness, and correctness in the document.
+    
+    ### NOTE
+    1. Use Markdown format for the Feasibility Study document.
+    2. Follow best practices for structuring feasibility study documentation.
+    
+    ### EXAMPLE OUTPUT
     Return the response in JSON format:
     {{
         "title": "Feasibility Study - [Project Name]",
@@ -79,8 +92,6 @@ def generate_feasibility_study(state: FeasibilityStudyState) -> FeasibilityStudy
                    7. Legal Feasibility Analysis
                    8. Recommendations and Conclusion"
     }}
-
-    Return only JSON, no additional text.
     """
 
     try:

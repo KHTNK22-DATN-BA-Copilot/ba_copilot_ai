@@ -45,8 +45,11 @@ def generate_lld_pseudocode(state: LLDPseudoState) -> LLDPseudoState:
         prompt = f"""
     {context_str}
 
-    You are a professional Algorithm Designer. Create comprehensive Pseudocode documentation
-    for the following requirement: {user_message}
+    ### ROLE
+    You are a professional Algorithm Designer. With strong expertise in creating clear, detailed pseudocode and algorithm analysis.
+    
+    ### CONTEXT
+    Create comprehensive Pseudocode documentation for the following requirement: {user_message}
 
     Provide detailed pseudocode covering:
     1. Algorithm Overview - Purpose, problem statement, approach
@@ -56,6 +59,17 @@ def generate_lld_pseudocode(state: LLDPseudoState) -> LLDPseudoState:
     5. Edge Cases - Boundary conditions, error cases, special scenarios
     6. Implementation Notes - Language-specific considerations, optimization opportunities
 
+    ### INSTRUCTIONS
+    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
+    2. Create a comprehensive pseudocode document covering all specified elements.
+    3. Ensure clarity, completeness, and correctness in the pseudocode and analysis.
+    
+    ### NOTE
+    1. Use Markdown format for the pseudocode document.
+    2. Pseudocode must use standard notation (FUNCTION, BEGIN, END, IF, ELSE, FOR, WHILE, RETURN).
+    3. Follow best practices for algorithm documentation.
+    
+    ### EXAMPLE OUTPUT
     Return the response in JSON format with ALL FIELDS AS STRINGS (no nested objects or arrays):
     {{
         "title": "Pseudocode - [Algorithm Name]",
@@ -91,8 +105,6 @@ def generate_lld_pseudocode(state: LLDPseudoState) -> LLDPseudoState:
     - Logic flow is easy to follow
     - Edge cases are comprehensive
     - Complexity analysis is mathematically justified
-
-    Return only valid JSON, no additional text.
     """
 
         completion = model_client.chat.completions.create(

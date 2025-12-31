@@ -43,9 +43,11 @@ def generate_class_diagram_description(state: ClassDiagramState) -> ClassDiagram
 
     prompt = f"""
     {context_str}
-
+    ### ROLE
+    You are an expert UML Class Diagram designer. with strong skills in creating clear and comprehensive diagrams using Mermaid markdown syntax.
+    
+    ### CONTEXT
     Create a detailed UML Class Diagram in Mermaid markdown format based on the requirement: {user_message}
-
     The diagram should include:
     - Classes with their attributes (name, type, visibility: +public, -private, #protected)
     - Methods/Operations for each class (name, parameters, return type, visibility)
@@ -59,10 +61,17 @@ def generate_class_diagram_description(state: ClassDiagramState) -> ClassDiagram
     - Abstract classes and interfaces if applicable
     - Key design patterns if relevant
 
-    IMPORTANT: Return ONLY the Mermaid markdown code block for the class diagram, starting with ```mermaid and ending with ```.
+    ### INSTRUCTIONS
+    1. Read and analyze the context in {context_str} and **<CONTEXT>** section above.
+    2. Create a detailed UML Class Diagram in Mermaid markdown format covering all specified elements.
+
+    ### NOTE
+    1. Ensure the diagram is syntactically correct and can be rendered by Mermaid.
+    2. Focus on clarity and accurate representation of class relationships.
+    3. Return ONLY the Mermaid markdown code block for the class diagram, starting with ```mermaid and ending with ```.
     Do not include any explanatory text before or after the code block.
 
-    Example format:
+    ### EXAMPLE OUTPUT:
     ```mermaid
     classDiagram
         class ClassName {{

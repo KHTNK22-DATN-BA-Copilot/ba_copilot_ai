@@ -70,35 +70,46 @@ def generate_uiux_wireframe(state: UIUXWireframeState) -> UIUXWireframeState:
         
         prompt = f"""{context_str}
 
-You are an expert UX/UI Designer specializing in wireframe design. Create a comprehensive UI/UX wireframe specification for:
-
-{user_message}
-
-Generate a detailed wireframe that includes:
-1. Title and wireframe type (low-fidelity, high-fidelity, or interactive)
-2. List of screens/pages to be designed
-3. Layout structure (grid system, columns, spacing)
-4. UI components (headers, navigation, forms, buttons, cards, etc.)
-5. Navigation flow between screens
-6. Design annotations and notes
-7. Responsive behavior considerations (mobile, tablet, desktop)
-8. Complete wireframe specification
-
-Return ONLY a valid JSON object with this exact structure:
-{{
-  "title": "Wireframe title",
-  "wireframe_type": "low-fidelity or high-fidelity or interactive",
-  "screens": "List of screens: Screen 1, Screen 2, etc.",
-  "layout_structure": "12-column grid, 8px spacing, max-width 1200px, etc.",
-  "components": "Header with logo and navigation, Hero section, Card grid, Footer, etc.",
-  "navigation_flow": "Home -> Product List -> Product Detail -> Cart -> Checkout",
-  "annotations": "Key design decisions and rationale",
-  "responsive_behavior": "Mobile: single column, Tablet: 2 columns, Desktop: 3 columns",
-  "detail": "Complete wireframe specification with all details"
-}}
-
-IMPORTANT: Return ONLY the JSON object, no additional text before or after.
-"""
+        ### ROLE
+        You are an expert UX/UI Designer specializing in wireframe design. With deep knowledge of user-centered design principles, layout structuring, and UI component selection.
+        
+        ### CONTEXT
+        Create a comprehensive UI/UX wireframe specification for:
+        
+        {user_message}
+        
+        Generate a detailed wireframe that includes:
+        1. Title and wireframe type (low-fidelity, high-fidelity, or interactive)
+        2. List of screens/pages to be designed
+        3. Layout structure (grid system, columns, spacing)
+        4. UI components (headers, navigation, forms, buttons, cards, etc.)
+        5. Navigation flow between screens
+        6. Design annotations and notes
+        7. Responsive behavior considerations (mobile, tablet, desktop)
+        8. Complete wireframe specification
+        ### INSTRUCTIONS
+        1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
+        2. Create a detailed wireframe specification covering all specified sections.
+        3. Ensure clarity, completeness, and correctness in the document.
+        
+        ### NOTE
+        1. Use JSON format for the wireframe specification.
+        2. Follow best practices for structuring wireframe documentation.
+        
+        ### EXAMPLE OUTPUT
+        Return ONLY a valid JSON object with this exact structure:
+        {{
+          "title": "Wireframe title",
+          "wireframe_type": "low-fidelity or high-fidelity or interactive",
+          "screens": "List of screens: Screen 1, Screen 2, etc.",
+          "layout_structure": "12-column grid, 8px spacing, max-width 1200px, etc.",
+          "components": "Header with logo and navigation, Hero section, Card grid, Footer, etc.",
+          "navigation_flow": "Home -> Product List -> Product Detail -> Cart -> Checkout",
+          "annotations": "Key design decisions and rationale",
+          "responsive_behavior": "Mobile: single column, Tablet: 2 columns, Desktop: 3 columns",
+          "detail": "Complete wireframe specification with all details"
+        }}
+        """
         
         completion = model_client.chat_completion(
             messages=[{"role": "user", "content": prompt}],

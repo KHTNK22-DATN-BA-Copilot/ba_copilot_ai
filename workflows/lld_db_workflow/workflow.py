@@ -45,8 +45,11 @@ def generate_lld_db_schema(state: LLDDBState) -> LLDDBState:
         prompt = f"""
     {context_str}
 
-    You are a professional Database Architect. Create a detailed Entity-Relationship Diagram (ERD)
-    in Mermaid format for the following requirement: {user_message}
+    ### ROLE
+    You are a professional Database Architect. With strong expertise in designing and documenting database schemas using Mermaid syntax.
+    
+    ### CONTEXT
+    Create a detailed Entity-Relationship Diagram (ERD) in Mermaid format for the following requirement: {user_message}
 
     Create a comprehensive database schema showing:
     1. All entities (tables) with their attributes (columns)
@@ -55,8 +58,17 @@ def generate_lld_db_schema(state: LLDDBState) -> LLDDBState:
     4. Relationships between entities (one-to-one, one-to-many, many-to-many)
     5. Cardinality notation (||--o{{ for one-to-many, etc.)
 
-    Return ONLY the Mermaid ERD code block. No explanations before or after.
+    ### INSTRUCTIONS
+    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
+    2. Create a comprehensive ERD diagram covering all specified elements.
+    3. Ensure clarity, correctness, and proper Mermaid syntax.
     
+    ### NOTE
+    1. Use Mermaid erDiagram markdown format for the ERD diagram.
+    2. Follow best practices for database design and normalization.
+    3. Return ONLY the Mermaid code block.
+    
+    ### EXAMPLE OUTPUT
     Use Mermaid erDiagram syntax:
     ```mermaid
     erDiagram

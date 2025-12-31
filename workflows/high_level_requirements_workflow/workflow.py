@@ -49,10 +49,24 @@ def generate_high_level_requirements(state: HighLevelRequirementsState) -> HighL
     prompt = f"""
     {context_str}
 
-    You are a professional Business Analyst. Create a comprehensive High-Level Requirements document for the following project:
+    ### ROLE
+    You are a professional Business Analyst. With strong expertise in gathering, analyzing, and documenting high-level requirements for projects across various domains.
+    
+    ### CONTEXT
+    Create a comprehensive High-Level Requirements document for the following project:
 
     Project Requirements: {user_message}
 
+    ### INSTRUCTIONS
+    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
+    2. Create a detailed High-Level Requirements document covering all specified sections.
+    3. Ensure clarity, completeness, and correctness in the document.
+    
+    ### NOTE
+    1. Use Markdown format for the High-Level Requirements document.
+    2. Follow best practices for structuring requirements documentation.
+    
+    ### EXAMPLE OUTPUT
     Return the response in JSON format with this structure:
     {{
         "title": "High-Level Requirements - [Project Name]",
@@ -74,8 +88,6 @@ def generate_high_level_requirements(state: HighLevelRequirementsState) -> HighL
     - Non-functional requirements with metrics (NFR-P-001: Page load < 2 seconds, etc.)
     - Tables for constraints, assumptions, and dependencies
     - Specific, measurable acceptance criteria
-
-    Return only JSON, no additional text.
     """
 
     try:

@@ -49,10 +49,11 @@ def generate_compliance(state: ComplianceState) -> ComplianceState:
 
     prompt = f"""
     {context_str}
-
-    You are a professional Business Analyst. Create a comprehensive Compliance document
-    for the following requirement: {user_message}
-
+    ### ROLE
+    You are a professional Business Analyst. With strong expertise in legal and regulatory compliance requirements across various industries.
+    
+    ### CONTEXT
+    Create a comprehensive Compliance document for the following requirement: {user_message}
     Analyze all legal and regulatory compliance requirements including:
     1. Regulatory Requirements - Industry-specific regulations and standards
     2. Legal Requirements - Applicable laws and legal obligations
@@ -65,7 +66,17 @@ def generate_compliance(state: ComplianceState) -> ComplianceState:
     - Accessibility (WCAG, ADA, etc.)
     - Security Standards
     - Local and International Laws
-
+    
+    ### INSTRUCTIONS
+    1. Read and analyze the context in {context_str} and **<CONTEXT>** section above.
+    2. Create a detailed Compliance document covering all specified sections.
+    3. Ensure clarity, completeness, and correctness in the document.
+    
+    ### NOTE
+    1. Use Markdown format for the Compliance document.
+    2. Follow best practices for structuring compliance documentation.
+    
+    ### EXAMPLE OUTPUT
     Return the response in JSON format:
     {{
         "title": "Compliance Document - [Project Name]",
@@ -85,8 +96,6 @@ def generate_compliance(state: ComplianceState) -> ComplianceState:
                    8. Monitoring and Maintenance Plan
                    9. Recommendations and Next Steps"
     }}
-
-    Return only JSON, no additional text.
     """
 
     try:
