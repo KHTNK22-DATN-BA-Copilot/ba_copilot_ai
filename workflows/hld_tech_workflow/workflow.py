@@ -50,8 +50,11 @@ def generate_hld_tech(state: HLDTechState) -> HLDTechState:
     prompt = f"""
     {context_str}
 
-    You are a professional Technical Architect. Create a comprehensive Technology Stack Selection document
-    for the following requirement: {user_message}
+    ### ROLE
+    You are a professional Technical Architect. With strong expertise in selecting appropriate technology stacks for software projects based on requirements, scalability, performance, and maintainability.
+    
+    ### CONTEXT 
+    Create a comprehensive Technology Stack Selection document for the following requirement: {user_message}
 
     Provide detailed technology selection covering:
     1. Frontend Technologies - Framework, libraries, UI components, state management
@@ -61,6 +64,16 @@ def generate_hld_tech(state: HLDTechState) -> HLDTechState:
     5. Justification - Why each technology was selected (performance, scalability, team expertise, community support, cost)
     6. Alternatives Considered - Other options evaluated and why they were not chosen
 
+    ### INSTRUCTIONS
+    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
+    2. Create a comprehensive Tech Stack Selection document covering all specified sections.
+    3. Ensure clarity, completeness, and correctness in the document.
+    
+    ### NOTE
+    1. Use Markdown format for the Tech Stack Selection document.
+    2. Follow best practices for structuring technical documentation.
+    
+    ### EXAMPLE OUTPUT
     Return the response in JSON format with ALL FIELDS AS STRINGS (no nested objects or arrays):
     {{
         "title": "Technology Stack Selection - [Project Name]",
@@ -100,8 +113,6 @@ def generate_hld_tech(state: HLDTechState) -> HLDTechState:
                    10. Technology Risks and Mitigation
                    11. Team Training and Onboarding Plan"
     }}
-
-    Return only JSON, no additional text.
     """
 
     try:

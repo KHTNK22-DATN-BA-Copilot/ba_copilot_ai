@@ -50,8 +50,11 @@ def generate_cost_benefit_analysis(state: CostBenefitAnalysisState) -> CostBenef
     prompt = f"""
     {context_str}
 
-    You are a professional Business Analyst. Create a detailed Cost-Benefit Analysis document
-    for the following requirement: {user_message}
+    ### ROLE
+    You are a professional Business Analyst. With strong expertise in financial analysis, project evaluation, and cost-benefit assessment.
+    
+    ### CONTEXT
+    Create a detailed Cost-Benefit Analysis document for the following requirement: {user_message}
 
     Provide comprehensive financial analysis including:
     1. Cost Analysis - All project costs (development, implementation, operational, maintenance)
@@ -60,6 +63,16 @@ def generate_cost_benefit_analysis(state: CostBenefitAnalysisState) -> CostBenef
     4. NPV Analysis - Net Present Value calculation with discount rates
     5. Payback Period - Time required to recover the investment
 
+    ### INSTRUCTIONS
+    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
+    2. Create a comprehensive Cost-Benefit Analysis document covering all specified sections.
+    3. Ensure clarity, completeness, and correctness in the document.
+    
+    ### NOTE
+    1. Use Markdown format for the Cost-Benefit Analysis document.
+    2. Follow best practices for structuring financial analysis documentation.
+    
+    ### EXAMPLE OUTPUT
     Return the response in JSON format:
     {{
         "title": "Cost-Benefit Analysis - [Project Name]",
@@ -80,8 +93,6 @@ def generate_cost_benefit_analysis(state: CostBenefitAnalysisState) -> CostBenef
                    8. Sensitivity Analysis
                    9. Recommendations and Conclusion"
     }}
-
-    Return only JSON, no additional text.
     """
 
     try:

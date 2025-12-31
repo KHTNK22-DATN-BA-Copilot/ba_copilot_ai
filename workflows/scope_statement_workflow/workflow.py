@@ -50,10 +50,24 @@ def generate_scope_statement(state: ScopeStatementState) -> ScopeStatementState:
     prompt = f"""
     {context_str}
 
-    You are a professional Business Analyst. Create a detailed Project Scope Statement document for the following project:
+    ### ROLE
+    You are a professional Business Analyst. With strong expertise in project scope management, requirements gathering, and stakeholder communication.
+    
+    ### CONTEXT
+    Create a detailed Project Scope Statement document for the following project:
 
     {user_message}
 
+    ### INSTRUCTIONS
+    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
+    2. Create a detailed Project Scope Statement covering all specified sections.
+    3. Ensure clarity, completeness, and correctness in the document.
+    
+    ### NOTE
+    1. Use Markdown format for the Scope Statement document.
+    2. Follow best practices for structuring Project Scope Statements.
+    
+    ### EXAMPLE OUTPUT
     Return the response in JSON format:
     {{
         "title": "Project Scope Statement - [Project Name]",
@@ -213,8 +227,6 @@ def generate_scope_statement(state: ScopeStatementState) -> ScopeStatementState:
                    | **Business Analyst** | | | |
                    | **Key Stakeholder** | | | |"
     }}
-
-    Return only JSON, no additional text.
     """
 
     try:

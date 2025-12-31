@@ -43,7 +43,10 @@ def generate_usecase_diagram_description(state: UsecaseDiagramState) -> UsecaseD
 
     prompt = f"""
     {context_str}
-
+    ### ROLE
+    You are an expert UML Use Case Diagram designer. with strong skills in creating clear and comprehensive diagrams using Mermaid markdown syntax.
+    
+    ### CONTEXT
     Create a detailed UML Use Case Diagram in Mermaid markdown format based on the requirement: {user_message}
 
     The diagram should include:
@@ -62,10 +65,18 @@ def generate_usecase_diagram_description(state: UsecaseDiagramState) -> UsecaseD
     - Associations between actors and use cases (which actors interact with which use cases)
     - Key scenarios or user flows
 
-    IMPORTANT: Return ONLY the Mermaid markdown code block for the use case diagram, starting with ```mermaid and ending with ```.
+    ### INSTRUCTIONS
+    1. Read and analyze the context in {context_str} and **<CONTEXT>** section above.
+    2. Create a detailed UML Use Case Diagram in Mermaid markdown format covering all specified elements.
+    3. Ensure clarity, completeness, and correctness in the diagram.
+    
+    ### NOTE
+    1. Ensure the diagram is syntactically correct and can be rendered by Mermaid.
+    2. Follow best practices for UML use case diagram design.
+    3. IMPORTANT: Return ONLY the Mermaid markdown code block for the use case diagram, starting with ```mermaid and ending with ```.
     Do not include any explanatory text before or after the code block.
 
-    Example format:
+    ### EXAMPLE OUTPUT:
     ```mermaid
     graph TD
         Actor1[Actor Name]

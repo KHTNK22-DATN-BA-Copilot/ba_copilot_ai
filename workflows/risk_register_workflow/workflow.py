@@ -50,8 +50,11 @@ def generate_risk_register(state: RiskRegisterState) -> RiskRegisterState:
     prompt = f"""
     {context_str}
 
-    You are a professional Business Analyst. Create a comprehensive Risk Register document
-    for the following requirement: {user_message}
+    ### ROLE
+    You are a professional Business Analyst. With strong expertise in risk management, project risk assessment, and mitigation planning.
+    
+    ### CONTEXT
+    Create a comprehensive Risk Register document for the following requirement: {user_message}
 
     Identify and analyze all potential project risks including:
     1. Risk Identification - Comprehensive list of all potential risks
@@ -69,6 +72,16 @@ def generate_risk_register(state: RiskRegisterState) -> RiskRegisterState:
     - Contingency Plan
     - Risk Owner
 
+    ### INSTRUCTIONS
+    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
+    2. Create a detailed Risk Register document covering all specified sections.
+    3. Ensure clarity, completeness, and correctness in the document.
+    
+    ### NOTE
+    1. Use Markdown format for the Risk Register document.
+    2. Follow best practices for structuring Risk Registers.
+    
+    ### EXAMPLE OUTPUT
     Return the response in JSON format:
     {{
         "title": "Risk Register - [Project Name]",
@@ -87,8 +100,6 @@ def generate_risk_register(state: RiskRegisterState) -> RiskRegisterState:
                    7. Contingency Plans
                    8. Risk Monitoring and Control Plan"
     }}
-
-    Return only JSON, no additional text.
     """
 
     try:

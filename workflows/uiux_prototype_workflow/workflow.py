@@ -67,38 +67,49 @@ def generate_uiux_prototype(state: UIUXPrototypeState) -> UIUXPrototypeState:
         context_str = "\n".join(context_parts)
         
         prompt = f"""{context_str}
+        ### ROLE
+        You are an expert Interaction Designer specializing in interactive prototypes. With deep knowledge of user experience principles, interaction patterns, and prototyping tools.
+        
+        ### CONTEXT
+        Create comprehensive prototype specifications for:
 
-You are an expert Interaction Designer specializing in interactive prototypes. Create comprehensive prototype specifications for:
+        {user_message}
 
-{user_message}
+        Generate a detailed prototype specification that includes:
+        1. Title and prototype type (interactive, clickable, animated)
+        2. Primary user flows and journeys
+        3. Interaction patterns (click, hover, scroll, swipe, drag)
+        4. Animations and transitions (micro-interactions, page transitions)
+        5. UI states for all components (default, hover, active, disabled, error, loading)
+        6. Use case scenarios covered by the prototype
+        7. Accessibility features (WCAG compliance, keyboard navigation, screen reader support)
+        8. Usability testing guidelines and scenarios
+        9. Complete prototype specification
 
-Generate a detailed prototype specification that includes:
-1. Title and prototype type (interactive, clickable, animated)
-2. Primary user flows and journeys
-3. Interaction patterns (click, hover, scroll, swipe, drag)
-4. Animations and transitions (micro-interactions, page transitions)
-5. UI states for all components (default, hover, active, disabled, error, loading)
-6. Use case scenarios covered by the prototype
-7. Accessibility features (WCAG compliance, keyboard navigation, screen reader support)
-8. Usability testing guidelines and scenarios
-9. Complete prototype specification
-
-Return ONLY a valid JSON object with this exact structure:
-{{
-  "title": "Prototype title",
-  "prototype_type": "interactive or clickable or animated",
-  "user_flows": "Flow 1: Login -> Dashboard -> Profile. Flow 2: Browse Products -> Add to Cart -> Checkout",
-  "interactions": "Click: Navigate to page. Hover: Show tooltip. Scroll: Reveal content. Swipe: Navigate carousel",
-  "animations": "Page transitions: 300ms fade. Button hover: Scale 1.05 with 200ms ease. Loading: Skeleton screens",
-  "states": "Button states: default (blue), hover (darker blue), active (pressed), disabled (gray), loading (spinner)",
-  "scenarios": "Scenario 1: First-time user registration. Scenario 2: Returning user purchase. Scenario 3: Error recovery",
-  "accessibility": "WCAG 2.1 AA compliant, keyboard navigation, ARIA labels, focus indicators, screen reader tested",
-  "testing_notes": "Test with 5 users, task completion rate, time on task, error rate, satisfaction score",
-  "detail": "Complete prototype specification with all interaction details"
-}}
-
-IMPORTANT: Return ONLY the JSON object, no additional text before or after.
-"""
+        ### INSTRUCTIONS
+        1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
+        2. Create a detailed prototype specification covering all specified sections.
+        3. Ensure clarity, completeness, and correctness in the document.
+        
+        ### NOTE
+        1. Use JSON format for the prototype specification.
+        2. Follow best practices for structuring prototype documentation.
+        
+        ### EXAMPLE OUTPUT
+        Return ONLY a valid JSON object with this exact structure:
+        {{
+          "title": "Prototype title",
+          "prototype_type": "interactive or clickable or animated",
+          "user_flows": "Flow 1: Login -> Dashboard -> Profile. Flow 2: Browse Products -> Add to Cart -> Checkout",
+          "interactions": "Click: Navigate to page. Hover: Show tooltip. Scroll: Reveal content. Swipe: Navigate carousel",
+          "animations": "Page transitions: 300ms fade. Button hover: Scale 1.05 with 200ms ease. Loading: Skeleton screens",
+          "states": "Button states: default (blue), hover (darker blue), active (pressed), disabled (gray), loading (spinner)",
+          "scenarios": "Scenario 1: First-time user registration. Scenario 2: Returning user purchase. Scenario 3: Error recovery",
+          "accessibility": "WCAG 2.1 AA compliant, keyboard navigation, ARIA labels, focus indicators, screen reader tested",
+          "testing_notes": "Test with 5 users, task completion rate, time on task, error rate, satisfaction score",
+          "detail": "Complete prototype specification with all interaction details"
+        }}
+        """
         
         completion = model_client.chat_completion(
             messages=[{"role": "user", "content": prompt}],

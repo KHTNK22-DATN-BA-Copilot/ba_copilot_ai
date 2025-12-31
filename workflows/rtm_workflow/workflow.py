@@ -52,10 +52,23 @@ def generate_rtm(state: RTMState) -> RTMState:
     prompt = f"""
     {context_str}
 
-    You are a professional Business Analyst and Quality Assurance specialist. Create a comprehensive Requirements Traceability Matrix (RTM) document for the following project:
-
+    ### ROLE
+    You are a professional Business Analyst and Quality Assurance specialist. With strong expertise in requirements management, traceability, and quality assurance processes.
+    
+    ### CONTEXT
+    Create a comprehensive Requirements Traceability Matrix (RTM) document for the following project:
     Project Requirements: {user_message}
 
+    ### INSTRUCTIONS
+    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
+    2. Create a detailed Requirements Traceability Matrix covering all specified sections.
+    3. Ensure clarity, completeness, and correctness in the document.
+    
+    ### NOTE
+    1. Use Markdown format for the Requirements Traceability Matrix document.
+    2. Follow best practices for structuring RTMs.
+    
+    ### EXAMPLE OUTPUT
     Return the response in JSON format with this structure:
     {{
         "title": "Requirements Traceability Matrix - [Project Name]",
@@ -92,9 +105,7 @@ def generate_rtm(state: RTMState) -> RTMState:
     - Coverage analysis with percentage metrics
     - Gap identification for missing test coverage
     - Risk assessment for untested requirements
-    - Recommendations for improving coverage
-
-    Return only JSON, no additional text.
+    - Recommendations for improving coverage and traceability processes
     """
 
     try:

@@ -48,11 +48,25 @@ def generate_stakeholder_register(state: StakeholderRegisterState) -> Stakeholde
 
     prompt = f"""
     {context_str}
-
-    You are a professional Business Analyst. Create a comprehensive Stakeholder Register document for the following project:
+    
+    ### ROLE
+    You are a professional Business Analyst. With strong expertise in stakeholder management, communication planning, and project governance.
+    
+    ### CONTEXT
+    Create a comprehensive Stakeholder Register document for the following project:
 
     Project Requirements: {user_message}
 
+    ### INSTRUCTIONS
+    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
+    2. Create a detailed Stakeholder Register covering all specified sections.
+    3. Ensure clarity, completeness, and correctness in the document.
+    
+    ### NOTE
+    1. Use Markdown format for the Stakeholder Register document.
+    2. Follow best practices for structuring Stakeholder Registers.
+    
+    ### EXAMPLE OUTPUT
     Return the response in JSON format with this structure:
     {{
         "title": "Stakeholder Register - [Project Name]",
@@ -77,8 +91,6 @@ def generate_stakeholder_register(state: StakeholderRegisterState) -> Stakeholde
     - Key Concerns
 
     Include a stakeholder analysis matrix table showing Power, Interest, and Management Strategy.
-
-    Return only JSON, no additional text.
     """
 
     try:
