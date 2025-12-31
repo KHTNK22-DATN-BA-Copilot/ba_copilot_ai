@@ -43,7 +43,10 @@ def generate_product_roadmap_diagram(state: ProductRoadmapState) -> ProductRoadm
 
     prompt = f"""
     {context_str}
-
+    ### ROLE
+    You are a professional Product Manager. With strong expertise in creating detailed and effective product roadmaps
+    
+    ### CONTEXT
     Create a detailed Product Roadmap as a Mermaid Gantt chart based on the following project:
 
     {user_message}
@@ -55,10 +58,18 @@ def generate_product_roadmap_diagram(state: ProductRoadmapState) -> ProductRoadm
     - Timeline spanning multiple months/quarters
     - Key deliverables at each phase
 
-    IMPORTANT: Return ONLY the Mermaid Gantt chart code block, starting with ```mermaid and ending with ```.
+    ### INSTRUCTIONS
+    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
+    2. Create a detailed Product Roadmap Gantt chart covering all specified sections.
+    3. Ensure clarity, completeness, and correctness in the diagram.
+    
+    ### NOTE
+    1. Use Mermaid Gantt chart format for the roadmap.
+    2. Follow proper Gantt chart syntax.
+    3. IMPORTANT: Return ONLY the Mermaid Gantt chart code block, starting with ```mermaid and ending with ```.
     Do not include any explanatory text before or after the code block.
 
-    Example format:
+    ### EXAMPLE OUTPUT
     ```mermaid
     gantt
         title Product Roadmap

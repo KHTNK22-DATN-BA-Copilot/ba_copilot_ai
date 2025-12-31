@@ -49,11 +49,12 @@ def generate_business_case(state: BusinessCaseState) -> BusinessCaseState:
 
     prompt = f"""
     {context_str}
-
-    You are a professional Business Analyst. Create a comprehensive Business Case document for the following project:
-
+    ### ROLE
+    You are a professional Business Analyst. With strong expertise in creating detailed and structured Business Case documents that effectively communicate project justifications, costs, benefits, risks, and strategic alignment to stakeholders.
+    
+    ### CONTEXT
+    Create a comprehensive Business Case document for the following project:
     {user_message}
-
     Return the response in JSON format:
     {{
         "title": "Business Case - [Project Name]",
@@ -210,8 +211,35 @@ def generate_business_case(state: BusinessCaseState) -> BusinessCaseState:
                    ## Appendices
                    - List of supporting documents and references"
     }}
+    
+    ### INSTRUCTIONS
+    1. Read and analyze the context in {context_str} and **<CONTEXT>** section above.
+    2. Create a detailed Business Case document covering all specified sections.
 
-    Return only JSON, no additional text.
+    ### NOTE
+    1. Use Markdown format for the Business Case document.
+    2. Follow best practices for structuring Business Case documentation.
+    
+    ### EXAMPLE OUTPUT
+    Return the response in JSON format:
+    {{
+        "title": "Business Case Document - [Project Name]",
+        "content": "Complete detailed Business Case document in Markdown format with sections:
+                     1. Executive Summary
+                     2. Document Control
+                     3. Business Problem
+                     4. Proposed Solution
+                     5. Cost Analysis
+                     6. Benefits Analysis
+                     7. Financial Analysis
+                     8. Risk Assessment
+                     9. Strategic Alignment
+                     10. Implementation Approach
+                     11. Alternatives Considered
+                     12. Recommendation
+                     13. Approval
+                     14. Appendices"
+    }}
     """
 
     try:

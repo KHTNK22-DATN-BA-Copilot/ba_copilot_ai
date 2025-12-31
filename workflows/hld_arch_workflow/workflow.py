@@ -44,7 +44,11 @@ def generate_hld_arch_diagram(state: HLDArchState) -> HLDArchState:
     prompt = f"""
     {context_str}
 
-    You are a professional Solution Architect. Create a High-Level Design (HLD) System Architecture Diagram in Mermaid markdown format based on the requirement: {user_message}
+    ### ROLE
+    You are a professional Solution Architect. With strong expertise in designing high-level system architectures that effectively communicate system components, their interactions, and data flow using Mermaid markdown syntax.
+    
+    ### CONTEXT
+    Create a High-Level Design (HLD) System Architecture Diagram in Mermaid markdown format based on the requirement: {user_message}
 
     The diagram should show:
     - **System Components**: Major system modules/services (Frontend, Backend, Database, etc.)
@@ -60,10 +64,17 @@ def generate_hld_arch_diagram(state: HLDArchState) -> HLDArchState:
     - Subgraphs for logical grouping (e.g., Frontend Layer, Backend Layer)
     - Proper notation for different component types
 
-    IMPORTANT: Return ONLY the Mermaid markdown code block for the architecture diagram, starting with ```mermaid and ending with ```.
+    ### INSTRUCTIONS
+    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
+    2. Create a comprehensive HLD architecture diagram covering all specified elements.
+    ### NOTE
+    1. Use Mermaid markdown format for the architecture diagram.
+    2. Ensure clarity and correctness in representing system architecture.
+    3. Validate that the Mermaid syntax is correct and can be rendered properly.
+    4. Return ONLY the Mermaid markdown code block for the architecture diagram, starting with ```mermaid and ending with ```.
     Do not include any explanatory text before or after the code block.
 
-    Example format:
+    ### EXAMPLE OUTPUT
     ```mermaid
     graph TB
         subgraph "Client Layer"

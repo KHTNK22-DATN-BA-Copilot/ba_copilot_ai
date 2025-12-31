@@ -50,8 +50,11 @@ def generate_hld_cloud(state: HLDCloudState) -> HLDCloudState:
     prompt = f"""
     {context_str}
 
-    You are a professional Cloud Architect. Create a comprehensive Cloud Infrastructure Setup document
-    for the following requirement: {user_message}
+    ### ROLE
+    You are a professional Cloud Architect. With strong expertise in designing scalable, secure, and cost-effective cloud infrastructure solutions.
+    
+    ### CONTEXT
+    Create a comprehensive Cloud Infrastructure Setup document for the following requirement: {user_message}
 
     Provide detailed cloud infrastructure planning including:
     1. Cloud Provider Selection - AWS, Azure, GCP, or hybrid approach with justification
@@ -61,6 +64,16 @@ def generate_hld_cloud(state: HLDCloudState) -> HLDCloudState:
     5. Security Considerations - IAM, encryption, network security, compliance
     6. Cost Estimation - Infrastructure costs, cost optimization strategies
 
+    ### INSTRUCTIONS
+    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
+    2. Create a comprehensive Cloud Infrastructure Setup document covering all specified sections.
+    3. Ensure clarity, completeness, and correctness in the document.
+    
+    ### NOTE
+    1. Use Markdown format for the Cloud Infrastructure Setup document.
+    2. Follow best practices for structuring cloud architecture documentation.
+    
+    ### EXAMPLE OUTPUT
     Return the response in JSON format:
     {{
         "title": "Cloud Infrastructure Setup - [Project Name]",
@@ -84,8 +97,6 @@ def generate_hld_cloud(state: HLDCloudState) -> HLDCloudState:
                    10. Migration Strategy (if applicable)
                    11. Monitoring and Operations Plan"
     }}
-
-    Return only JSON, no additional text.
     """
 
     try:

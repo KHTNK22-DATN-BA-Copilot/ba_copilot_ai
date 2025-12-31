@@ -43,9 +43,11 @@ def generate_activity_diagram_description(state: ActivityDiagramState) -> Activi
 
     prompt = f"""
     {context_str}
-
+    ### ROLE
+    You are an expert UML Activity Diagram designer. with strong skills in creating clear and comprehensive diagrams using Mermaid markdown syntax.
+    
+    ### CONTEXT
     Create a detailed UML Activity Diagram in Mermaid markdown format based on the requirement: {user_message}
-
     The diagram should include:
     - Start and end nodes (indicating the beginning and end of the workflow)
     - Activities (actions or processes that occur):
@@ -59,11 +61,19 @@ def generate_activity_diagram_description(state: ActivityDiagramState) -> Activi
     - Flow arrows showing the sequence and direction of activities
     - Parallel activities (fork/join) if tasks can happen concurrently
     - Guard conditions (constraints on transitions)
-
-    IMPORTANT: Return ONLY the Mermaid markdown code block for the activity diagram, starting with triple backticks mermaid and ending with triple backticks.
+    
+    ### INSTRUCTIONS
+    1. Read and analyze the context in ${context_str} and **<CONTEXT>** section above.
+    2. Design a UML Activity Diagram that accurately represents the workflow described in the requirement.
+    3. Use Mermaid markdown syntax to create the diagram.
+    
+    ### NOTE
+    1. Ensure the diagram is syntactically correct and can be rendered by Mermaid.
+    2. Focus on clarity and logical flow of activities.
+    3. Return ONLY the Mermaid markdown code block for the activity diagram, starting with triple backticks mermaid and ending with triple backticks.
     Do not include any explanatory text before or after the code block.
-
-    Example format:
+    
+    ### EXAMPLE OUTPUT:
     Start with triple backticks mermaid
     graph TD with activities, decisions, and connections
     End with triple backticks

@@ -67,38 +67,51 @@ def generate_uiux_mockup(state: UIUXMockupState) -> UIUXMockupState:
         context_str = "\n".join(context_parts)
         
         prompt = f"""{context_str}
-
-You are an expert Visual Designer specializing in high-fidelity UI mockups. Create comprehensive UI/UX mockup specifications for:
-
-{user_message}
-
-Generate a detailed mockup that includes:
-1. Title and mockup type (visual-design, high-fidelity, pixel-perfect)
-2. Design system guidelines (colors, typography, spacing)
-3. Visual hierarchy principles
-4. Complete color palette with hex codes (primary, secondary, accent, neutrals)
-5. Typography specifications (font families, sizes, weights, line heights)
-6. Iconography style and set
-7. Imagery and photography style
-8. UI element specifications (buttons, forms, cards, etc.)
-9. Complete mockup specification
-
-Return ONLY a valid JSON object with this exact structure:
-{{
-  "title": "Mockup title",
-  "mockup_type": "visual-design or high-fidelity or pixel-perfect",
-  "design_system": "Design system overview and guidelines",
-  "visual_hierarchy": "Typography hierarchy, visual weight, spacing rhythm",
-  "color_palette": "Primary: #1A73E8, Secondary: #34A853, Accent: #FBBC04, Error: #EA4335, Success: #34A853, Neutral-900: #202124, Neutral-50: #F8F9FA",
-  "typography": "Headings: Inter Bold 32px/40px, Body: Inter Regular 16px/24px, etc.",
-  "iconography": "Material Icons, 24px, outlined style",
-  "imagery_style": "Flat illustrations, vibrant colors, modern minimalist photography",
-  "ui_elements": "Primary button: 48px height, 16px padding, #1A73E8 background, white text, 4px border-radius",
-  "detail": "Complete mockup specification with all visual details"
-}}
-
-IMPORTANT: Return ONLY the JSON object, no additional text before or after.
-"""
+        
+        ### ROLE
+        You are an expert Visual Designer specializing in high-fidelity UI mockups. With deep knowledge of design systems, typography, color theory, and user interface principles.
+        
+        ### CONTEXT
+        Create comprehensive UI/UX mockup specifications for:
+        
+        {user_message}
+        
+        Generate a detailed mockup that includes:
+        1. Title and mockup type (visual-design, high-fidelity, pixel-perfect)
+        2. Design system guidelines (colors, typography, spacing)
+        3. Visual hierarchy principles
+        4. Complete color palette with hex codes (primary, secondary, accent, neutrals)
+        5. Typography specifications (font families, sizes, weights, line heights)
+        6. Iconography style and set
+        7. Imagery and photography style
+        8. UI element specifications (buttons, forms, cards, etc.)
+        9. Complete mockup specification
+        
+        ### INSTRUCTIONS
+        1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
+        2. Create a detailed UI/UX mockup specification covering all specified sections.
+        3. Ensure clarity, completeness, and correctness in the document.
+        
+        ### NOTE
+        1. Use JSON format for the mockup specification.
+        2. Follow best practices for UI/UX design documentation.
+        3. Ensure the JSON is well-formed and valid.
+        
+        ### EXAMPLE OUTPUT
+        Return ONLY a valid JSON object with this exact structure:
+        {{
+          "title": "Mockup title",
+          "mockup_type": "visual-design or high-fidelity or pixel-perfect",
+          "design_system": "Design system overview and guidelines",
+          "visual_hierarchy": "Typography hierarchy, visual weight, spacing rhythm",
+          "color_palette": "Primary: #1A73E8, Secondary: #34A853, Accent: #FBBC04, Error: #EA4335, Success: #34A853, Neutral-900: #202124, Neutral-50: #F8F9FA",
+          "typography": "Headings: Inter Bold 32px/40px, Body: Inter Regular 16px/24px, etc.",
+          "iconography": "Material Icons, 24px, outlined style",
+          "imagery_style": "Flat illustrations, vibrant colors, modern minimalist photography",
+          "ui_elements": "Primary button: 48px height, 16px padding, #1A73E8 background, white text, 4px border-radius",
+          "detail": "Complete mockup specification with all visual details"
+        }}
+        """
         
         completion = model_client.chat_completion(
             messages=[{"role": "user", "content": prompt}],

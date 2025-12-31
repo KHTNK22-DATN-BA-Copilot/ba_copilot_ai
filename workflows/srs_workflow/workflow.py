@@ -50,9 +50,23 @@ def generate_srs(state: SRSState) -> SRSState:
     prompt = f"""
     {context_str}
 
-    You are a professional Business Analyst. Create a detailed Software Requirements Specification (SRS)
+    ### ROLE
+    You are a professional Business Analyst. With strong expertise in gathering and documenting software requirements include functional and non-functional requirements.
+    
+    ### CONTEXT
+    Create a detailed Software Requirements Specification (SRS)
     document for the following requirement: {user_message}
 
+    ### INSTRUCTIONS
+    1. Read and analyze the context in {context_str} and **<CONTEXT>** section above.
+    2. Create a comprehensive SRS document format covering all specified elements.
+    3. Ensure clarity, completeness, and correctness in the SRS document.
+    
+    ### NOTE
+    1. Use Markdown format for the SRS document.
+    2. Follow IEEE 830-1998 standard for SRS documentation.
+    
+    ### EXAMPLE OUTPUT
     Return the response in JSON format:
     {{
         "title": "Project/feature name",
