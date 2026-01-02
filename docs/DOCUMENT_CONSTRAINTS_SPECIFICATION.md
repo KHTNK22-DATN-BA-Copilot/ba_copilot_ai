@@ -2,10 +2,11 @@
 
 ## BA Copilot - Document Dependency & Constraint System
 
-**Version:** 1.0  
-**Date:** December 31, 2024  
+**Version:** 1.1  
+**Date:** January 2, 2026  
 **Authors:** BA Copilot Team  
-**Status:** Active
+**Status:** Active  
+**Scope:** Cross-Service Specification (Frontend, Backend, AI Services)
 
 ---
 
@@ -13,14 +14,44 @@
 
 This document defines the **Document Constraint System** for BA Copilot, which ensures that AI-generated artifacts are produced in a logical, dependency-aware sequence following industry-standard Software Development Life Cycle (SDLC) practices.
 
+**This is a cross-service specification** covering integration between:
+
+- **Frontend Repository**: User interface for constraint display and interactions
+- **Backend Repository**: Constraint enforcement and validation
+- **AI Services Repository**: Document generation with validated context
+
 ### 1.1 Purpose
 
 - Enforce document generation order based on SDLC best practices
 - Ensure prerequisite documents exist before generating dependent documents
 - Improve AI output quality by providing relevant context from prerequisite documents
 - Guide users through proper BA documentation workflow
+- Define clear integration contracts between Frontend, Backend, and AI services
 
-### 1.2 Scope
+### 1.2 System Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    BA COPILOT CONSTRAINT SYSTEM                         │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌──────────────┐      ┌───────────────┐      ┌──────────────┐        │
+│  │   FRONTEND   │─────▶│    BACKEND    │─────▶│  AI SERVICE  │        │
+│  │  (Next.js)   │      │   (FastAPI)   │      │  (FastAPI)   │        │
+│  └──────────────┘      └───────────────┘      └──────────────┘        │
+│         │                      │                      │                 │
+│         │                      │                      │                 │
+│    Display UI              Enforce              Generate                │
+│    Handle UX            Constraints            Documents                │
+│                                                                         │
+│                          ┌──────────┐                                  │
+│                          │ Database │                                  │
+│                          │ + Storage│                                  │
+│                          └──────────┘                                  │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### 1.3 Scope
 
 This specification covers all 26 document types defined in the BA Copilot AI API:
 
@@ -523,9 +554,176 @@ class ConstraintCheckResult:
 
 ---
 
-## 8. User Experience Guidelines
+## 8. Cross-Service Integration
 
-### 8.1 Error Message Templates
+### 8.1 Architecture Components
+
+The constraint system operates across three repositories with clear separation of concerns:
+
+#### 8.1.1 Frontend Responsibilities (ba_copilot_frontend)
+
+- **Display constraint violations** in user interface
+- **Handle user actions**: Generate, Upload, Skip
+- **Show dependency information** for recommended prerequisites
+- **Call Backend API** for constraint checks before generation requests
+- **Environment**: Next.js, React, TailwindCSS
+
+#### 8.1.2 Backend Responsibilities (ba_copilot_backend)
+
+- **Enforce constraint rules** based on enforcement mode
+- **Query database** to detect existing documents
+- **Validate document metadata** before storage
+- **Block or warn** on constraint violations
+- **Forward validated requests** to AI Service
+- **Environment**: FastAPI, PostgreSQL, Supabase Storage
+
+#### 8.1.3 AI Service Responsibilities (ba_copilot_ai)
+
+- **Generate documents** using LangGraph workflows
+- **Accept context** from Backend (prerequisite documents)
+- **Return generated content** in AIResponse format
+- **NO validation or enforcement** - purely generative
+- **Environment**: FastAPI, LangGraph, OpenAI/Anthropic
+
+### 8.2 API Integration Contracts
+
+#### 8.2.1 Frontend → Backend: Constraint Check
+
+**Endpoint:** `POST /api/constraints/check`
+
+```json
+// Request
+{
+  "document_type": "hld-arch",
+  "project_id": "550e8400-e29b-41d4-a716-446655440000",
+  "user_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+}
+
+// Response (Success - No Violations)
+{
+  "can_generate": true,
+  "violations": [],
+  "warnings": []
+}
+
+// Response (REQUIRED Violation - Blocking)
+{
+  "can_generate": false,
+  "violations": [
+    {
+      "type": "REQUIRED",
+      "missing_document": "feasibility-study",
+      "display_name": "Feasibility Study",
+      "message": "Required prerequisite missing"
+    }
+  ],
+  "warnings": []
+}
+
+// Response (RECOMMENDED Warning - Non-Blocking)
+{
+  "can_generate": true,
+  "violations": [],
+  "warnings": [
+    {
+      "type": "RECOMMENDED",
+      "missing_document": "cost-benefit-analysis",
+      "display_name": "Cost-Benefit Analysis",
+      "message": "Recommended prerequisite missing - output quality may be reduced"
+    }
+  ]
+}
+```
+
+#### 8.2.2 Backend → AI Service: Document Generation
+
+**Endpoint:** `POST /api/ai/generate/{document_type}`
+
+```json
+// Request (Backend sends to AI)
+{
+  "project_id": "550e8400-e29b-41d4-a716-446655440000",
+  "user_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+  "project_name": "E-Commerce Platform",
+  "project_description": "Modern web-based e-commerce solution...",
+  "context": {
+    "feasibility-study": "# Feasibility Study\n\n## Technical Feasibility...",
+    "business-case": "# Business Case\n\n## Executive Summary..."
+  }
+}
+
+// Response (AI returns to Backend)
+{
+  "success": true,
+  "content": "# High-Level Design - Architecture\n\n## System Overview...",
+  "metadata": {
+    "model": "claude-3-7-sonnet-20250219",
+    "tokens": 2847,
+    "duration": 12.3
+  }
+}
+
+// Error Response
+{
+  "success": false,
+  "error": "Failed to generate document",
+  "details": "OpenAI API rate limit exceeded"
+}
+```
+
+### 8.3 Data Flow Sequence
+
+```
+┌──────────┐         ┌──────────┐         ┌──────────┐
+│ Frontend │         │ Backend  │         │ AI Svc   │
+└────┬─────┘         └────┬─────┘         └────┬─────┘
+     │                    │                     │
+     │ 1. Check Constraint│                     │
+     ├───────────────────▶│                     │
+     │                    │                     │
+     │                    │ 2. Query DB         │
+     │                    ├──────────┐          │
+     │                    │          │          │
+     │                    │◀─────────┘          │
+     │                    │                     │
+     │ 3. Violations?     │                     │
+     │◀───────────────────┤                     │
+     │                    │                     │
+     │ 4. Generate Request│                     │
+     ├───────────────────▶│                     │
+     │                    │                     │
+     │                    │ 5. Fetch Context    │
+     │                    ├──────────┐          │
+     │                    │          │          │
+     │                    │◀─────────┘          │
+     │                    │                     │
+     │                    │ 6. Generate Doc     │
+     │                    ├────────────────────▶│
+     │                    │                     │
+     │                    │                     │ 7. LangGraph
+     │                    │                     │    Workflow
+     │                    │                     ├────────┐
+     │                    │                     │        │
+     │                    │                     │◀───────┘
+     │                    │                     │
+     │                    │ 8. Generated Content│
+     │                    │◀────────────────────┤
+     │                    │                     │
+     │                    │ 9. Store Doc        │
+     │                    ├──────────┐          │
+     │                    │          │          │
+     │                    │◀─────────┘          │
+     │                    │                     │
+     │ 10. Success        │                     │
+     │◀───────────────────┤                     │
+     │                    │                     │
+```
+
+---
+
+## 9. User Experience Guidelines
+
+### 9.1 Error Message Templates
 
 #### Missing Required Prerequisite
 
@@ -556,7 +754,7 @@ The output quality may be improved by:
 [Continue Anyway] [Generate Prerequisites]
 ```
 
-### 8.2 Dependency Graph Visibility
+### 9.2 Dependency Graph Visibility
 
 **Current Approach:** The complete dependency graph is hidden from users to reduce complexity. Users only see:
 
@@ -568,25 +766,48 @@ The output quality may be improved by:
 
 ---
 
-## 9. Configuration Options
+## 10. Configuration Options
 
-### 9.1 Environment Variables
+### 10.1 Environment Variables
+
+**Backend (ba_copilot_backend)**
 
 ```bash
 # Constraint enforcement mode
 CONSTRAINT_ENFORCEMENT_MODE=GUIDED  # STRICT | GUIDED | PERMISSIVE
-
-# Enable/disable AI context validation
-AI_CONTEXT_VALIDATION_ENABLED=true
 
 # Minimum content length for prerequisite to be considered valid
 MIN_PREREQUISITE_CONTENT_LENGTH=100
 
 # Allow admin override of constraints
 ALLOW_CONSTRAINT_OVERRIDE=true
+
+# AI Service URL
+AI_SERVICE_URL=http://localhost:8001
 ```
 
-### 9.2 Per-Project Settings
+**AI Service (ba_copilot_ai)**
+
+```bash
+# LLM Provider
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+DEFAULT_MODEL=claude-3-7-sonnet-20250219
+
+# No constraint enforcement - AI only generates
+```
+
+**Frontend (ba_copilot_frontend)**
+
+```bash
+# Backend API URL
+NEXT_PUBLIC_API_URL=http://localhost:8000
+
+# Enable constraint warnings UI
+NEXT_PUBLIC_SHOW_CONSTRAINT_WARNINGS=true
+```
+
+### 10.2 Per-Project Settings
 
 ```json
 {
@@ -600,9 +821,9 @@ ALLOW_CONSTRAINT_OVERRIDE=true
 
 ---
 
-## 10. Future Considerations
+## 11. Future Considerations
 
-### 10.1 Planned Enhancements
+### 11.1 Planned Enhancements
 
 1. **Circular Dependency Detection**: Prevent constraint loops
 2. **Version Compatibility**: Track document versions for updates
@@ -610,7 +831,7 @@ ALLOW_CONSTRAINT_OVERRIDE=true
 4. **Dependency Visualization**: Interactive dependency graph UI
 5. **Auto-Generation Chains**: Automatically generate full prerequisite chains
 
-### 10.2 Integration Points
+### 11.2 Integration Points
 
 - **CI/CD Pipelines**: Constraint validation in automated workflows
 - **Template Library**: Pre-defined constraint sets for common project types
