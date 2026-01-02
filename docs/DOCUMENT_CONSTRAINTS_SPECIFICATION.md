@@ -93,84 +93,83 @@ Documents should be generated in an order that ensures:
 
 ### 3.1 Dependency Definitions
 
-| Dependency Type | Symbol | Description                                    |
-| --------------- | ------ | ---------------------------------------------- |
-| **REQUIRED**    | 🔴     | Must exist before generation (hard block)      |
-| **RECOMMENDED** | 🟡     | Should exist for better quality (soft warning) |
-| **ENHANCES**    | 🟢     | Improves output if available (no warning)      |
+| Dependency Type | Symbol | Description                                                               |
+| --------------- | ------ | ------------------------------------------------------------------------- |
+| **REQUIRED**    | 🔴     | Must exist before generation (hard block)                                 |
+| **RECOMMENDED** | 🟡     | Should exist for better quality (user informed, can upload/generate/skip) |
 
 ### 3.2 Complete Dependency Matrix
 
 #### Phase 1: Project Initiation
 
-| Document                       | Required Prerequisites | Recommended                                   | Enhances     |
-| ------------------------------ | ---------------------- | --------------------------------------------- | ------------ |
-| `stakeholder-register`         | _None (Entry Point)_   | User uploads                                  | -            |
-| `high-level-requirements`      | _None (Entry Point)_   | stakeholder-register                          | User uploads |
-| `requirements-management-plan` | _None (Entry Point)_   | stakeholder-register, high-level-requirements | -            |
+| Document                       | Required Prerequisites | Recommended                                   |
+| ------------------------------ | ---------------------- | --------------------------------------------- |
+| `stakeholder-register`         | _None (Entry Point)_   | -                                             |
+| `high-level-requirements`      | _None (Entry Point)_   | stakeholder-register                          |
+| `requirements-management-plan` | _None (Entry Point)_   | stakeholder-register, high-level-requirements |
 
 #### Phase 2: Business Planning
 
-| Document          | Required Prerequisites  | Recommended                            | Enhances        |
-| ----------------- | ----------------------- | -------------------------------------- | --------------- |
-| `business-case`   | stakeholder-register    | high-level-requirements                | scope-statement |
-| `scope-statement` | high-level-requirements | stakeholder-register, business-case    | -               |
-| `product-roadmap` | scope-statement         | business-case, high-level-requirements | -               |
+| Document          | Required Prerequisites  | Recommended                              |
+| ----------------- | ----------------------- | ---------------------------------------- |
+| `business-case`   | stakeholder-register    | high-level-requirements, scope-statement |
+| `scope-statement` | high-level-requirements | stakeholder-register, business-case      |
+| `product-roadmap` | scope-statement         | business-case, high-level-requirements   |
 
 #### Phase 3: Feasibility & Risk Analysis
 
-| Document                | Required Prerequisites         | Recommended                             | Enhances |
-| ----------------------- | ------------------------------ | --------------------------------------- | -------- |
-| `feasibility-study`     | business-case, scope-statement | high-level-requirements                 | -        |
-| `cost-benefit-analysis` | business-case                  | feasibility-study, scope-statement      | -        |
-| `risk-register`         | scope-statement                | feasibility-study, stakeholder-register | -        |
-| `compliance`            | scope-statement                | risk-register, high-level-requirements  | -        |
+| Document                | Required Prerequisites         | Recommended                             |
+| ----------------------- | ------------------------------ | --------------------------------------- |
+| `feasibility-study`     | business-case, scope-statement | high-level-requirements                 |
+| `cost-benefit-analysis` | business-case                  | feasibility-study, scope-statement      |
+| `risk-register`         | scope-statement                | feasibility-study, stakeholder-register |
+| `compliance`            | scope-statement                | risk-register, high-level-requirements  |
 
 #### Phase 4: High-Level Design
 
-| Document    | Required Prerequisites                   | Recommended                              | Enhances |
-| ----------- | ---------------------------------------- | ---------------------------------------- | -------- |
-| `hld-arch`  | high-level-requirements, scope-statement | feasibility-study                        | -        |
-| `hld-cloud` | hld-arch                                 | feasibility-study, cost-benefit-analysis | -        |
-| `hld-tech`  | hld-arch                                 | cost-benefit-analysis                    | -        |
+| Document    | Required Prerequisites                   | Recommended                              |
+| ----------- | ---------------------------------------- | ---------------------------------------- |
+| `hld-arch`  | high-level-requirements, scope-statement | feasibility-study                        |
+| `hld-cloud` | hld-arch                                 | feasibility-study, cost-benefit-analysis |
+| `hld-tech`  | hld-arch                                 | cost-benefit-analysis                    |
 
 #### Phase 5: Low-Level Design
 
-| Document     | Required Prerequisites            | Recommended      | Enhances |
-| ------------ | --------------------------------- | ---------------- | -------- |
-| `lld-arch`   | hld-arch                          | hld-tech         | -        |
-| `lld-db`     | hld-arch, high-level-requirements | lld-arch         | -        |
-| `lld-api`    | hld-arch, high-level-requirements | lld-arch, lld-db | -        |
-| `lld-pseudo` | lld-arch                          | lld-api          | -        |
+| Document     | Required Prerequisites            | Recommended      |
+| ------------ | --------------------------------- | ---------------- |
+| `lld-arch`   | hld-arch                          | hld-tech         |
+| `lld-db`     | hld-arch, high-level-requirements | lld-arch         |
+| `lld-api`    | hld-arch, high-level-requirements | lld-arch, lld-db |
+| `lld-pseudo` | lld-arch                          | lld-api          |
 
 #### Phase 6: UI/UX Design
 
-| Document         | Required Prerequisites  | Recommended                           | Enhances |
-| ---------------- | ----------------------- | ------------------------------------- | -------- |
-| `uiux-wireframe` | high-level-requirements | scope-statement, stakeholder-register | -        |
-| `uiux-mockup`    | uiux-wireframe          | hld-arch                              | -        |
-| `uiux-prototype` | uiux-mockup             | uiux-wireframe, lld-api               | -        |
+| Document         | Required Prerequisites  | Recommended                           |
+| ---------------- | ----------------------- | ------------------------------------- |
+| `uiux-wireframe` | high-level-requirements | scope-statement, stakeholder-register |
+| `uiux-mockup`    | uiux-wireframe          | hld-arch                              |
+| `uiux-prototype` | uiux-mockup             | uiux-wireframe, lld-api               |
 
 #### Phase 7: Testing & QA
 
-| Document | Required Prerequisites       | Recommended     | Enhances        |
-| -------- | ---------------------------- | --------------- | --------------- |
-| `rtm`    | high-level-requirements, srs | scope-statement | All design docs |
+| Document | Required Prerequisites       | Recommended                      |
+| -------- | ---------------------------- | -------------------------------- |
+| `rtm`    | high-level-requirements, srs | scope-statement, all design docs |
 
 #### Synthesis Documents
 
-| Document | Required Prerequisites                   | Recommended                         | Enhances           |
-| -------- | ---------------------------------------- | ----------------------------------- | ------------------ |
-| `srs`    | high-level-requirements, scope-statement | stakeholder-register, business-case | All Phase 1-3 docs |
+| Document | Required Prerequisites                   | Recommended                                             |
+| -------- | ---------------------------------------- | ------------------------------------------------------- |
+| `srs`    | high-level-requirements, scope-statement | stakeholder-register, business-case, all Phase 1-3 docs |
 
 #### Diagram Documents
 
-| Document           | Required Prerequisites  | Recommended          | Enhances        |
-| ------------------ | ----------------------- | -------------------- | --------------- |
-| `class-diagram`    | high-level-requirements | lld-arch, lld-db     | srs             |
-| `usecase-diagram`  | high-level-requirements | stakeholder-register | srs             |
-| `activity-diagram` | high-level-requirements | scope-statement      | usecase-diagram |
-| `wireframe`        | high-level-requirements | uiux-wireframe       | scope-statement |
+| Document           | Required Prerequisites  | Recommended                      |
+| ------------------ | ----------------------- | -------------------------------- |
+| `class-diagram`    | high-level-requirements | lld-arch, lld-db, srs            |
+| `usecase-diagram`  | high-level-requirements | stakeholder-register, srs        |
+| `activity-diagram` | high-level-requirements | scope-statement, usecase-diagram |
+| `wireframe`        | high-level-requirements | uiux-wireframe, scope-statement  |
 
 ---
 
@@ -221,9 +220,13 @@ The system identifies existing documents by checking the `metadata` JSONB field 
     }
   ],
   "extraction_timestamp": "2024-12-31T10:00:00Z",
-  "source": "ai_generated" | "user_upload" | "metadata_extraction"
+  "file_category": "ai_generated" | "uploaded",
+  "file_type": "stakeholder-register",
+  "source": "ai_generated" | "metadata_extraction"
 }
 ```
+
+**Note:** User manual tagging during upload is considered for future implementation but the current system does not depend on it.
 
 ### 5.2 Document Sources
 
@@ -231,7 +234,8 @@ The system identifies existing documents by checking the `metadata` JSONB field 
 | -------------------------- | ---------------------------- | ---------------------------------------------------------- |
 | **AI Generated**           | Created by AI endpoints      | `file_category: "ai generated"`, `file_type: "<doc-type>"` |
 | **User Upload (Detected)** | Metadata extraction workflow | `metadata.document_types[]`                                |
-| **User Upload (Manual)**   | User tags during upload      | `metadata.manual_tags[]`                                   |
+
+**Note:** Manual user tagging during upload is planned for future implementation but is not currently depended upon for constraint checking.
 
 ### 5.3 Metadata Extraction Integration
 
@@ -397,63 +401,6 @@ When a user uploads a file:
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-#### 6.2.3 Error Path: AI Detects Insufficient Context
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                    ERROR PATH: AI CONTEXT VALIDATION                         │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  This path handles cases where:                                              │
-│  - Prerequisites exist but are empty/minimal                                 │
-│  - Document content doesn't match expected type                              │
-│  - Context is insufficient for quality generation                            │
-│                                    │                                         │
-│                                    ▼                                         │
-│  1. Backend passes constraint check (docs exist)                            │
-│                                    │                                         │
-│                                    ▼                                         │
-│  2. AI Service Receives Request                                             │
-│     ├── Load prerequisite documents                                         │
-│     ├── Analyze content quality/relevance                                   │
-│     └── Detect: high-level-requirements.md is nearly empty (< 100 chars)   │
-│                                    │                                         │
-│                                    ▼                                         │
-│  3. AI Returns Warning Response                                             │
-│     {                                                                        │
-│       "type": "uiux-wireframe",                                             │
-│       "response": {...},           // Generated content (best effort)       │
-│       "warnings": [                                                         │
-│         {                                                                    │
-│           "code": "INSUFFICIENT_CONTEXT",                                   │
-│           "message": "high-level-requirements document is minimal",         │
-│           "suggestion": "Add more detail to requirements for better output" │
-│         }                                                                    │
-│       ],                                                                     │
-│       "quality_score": 0.6         // Estimated output quality              │
-│     }                                                                        │
-│                                    │                                         │
-│                                    ▼                                         │
-│  4. Backend Forwards Warning to Frontend                                    │
-│     HTTP 200 with warnings in response body                                 │
-│     OR HTTP 207 Multi-Status if significant issues                          │
-│                                    │                                         │
-│                                    ▼                                         │
-│  5. Frontend Displays Warning                                               │
-│     ┌─────────────────────────────────────────────┐                         │
-│     │ ⚠️ Document Generated with Warnings          │                         │
-│     │                                              │                         │
-│     │ The wireframe was generated but quality     │                         │
-│     │ may be affected:                            │                         │
-│     │                                              │                         │
-│     │ • High-level requirements doc is minimal    │                         │
-│     │                                              │                         │
-│     │ [View Anyway] [Improve Requirements First]  │                         │
-│     └─────────────────────────────────────────────┘                         │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
 ### 6.3 WebSocket Orchestration Flow
 
 For multi-document generation via WebSocket:
@@ -521,8 +468,7 @@ class DocumentConstraint:
     display_name: str
     phase: int
     required: List[str]          # Must exist (hard block)
-    recommended: List[str]       # Should exist (warning)
-    enhances: List[str]          # Nice to have (no warning)
+    recommended: List[str]       # Should exist (informational)
     description: str
     generation_endpoint: str
 ```
@@ -541,7 +487,7 @@ class ConstraintCheckResult:
     missing_required: List[str]
     missing_recommended: List[str]
 
-    # Available context for AI
+    # Available context to pass to AI
     available_docs: List[str]
     available_storage_paths: List[str]
 
@@ -610,11 +556,15 @@ The output quality may be improved by:
 [Continue Anyway] [Generate Prerequisites]
 ```
 
-### 8.2 Progressive Disclosure
+### 8.2 Dependency Graph Visibility
 
-1. **Simple View**: Show only critical missing prerequisites
-2. **Detailed View**: Show full dependency tree on expand
-3. **Expert View**: Show all constraints including ENHANCES level
+**Current Approach:** The complete dependency graph is hidden from users to reduce complexity. Users only see:
+
+- Missing required prerequisites (blocking)
+- Missing recommended prerequisites (informational)
+- Suggested actions (generate, upload, skip)
+
+**Future Consideration:** Interactive dependency visualization may be added later.
 
 ---
 
@@ -668,6 +618,340 @@ ALLOW_CONSTRAINT_OVERRIDE=true
 
 ---
 
+## 11. API Specification
+
+### 11.1 Happy Path: All Prerequisites Satisfied
+
+#### Request
+
+```http
+POST /api/v1/design/generate
+Authorization: Bearer {jwt_token}
+Content-Type: multipart/form-data
+
+doc_type: uiux-wireframe
+message: Create wireframes for a mobile banking app with account overview, transfer funds, and transaction history screens
+project_id: 550e8400-e29b-41d4-a716-446655440000
+```
+
+#### Backend Processing
+
+```python
+# 1. Extract parameters
+doc_type = "uiux-wireframe"
+project_id = "550e8400-e29b-41d4-a716-446655440000"
+
+# 2. Check constraints
+constraint = get_constraint(doc_type)
+# Returns: DocumentConstraint(
+#   required=["high-level-requirements"],
+#   recommended=["scope-statement", "stakeholder-register"]
+# )
+
+# 3. Query database for existing documents
+existing_docs = db.query(Files).filter(
+    Files.project_id == project_id,
+    Files.metadata["document_types"].contains(["high-level-requirements"])
+).all()
+
+# 4. Check result
+# Found: high-level-requirements (id=123)
+# Found: stakeholder-register (id=124)
+# Missing recommended: scope-statement
+
+available_docs = ["high-level-requirements", "stakeholder-register"]
+available_paths = ["project_550e/requirements.md", "project_550e/stakeholders.md"]
+missing_recommended = ["scope-statement"]
+
+# 5. Constraint satisfied (all REQUIRED met)
+result = ConstraintCheckResult(
+    satisfied=True,
+    missing_required=[],
+    missing_recommended=["scope-statement"],
+    available_docs=available_docs,
+    available_storage_paths=available_paths
+)
+
+# 6. Forward to AI service with context
+ai_request = {
+    "doc_type": "uiux-wireframe",
+    "message": "Create wireframes...",
+    "project_id": project_id,
+    "available_docs": available_docs,
+    "available_storage_paths": available_paths
+}
+```
+
+#### AI Service Processing
+
+```python
+# AI receives request and loads prerequisite documents
+prerequisite_content = ""
+for path in available_storage_paths:
+    content = storage.download(path)
+    prerequisite_content += f"\n\n=== {path} ===\n{content}"
+
+# Generate with context
+final_prompt = f"""
+PREREQUISITE DOCUMENTS:
+{prerequisite_content}
+
+USER REQUEST:
+Create wireframes for a mobile banking app...
+
+Based on the requirements above, create comprehensive wireframe specifications...
+"""
+
+# Generate and return
+```
+
+#### Response (Success)
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "status": "success",
+  "message": "UI/UX Wireframe generated successfully",
+  "data": {
+    "file_id": "660e8400-e29b-41d4-a716-446655440111",
+    "file_name": "uiux-wireframe-20250102.md",
+    "storage_path": "project_550e/uiux-wireframe-20250102.md",
+    "doc_type": "uiux-wireframe",
+    "created_at": "2025-01-02T10:30:00Z"
+  },
+  "warnings": {
+    "missing_recommended": ["scope-statement"],
+    "suggestion": "Consider generating or uploading 'Scope Statement' to improve output quality"
+  }
+}
+```
+
+---
+
+### 11.2 Error Path: Missing Required Prerequisites
+
+#### Request
+
+```http
+POST /api/v1/design/generate
+Authorization: Bearer {jwt_token}
+Content-Type: multipart/form-data
+
+doc_type: uiux-mockup
+message: Create high-fidelity mockup for the dashboard with modern design
+project_id: 550e8400-e29b-41d4-a716-446655440000
+```
+
+#### Backend Processing
+
+```python
+# 1. Extract parameters
+doc_type = "uiux-mockup"
+project_id = "550e8400-e29b-41d4-a716-446655440000"
+
+# 2. Check constraints
+constraint = get_constraint(doc_type)
+# Returns: DocumentConstraint(
+#   required=["uiux-wireframe"],
+#   recommended=["hld-arch"]
+# )
+
+# 3. Query database for existing documents
+existing_docs = db.query(Files).filter(
+    Files.project_id == project_id,
+    Files.metadata["document_types"].contains(["uiux-wireframe"])
+).all()
+
+# 4. Check result
+# NOT FOUND: uiux-wireframe ❌
+# NOT FOUND: hld-arch
+
+missing_required = ["uiux-wireframe"]
+missing_recommended = ["hld-arch"]
+
+# 5. Constraint NOT satisfied
+result = ConstraintCheckResult(
+    satisfied=False,
+    missing_required=["uiux-wireframe"],
+    missing_recommended=["hld-arch"],
+    available_docs=[],
+    available_storage_paths=[]
+)
+
+# 6. Build suggestions
+suggestions = [
+    {
+        "action": "generate",
+        "doc_type": "uiux-wireframe",
+        "display_name": "UI/UX Wireframe",
+        "endpoint": "/api/v1/design/generate",
+        "description": "Generate the wireframe first to establish layout structure"
+    },
+    {
+        "action": "upload",
+        "doc_type": "uiux-wireframe",
+        "display_name": "UI/UX Wireframe",
+        "description": "Upload an existing wireframe document"
+    }
+]
+
+# 7. Return error (do NOT call AI service)
+```
+
+#### Response (Error - 422 Unprocessable Entity)
+
+```http
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/json
+
+{
+  "error": "PREREQUISITE_MISSING",
+  "message": "Cannot generate UI/UX Mockup without required prerequisites",
+  "details": {
+    "doc_type": "uiux-mockup",
+    "display_name": "UI/UX Mockup",
+    "enforcement_mode": "GUIDED",
+    "missing_required": [
+      {
+        "doc_type": "uiux-wireframe",
+        "display_name": "UI/UX Wireframe"
+      }
+    ],
+    "missing_recommended": [
+      {
+        "doc_type": "hld-arch",
+        "display_name": "High-Level Architecture"
+      }
+    ],
+    "available_docs": [],
+    "suggestions": [
+      {
+        "action": "generate",
+        "doc_type": "uiux-wireframe",
+        "display_name": "UI/UX Wireframe",
+        "endpoint": "/api/v1/design/generate",
+        "description": "Generate the wireframe first to establish layout structure"
+      },
+      {
+        "action": "upload",
+        "doc_type": "uiux-wireframe",
+        "display_name": "UI/UX Wireframe",
+        "description": "Upload an existing wireframe document"
+      }
+    ]
+  }
+}
+```
+
+#### Frontend Display
+
+```
+┌─────────────────────────────────────────────┐
+│ ⚠️ Prerequisites Required                    │
+│                                              │
+│ To generate "UI/UX Mockup", you need:       │
+│                                              │
+│ 🔴 Required (Missing):                       │
+│    • UI/UX Wireframe                        │
+│                                              │
+│ 🟡 Recommended (Missing):                    │
+│    • High-Level Architecture                │
+│                                              │
+│ [Generate Wireframe] [Upload Document]      │
+│ [Skip & Continue Anyway]                    │
+└─────────────────────────────────────────────┘
+```
+
+---
+
+### 11.3 WebSocket Multi-Document Generation
+
+#### Request (Step-by-Step Validation)
+
+```json
+{
+  "action": "generate",
+  "steps": [
+    {
+      "step_number": 1,
+      "doc_types": ["stakeholder-register", "high-level-requirements"],
+      "messages": {
+        "stakeholder-register": "Create stakeholder register for hospital management system",
+        "high-level-requirements": "Define requirements for patient records, appointments, billing"
+      }
+    },
+    {
+      "step_number": 2,
+      "doc_types": ["business-case", "scope-statement"],
+      "messages": {
+        "business-case": "Business justification for the HMS",
+        "scope-statement": "Define scope boundaries"
+      }
+    }
+  ],
+  "project_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+#### Backend Validation (Before Starting)
+
+```python
+# Validate ALL steps upfront
+generated_so_far = []
+
+for step in steps:
+    for doc_type in step.doc_types:
+        result = check_prerequisites(
+            doc_type,
+            project_id,
+            existing_docs + generated_so_far
+        )
+
+        if not result.satisfied:
+            # Send error and STOP
+            ws.send({
+                "type": "validation_error",
+                "step": step.step_number,
+                "doc_type": doc_type,
+                "missing_required": result.missing_required,
+                "message": f"Step {step.step_number} cannot proceed..."
+            })
+            return
+
+# All validated ✓ - proceed with generation
+```
+
+#### WebSocket Messages (Progressive Updates)
+
+```json
+// Step 1 Start
+{"type": "step_start", "step": 1, "total_steps": 2}
+
+// Document 1
+{"type": "doc_start", "doc_type": "stakeholder-register", "display_name": "Stakeholder Register"}
+{"type": "doc_progress", "doc_type": "stakeholder-register", "progress": 50}
+{"type": "doc_completed", "doc_type": "stakeholder-register", "file_id": "abc-123", "storage_path": "project_550e/stakeholder-register.md"}
+
+// Document 2
+{"type": "doc_start", "doc_type": "high-level-requirements"}
+{"type": "doc_progress", "doc_type": "high-level-requirements", "progress": 75}
+{"type": "doc_completed", "doc_type": "high-level-requirements", "file_id": "abc-124"}
+
+// Step completed
+{"type": "step_completed", "step": 1}
+{"type": "await_decision", "message": "Step 1 complete. Review documents before continuing to Step 2"}
+
+// User continues...
+
+// Step 2 Start
+{"type": "step_start", "step": 2}
+// ... (similar pattern)
+```
+
+---
+
 ## Appendix A: Complete Constraint Mapping
 
 ```python
@@ -675,165 +959,126 @@ DOCUMENT_CONSTRAINTS = {
     # Phase 1: Project Initiation (Entry Points)
     "stakeholder-register": {
         "required": [],
-        "recommended": [],
-        "enhances": []
+        "recommended": []
     },
     "high-level-requirements": {
         "required": [],
-        "recommended": ["stakeholder-register"],
-        "enhances": []
+        "recommended": ["stakeholder-register"]
     },
     "requirements-management-plan": {
         "required": [],
-        "recommended": ["stakeholder-register", "high-level-requirements"],
-        "enhances": []
+        "recommended": ["stakeholder-register", "high-level-requirements"]
     },
 
     # Phase 2: Business Planning
     "business-case": {
         "required": ["stakeholder-register"],
-        "recommended": ["high-level-requirements"],
-        "enhances": ["scope-statement"]
+        "recommended": ["high-level-requirements", "scope-statement"]
     },
     "scope-statement": {
         "required": ["high-level-requirements"],
-        "recommended": ["stakeholder-register", "business-case"],
-        "enhances": []
+        "recommended": ["stakeholder-register", "business-case"]
     },
     "product-roadmap": {
         "required": ["scope-statement"],
-        "recommended": ["business-case", "high-level-requirements"],
-        "enhances": []
+        "recommended": ["business-case", "high-level-requirements"]
     },
 
     # Phase 3: Feasibility & Risk
     "feasibility-study": {
         "required": ["business-case", "scope-statement"],
-        "recommended": ["high-level-requirements"],
-        "enhances": []
+        "recommended": ["high-level-requirements"]
     },
     "cost-benefit-analysis": {
         "required": ["business-case"],
-        "recommended": ["feasibility-study", "scope-statement"],
-        "enhances": []
+        "recommended": ["feasibility-study", "scope-statement"]
     },
     "risk-register": {
         "required": ["scope-statement"],
-        "recommended": ["feasibility-study", "stakeholder-register"],
-        "enhances": []
+        "recommended": ["feasibility-study", "stakeholder-register"]
     },
     "compliance": {
         "required": ["scope-statement"],
-        "recommended": ["risk-register", "high-level-requirements"],
-        "enhances": []
+        "recommended": ["risk-register", "high-level-requirements"]
     },
 
     # Phase 4: High-Level Design
     "hld-arch": {
         "required": ["high-level-requirements", "scope-statement"],
-        "recommended": ["feasibility-study"],
-        "enhances": []
+        "recommended": ["feasibility-study"]
     },
     "hld-cloud": {
         "required": ["hld-arch"],
-        "recommended": ["feasibility-study", "cost-benefit-analysis"],
-        "enhances": []
+        "recommended": ["feasibility-study", "cost-benefit-analysis"]
     },
     "hld-tech": {
         "required": ["hld-arch"],
-        "recommended": ["cost-benefit-analysis"],
-        "enhances": []
+        "recommended": ["cost-benefit-analysis"]
     },
 
     # Phase 5: Low-Level Design
     "lld-arch": {
         "required": ["hld-arch"],
-        "recommended": ["hld-tech"],
-        "enhances": []
+        "recommended": ["hld-tech"]
     },
     "lld-db": {
         "required": ["hld-arch", "high-level-requirements"],
-        "recommended": ["lld-arch"],
-        "enhances": []
+        "recommended": ["lld-arch"]
     },
     "lld-api": {
         "required": ["hld-arch", "high-level-requirements"],
-        "recommended": ["lld-arch", "lld-db"],
-        "enhances": []
+        "recommended": ["lld-arch", "lld-db"]
     },
     "lld-pseudo": {
         "required": ["lld-arch"],
-        "recommended": ["lld-api"],
-        "enhances": []
+        "recommended": ["lld-api"]
     },
 
     # Phase 6: UI/UX Design
     "uiux-wireframe": {
         "required": ["high-level-requirements"],
-        "recommended": ["scope-statement", "stakeholder-register"],
-        "enhances": []
+        "recommended": ["scope-statement", "stakeholder-register"]
     },
     "uiux-mockup": {
         "required": ["uiux-wireframe"],
-        "recommended": ["hld-arch"],
-        "enhances": []
+        "recommended": ["hld-arch"]
     },
     "uiux-prototype": {
         "required": ["uiux-mockup"],
-        "recommended": ["uiux-wireframe", "lld-api"],
-        "enhances": []
+        "recommended": ["uiux-wireframe", "lld-api"]
     },
 
     # Phase 7: Testing
     "rtm": {
         "required": ["high-level-requirements", "srs"],
-        "recommended": ["scope-statement"],
-        "enhances": []
+        "recommended": ["scope-statement"]
     },
 
     # Synthesis
     "srs": {
         "required": ["high-level-requirements", "scope-statement"],
-        "recommended": ["stakeholder-register", "business-case"],
-        "enhances": []
+        "recommended": ["stakeholder-register", "business-case"]
     },
 
     # Diagrams
     "class-diagram": {
         "required": ["high-level-requirements"],
-        "recommended": ["lld-arch", "lld-db"],
-        "enhances": ["srs"]
+        "recommended": ["lld-arch", "lld-db", "srs"]
     },
     "usecase-diagram": {
         "required": ["high-level-requirements"],
-        "recommended": ["stakeholder-register"],
-        "enhances": ["srs"]
+        "recommended": ["stakeholder-register", "srs"]
     },
     "activity-diagram": {
         "required": ["high-level-requirements"],
-        "recommended": ["scope-statement"],
-        "enhances": ["usecase-diagram"]
+        "recommended": ["scope-statement", "usecase-diagram"]
     },
     "wireframe": {
         "required": ["high-level-requirements"],
-        "recommended": ["uiux-wireframe"],
-        "enhances": ["scope-statement"]
+        "recommended": ["uiux-wireframe", "scope-statement"]
     }
 }
 ```
-
----
-
-## Appendix B: Glossary
-
-| Term                    | Definition                                                        |
-| ----------------------- | ----------------------------------------------------------------- |
-| **Constraint**          | A rule defining prerequisites for document generation             |
-| **Prerequisite**        | A document that must/should exist before another can be generated |
-| **Enforcement Mode**    | Level of strictness for constraint checking                       |
-| **Metadata Extraction** | AI process to detect document types in uploaded files             |
-| **Happy Path**          | Successful flow where all constraints are satisfied               |
-| **Error Path**          | Flow handling constraint violations                               |
 
 ---
 

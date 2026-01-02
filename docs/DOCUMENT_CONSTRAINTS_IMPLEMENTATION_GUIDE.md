@@ -12,16 +12,16 @@
 
 ## 1. Overview
 
-This guide provides detailed implementation instructions for the Document Constraint System across both Backend (FastAPI) and AI (LangGraph) services. The Backend is the **primary enforcer** of constraints, while the AI service provides **enhanced prompts** and **context validation**.
+This guide provides detailed implementation instructions for the Document Constraint System across both Backend (FastAPI) and AI (LangGraph) services. The Backend is the **primary and sole enforcer** of constraints. The AI service receives validated context from the Backend and focuses on document generation.
 
 ### 1.1 Responsibility Matrix
 
-| Component      | Responsibilities                                                                    |
-| -------------- | ----------------------------------------------------------------------------------- |
-| **Backend**    | Constraint definition, prerequisite checking, error responses, WebSocket validation |
-| **AI Service** | Context validation, enhanced prompts, quality warnings                              |
-| **Database**   | Metadata storage, document type tracking                                            |
-| **Frontend**   | Error display, user guidance, constraint override UI                                |
+| Component      | Responsibilities                                                                                         |
+| -------------- | -------------------------------------------------------------------------------------------------------- |
+| **Backend**    | Constraint definition, prerequisite checking, error responses, WebSocket validation, context preparation |
+| **AI Service** | Document generation with provided context                                                                |
+| **Database**   | Metadata storage, document type tracking                                                                 |
+| **Frontend**   | Error display, user guidance                                                                             |
 
 ---
 
@@ -95,9 +95,8 @@ class DocumentConstraint:
     doc_type: str
     display_name: str
     phase: DocumentPhase
-    required: List[str]
-    recommended: List[str]
-    enhances: List[str]
+    required: List[str]          # Must exist (hard block)
+    recommended: List[str]       # Should exist (informational, user can upload/generate/skip)
     description: str
     category: str  # "planning", "analysis", "design", "srs", "diagram"
 
@@ -116,7 +115,6 @@ DOCUMENT_CONSTRAINTS: Dict[str, DocumentConstraint] = {
         phase=DocumentPhase.PROJECT_INITIATION,
         required=[],
         recommended=[],
-        enhances=[],
         description="Registry of all project stakeholders with roles and interests",
         category="planning"
     ),
@@ -126,7 +124,6 @@ DOCUMENT_CONSTRAINTS: Dict[str, DocumentConstraint] = {
         phase=DocumentPhase.PROJECT_INITIATION,
         required=[],
         recommended=["stakeholder-register"],
-        enhances=[],
         description="High-level functional and non-functional requirements",
         category="planning"
     ),
@@ -136,7 +133,6 @@ DOCUMENT_CONSTRAINTS: Dict[str, DocumentConstraint] = {
         phase=DocumentPhase.PROJECT_INITIATION,
         required=[],
         recommended=["stakeholder-register", "high-level-requirements"],
-        enhances=[],
         description="Plan for managing requirements throughout the project",
         category="planning"
     ),
@@ -472,11 +468,11 @@ def get_recommended_prerequisites(doc_type: str) -> List[str]:
 
 
 def get_all_prerequisites(doc_type: str) -> List[str]:
-    """Get all prerequisites (required + recommended + enhances)."""
+    """Get all prerequisites (required + recommended)."""
     constraint = get_constraint(doc_type)
     if not constraint:
         return []
-    return constraint.required + constraint.recommended + constraint.enhances
+    return constraint.required + constraint.recommended
 
 
 def is_entry_point(doc_type: str) -> bool:
@@ -1104,338 +1100,87 @@ async def handle_generate_action(self, data: Dict):
 
 ## 3. AI Service Implementation
 
-### 3.1 Enhanced Request Model
+**Note:** The AI service does NOT perform constraint validation. It receives validated context from the Backend and focuses solely on document generation.
+
+### 3.1 Request Model
 
 **File:** `ba_copilot_ai/models/ai_request.py`
 
 ```python
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
-
-
-class ConstraintContext(BaseModel):
-    """Context about constraints passed from backend."""
-    doc_type: str
-    available_docs: List[str] = Field(default_factory=list)
-    missing_recommended: List[str] = Field(default_factory=list)
+from typing import List, Optional
 
 
 class AIRequest(BaseModel):
-    """Enhanced AI request with constraint context."""
+    """AI request with prerequisite context provided by Backend."""
     message: str
-    content_id: Optional[str] = None
-    storage_paths: Optional[List[str]] = None
-    constraint_context: Optional[ConstraintContext] = None
-```
-
-### 3.2 Constraint-Aware Prompt Templates
-
-**File:** `ba_copilot_ai/prompts/constraint_prompts.py`
-
-```python
-"""
-Constraint-aware prompt templates for document generation.
-
-These prompts enhance AI output by:
-1. Informing the AI about available prerequisite documents
-2. Guiding the AI to reference specific sources
-3. Handling cases where recommended docs are missing
-"""
-
-from typing import List, Dict, Optional
-
-
-def build_context_preamble(
-    available_docs: List[str],
-    missing_recommended: List[str],
     doc_type: str
-) -> str:
-    """
-    Build context preamble to prepend to prompts.
-
-    Informs the AI about what context is available and what's missing.
-    """
-    preamble_parts = []
-
-    # Available documents context
-    if available_docs:
-        doc_list = ", ".join(available_docs)
-        preamble_parts.append(
-            f"AVAILABLE CONTEXT: The following prerequisite documents are available "
-            f"and have been provided for reference: {doc_list}. "
-            f"Please incorporate relevant information from these documents."
-        )
-
-    # Missing recommended warning
-    if missing_recommended:
-        missing_list = ", ".join(missing_recommended)
-        preamble_parts.append(
-            f"NOTE: The following recommended documents are not available: {missing_list}. "
-            f"Generate the best possible output based on available information, "
-            f"and clearly indicate any assumptions made due to missing context."
-        )
-
-    return "\n\n".join(preamble_parts)
-
-
-# Document-specific enhanced prompts
-CONSTRAINT_AWARE_PROMPTS: Dict[str, str] = {
-    "uiux-wireframe": """
-{context_preamble}
-
-You are a professional UI/UX Designer creating wireframes for a software project.
-
-Based on the HIGH-LEVEL REQUIREMENTS provided, create comprehensive wireframe specifications.
-
-USER REQUEST:
-{message}
-
-REQUIREMENTS:
-1. Reference the requirements document to ensure all user-facing features are represented
-2. Include navigation flow between screens
-3. Specify component layouts and placeholder content
-4. Note any accessibility considerations
-5. If stakeholder information is available, consider their user personas
-
-OUTPUT FORMAT:
-Generate detailed wireframe specifications in markdown format including:
-- Screen inventory
-- Component hierarchy
-- Navigation map
-- Responsive breakpoint notes
-- Interaction specifications
-""",
-
-    "uiux-mockup": """
-{context_preamble}
-
-You are a professional UI/UX Designer creating high-fidelity mockup specifications.
-
-Based on the WIREFRAME provided, create detailed mockup design specifications.
-
-USER REQUEST:
-{message}
-
-REQUIREMENTS:
-1. Reference the wireframe document for layout structure
-2. Define color palette, typography, and spacing
-3. Specify component styles and states
-4. Include visual hierarchy guidelines
-5. If architecture documents are available, ensure technical feasibility
-
-OUTPUT FORMAT:
-Generate comprehensive mockup specifications in markdown format including:
-- Design system tokens (colors, typography, spacing)
-- Component specifications
-- Visual states (default, hover, active, disabled)
-- Responsive adaptations
-- Asset requirements
-""",
-
-    "lld-db": """
-{context_preamble}
-
-You are a professional Database Architect designing a database schema.
-
-Based on the HIGH-LEVEL ARCHITECTURE and REQUIREMENTS, create a detailed database design.
-
-USER REQUEST:
-{message}
-
-REQUIREMENTS:
-1. Reference architecture documents for system boundaries
-2. Derive entities from requirements
-3. Define relationships and cardinality
-4. Specify indexes for query optimization
-5. Include data types and constraints
-
-OUTPUT FORMAT:
-Generate a complete database schema in Mermaid ERD format with:
-- Entity definitions
-- Relationships (1:1, 1:N, M:N)
-- Primary and foreign keys
-- Important indexes
-- Data type specifications
-""",
-
-    "srs": """
-{context_preamble}
-
-You are a professional Business Analyst creating a Software Requirements Specification.
-
-SYNTHESIZE information from all available prerequisite documents to create a comprehensive SRS.
-
-USER REQUEST:
-{message}
-
-REQUIREMENTS:
-1. Incorporate stakeholder information for user roles
-2. Reference high-level requirements for functional specs
-3. Use scope statement for boundaries and constraints
-4. Include business case justification where relevant
-5. Ensure traceability to source documents
-
-OUTPUT FORMAT:
-Generate a complete SRS document following IEEE 830 structure:
-1. Introduction (Purpose, Scope, Definitions)
-2. Overall Description (Product perspective, functions, constraints)
-3. Specific Requirements (Functional, Non-functional)
-4. Appendices (References, supporting information)
-""",
-}
-
-
-def get_enhanced_prompt(
-    doc_type: str,
-    message: str,
-    available_docs: List[str],
-    missing_recommended: List[str]
-) -> str:
-    """
-    Get constraint-aware prompt for a document type.
-
-    Falls back to basic prompt if no enhanced version exists.
-    """
-    context_preamble = build_context_preamble(
-        available_docs, missing_recommended, doc_type
-    )
-
-    template = CONSTRAINT_AWARE_PROMPTS.get(doc_type)
-
-    if template:
-        return template.format(
-            context_preamble=context_preamble,
-            message=message
-        )
-
-    # Fallback: prepend context to basic message
-    if context_preamble:
-        return f"{context_preamble}\n\n{message}"
-
-    return message
+    content_id: Optional[str] = None
+    storage_paths: Optional[List[str]] = None  # Prerequisite docs provided by Backend
+    available_docs: Optional[List[str]] = None  # Document types for logging/context
 ```
 
-### 3.3 Workflow Integration
+### 3.2 Document Generation
 
-**Example update to a workflow node:**
+The AI service loads prerequisite documents from the provided `storage_paths` and incorporates them into the generation prompt. No validation is performed - the Backend has already ensured all required prerequisites are present.
+
+**Example workflow node:**
 
 ```python
 # In workflow generate node
 def generate_document(state: DocumentState) -> DocumentState:
-    """Generate document with constraint-aware prompting."""
-    from prompts.constraint_prompts import get_enhanced_prompt
+    """Generate document using provided prerequisite context."""
 
-    # Extract constraint context if provided
-    constraint_context = state.get('constraint_context', {})
-    available_docs = constraint_context.get('available_docs', [])
-    missing_recommended = constraint_context.get('missing_recommended', [])
-    doc_type = constraint_context.get('doc_type', state.get('doc_type', ''))
+    # Load prerequisite documents provided by Backend
+    prerequisite_content = ""
+    for path in state.get('storage_paths', []):
+        content = storage.download(path)
+        prerequisite_content += f"\n\n=== {path} ===\n{content}"
 
-    # Build enhanced prompt
-    enhanced_message = get_enhanced_prompt(
-        doc_type=doc_type,
-        message=state['user_message'],
-        available_docs=available_docs,
-        missing_recommended=missing_recommended
-    )
-
-    # Combine with extracted file content and chat history
+    # Build prompt with context
     full_prompt = f"""
-{state.get('extracted_content', '')}
+PREREQUISITE DOCUMENTS:
+{prerequisite_content}
 
-{state.get('chat_context', '')}
+USER REQUEST:
+{state['user_message']}
 
-{enhanced_message}
+Based on the prerequisites above, generate the requested document...
 """
 
     # Call LLM
     model_client = get_model_client()
     response = model_client.chat.completions.create(
         model=MODEL,
-        messages=[{"role": "user", "content": full_prompt}],
-        response_format={"type": "json_object"}
+        messages=[{"role": "user", "content": full_prompt}]
     )
 
-    # ... parse and return response
-```
-
-### 3.4 Quality Validation Node
-
-**File:** `ba_copilot_ai/workflows/nodes/validate_context.py`
-
-```python
-"""
-Context validation node for AI workflows.
-
-Validates that prerequisite document content is sufficient
-for quality generation.
-"""
-
-import logging
-from typing import Dict, Any, List, Optional
-
-logger = logging.getLogger(__name__)
-
-
-# Minimum content thresholds by document type
-MIN_CONTENT_LENGTH = {
-    "high-level-requirements": 200,
-    "scope-statement": 300,
-    "business-case": 400,
-    "hld-arch": 300,
-    "uiux-wireframe": 200,
-    "default": 100
-}
-
-
-def validate_context(state: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Validate that extracted content is sufficient for quality generation.
-
-    Adds warnings to state if content is insufficient but doesn't block.
-    """
-    warnings: List[Dict] = []
-    extracted_content = state.get('extracted_content', '')
-    constraint_context = state.get('constraint_context', {})
-    doc_type = constraint_context.get('doc_type', '')
-    available_docs = constraint_context.get('available_docs', [])
-
-    # Check overall content length
-    if len(extracted_content) < MIN_CONTENT_LENGTH.get('default', 100):
-        warnings.append({
-            "code": "MINIMAL_CONTEXT",
-            "message": "Very little context was extracted from prerequisite documents",
-            "suggestion": "Consider adding more detail to your uploaded documents"
-        })
-
-    # Check for specific document types
-    for req_doc in available_docs:
-        min_length = MIN_CONTENT_LENGTH.get(req_doc, 100)
-
-        # Simple heuristic: check if doc type is mentioned in content
-        # (In production, would need smarter content attribution)
-        if req_doc.replace('-', ' ') not in extracted_content.lower():
-            if req_doc.replace('-', '_') not in extracted_content.lower():
-                warnings.append({
-                    "code": "MISSING_EXPECTED_CONTENT",
-                    "message": f"Content from {req_doc} may not have been properly extracted",
-                    "suggestion": f"Ensure {req_doc} document contains relevant information"
-                })
-
-    # Add warnings to state
-    state['context_warnings'] = warnings
-
-    if warnings:
-        logger.warning(f"Context validation warnings for {doc_type}: {warnings}")
-
-    return state
+    # Return generated content
+    return {"generated_content": response.choices[0].message.content}
 ```
 
 ---
 
 ## 4. API Contracts
 
-### 4.1 Constraint Check Endpoint
+### 4.1 Backend to AI Service
+
+**POST /api/generate**
+
+```json
+{
+  "message": "Create wireframes for mobile banking app",
+  "doc_type": "uiux-wireframe",
+  "project_id": "550e8400-e29b-41d4-a716-446655440000",
+  "storage_paths": [
+    "project_550e/requirements.md",
+    "project_550e/stakeholders.md"
+  ],
+  "available_docs": ["high-level-requirements", "stakeholder-register"]
+}
+```
+
+### 4.2 Constraint Check Endpoint
 
 **New endpoint for frontend to check constraints before generation:**
 
@@ -1481,7 +1226,7 @@ async def get_project_document_status(
 
 **HTTP 422 Response for Missing Prerequisites:**
 
-```json
+````json
 {
   "detail": {
     "error": "PREREQUISITE_MISSING",
@@ -1515,11 +1260,12 @@ async def get_project_document_status(
         }
       ],
       "error_message": "Cannot generate UI/UX Mockup. Required prerequisites missing: UI/UX Wireframe",
-      "warning_message": null
-    }
-  }
-}
-```
+### 4.3 Complete API Examples
+
+See [DOCUMENT_CONSTRAINTS_SPECIFICATION.md](./DOCUMENT_CONSTRAINTS_SPECIFICATION.md) Section 11 for complete API examples including:
+- Happy path: All prerequisites satisfied (with concrete request/response)
+- Error path: Missing required prerequisites (with concrete request/response)
+- WebSocket multi-document generation flow
 
 ---
 
@@ -1533,15 +1279,9 @@ Add to `ba_copilot_backend/.env`:
 # Constraint System Configuration
 CONSTRAINT_ENFORCEMENT_MODE=GUIDED  # STRICT | GUIDED | PERMISSIVE
 
-# Enable AI context validation
-AI_CONTEXT_VALIDATION_ENABLED=true
-
 # Minimum content length for valid prerequisite
 MIN_PREREQUISITE_CONTENT_LENGTH=100
-
-# Allow admin users to override constraints
-ALLOW_CONSTRAINT_OVERRIDE=true
-```
+````
 
 ### 5.2 Config Module Update
 
