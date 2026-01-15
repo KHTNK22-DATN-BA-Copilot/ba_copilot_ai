@@ -106,7 +106,8 @@ def generate_lld_api_specs(state: LLDAPIState) -> LLDAPIState:
     - Security requirements for each endpoint
     """
 
-        completion = model_client.chat.completions.create(
+        completion = model_client.client.chat.completions.create(
+            extra_headers=model_client.get_extra_headers(),
             messages=[
                 {
                     "role": "system",

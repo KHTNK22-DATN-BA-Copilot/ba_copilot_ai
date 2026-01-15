@@ -107,7 +107,8 @@ def generate_lld_pseudocode(state: LLDPseudoState) -> LLDPseudoState:
     - Complexity analysis is mathematically justified
     """
 
-        completion = model_client.chat.completions.create(
+        completion = model_client.client.chat.completions.create(
+            extra_headers=model_client.get_extra_headers(),
             messages=[
                 {
                     "role": "system",
