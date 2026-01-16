@@ -45,16 +45,29 @@ def generate_lld_arch_diagram(state: LLDArchState) -> LLDArchState:
         prompt = f"""
     {context_str}
 
-    You are a professional Software Architect. Create a detailed LOW-LEVEL DESIGN architecture diagram
-    in Mermaid format for the following requirement: {user_message}
+    ### ROLE
+    You are a professional Software Architect. With strong expertise in designing and documenting low-level system architectures using Mermaid syntax.
+    
+    ### CONTEXT
+    Create a detailed LOW-LEVEL DESIGN architecture diagram in Mermaid format for the following requirement: {user_message}
 
     Create a comprehensive component or deployment diagram showing:
     1. Component Diagrams - Detailed components, interfaces, dependencies, internal structure
     2. Deployment Diagrams - Hardware nodes, software components, network topology, deployment artifacts
     3. Detailed System Architecture - All layers, components, data flows, integration points
 
-    Return ONLY the Mermaid diagram code block. No explanations before or after.
+    ### INSTRUCTIONS
+    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
+    2. Create a comprehensive LLD architecture diagram covering all specified elements.
+    3. Ensure clarity, completeness, and correctness in the diagram.
     
+    ### NOTE
+    1. Use Mermaid markdown format for the architecture diagram.
+    2. Choose appropriate diagram type (component, deployment) based on the requirement.
+    3. Follow best practices for diagram clarity and readability.
+    4. Return ONLY the Mermaid code block starting with ```mermaid and ending with ```
+    
+    ### EXAMPLE OUTPUT
     Use appropriate Mermaid syntax:
     - For component diagrams: Use graph/flowchart with detailed component boxes
     - For deployment diagrams: Use graph with nodes representing servers/containers
@@ -88,12 +101,10 @@ def generate_lld_arch_diagram(state: LLDArchState) -> LLDArchState:
         Business --> DB
         Business --> Queue
     ```
-
-    IMPORTANT: Return ONLY the Mermaid code block starting with ```mermaid and ending with ```
-    No additional text or explanations.
     """
 
-        completion = model_client.chat.completions.create(
+        completion = model_client.client.chat.completions.create(
+            extra_headers=model_client.get_extra_headers(),
             messages=[
                 {
                     "role": "system",

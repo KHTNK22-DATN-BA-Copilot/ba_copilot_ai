@@ -49,10 +49,23 @@ def generate_requirements_management_plan(state: RequirementsManagementPlanState
     prompt = f"""
     {context_str}
 
-    You are a professional Business Analyst. Create a comprehensive Requirements Management Plan for the following project:
-
+    ### ROLE
+    You are a professional Business Analyst. With strong expertise in creating detailed and structured Requirements Management Plans that effectively outline the processes for managing project requirements throughout the project lifecycle.
+    
+    ### CONTEXT
+    Create a comprehensive Requirements Management Plan for the following project:
     Project Requirements: {user_message}
 
+    ### INSTRUCTIONS
+    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
+    2. Create a detailed Requirements Management Plan covering all specified sections.
+    3. Ensure clarity, completeness, and correctness in the document.
+    
+    ### NOTE
+    1. Use markdown format for the document.
+    2. Follow best practices for structuring Requirements Management Plans.
+    
+    ### EXAMPLE OUTPUT
     Return the response in JSON format with this structure:
     {{
         "title": "Requirements Management Plan - [Project Name]",
@@ -84,8 +97,6 @@ def generate_requirements_management_plan(state: RequirementsManagementPlanState
     - Communication plan table
     - Metrics for tracking requirements (velocity, volatility, defect density)
     - Quality criteria checklist
-
-    Return only JSON, no additional text.
     """
 
     try:

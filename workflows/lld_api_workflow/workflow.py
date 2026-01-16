@@ -45,8 +45,11 @@ def generate_lld_api_specs(state: LLDAPIState) -> LLDAPIState:
         prompt = f"""
     {context_str}
 
-    You are a professional API Architect. Create comprehensive API Specifications document
-    for the following requirement: {user_message}
+    ### ROLE
+    You are a professional API Architect. With strong expertise in designing and documenting RESTful APIs following OpenAPI/Swagger standards.
+    
+    ### CONTEXT
+    Create comprehensive API Specifications document for the following requirement: {user_message}
 
     Provide detailed API specifications covering:
     1. API Overview - Purpose, base URL, supported formats
@@ -57,6 +60,16 @@ def generate_lld_api_specs(state: LLDAPIState) -> LLDAPIState:
     6. Rate Limiting - Request limits, throttling policies
     7. Versioning - API versioning strategy, deprecation policy
 
+    ### INSTRUCTIONS
+    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
+    2. Create a comprehensive API Specifications document covering all specified sections.
+    3. Ensure clarity, completeness, and correctness in the document.
+    
+    ### NOTE
+    1. Use Markdown format for the API Specifications document.
+    2. Follow OpenAPI/Swagger best practices for structuring API documentation.
+    
+    ### EXAMPLE OUTPUT
     Return the response in JSON format with ALL FIELDS AS STRINGS (no nested objects or arrays):
     {{
         "title": "API Specifications - [Project Name]",
@@ -91,11 +104,10 @@ def generate_lld_api_specs(state: LLDAPIState) -> LLDAPIState:
     - Complete parameter documentation
     - Status code explanations
     - Security requirements for each endpoint
-
-    Return only valid JSON, no additional text.
     """
 
-        completion = model_client.chat.completions.create(
+        completion = model_client.client.chat.completions.create(
+            extra_headers=model_client.get_extra_headers(),
             messages=[
                 {
                     "role": "system",
