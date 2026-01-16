@@ -11,7 +11,7 @@ from workflows import (
     class_diagram_graph,
     usecase_diagram_graph,
     activity_diagram_graph,
-    wireframe_graph,
+    # wireframe_graph,  # DEPRECATED - Use uiux_wireframe_graph instead
     stakeholder_register_graph,
     high_level_requirements_graph,
     requirements_management_plan_graph,
@@ -308,48 +308,39 @@ async def generate_activity_diagram(req: AIRequest):
             detail=f"Error generating activity diagram: {str(e)}"
         )
 
+# DEPRECATED ENDPOINT - Legacy wireframe generation
+# This endpoint has been replaced by /api/v1/generate/uiux-wireframe
+# Kept for backward compatibility but returns error message
 @app.post("/api/v1/wireframe/generate")
-async def generate_wireframe(req: AIRequest):
+async def generate_wireframe_legacy(req: AIRequest):
     """
-    Generate wireframe/UI mockup.
-
-    Args:
-        req (AIRequest): Request body containing message, content_id, storage_paths
-
-    Returns:
-        dict: Response with wireframe data
-
-    Example response:
-        {
-            "type": "wireframe",
-            "response": {
-                "figma_link": "https://...",
-                "editable": true,
-                "description": "..."
-            }
-        }
+    DEPRECATED: Legacy wireframe generation endpoint.
+    
+    This endpoint is no longer supported. Please use:
+    POST /api/v1/generate/uiux-wireframe
+    
+    The new endpoint provides enhanced wireframe generation with:
+    - Better component organization
+    - Responsive design specifications
+    - Navigation flow details
+    - Improved annotation system
     """
-    try:
-        # Handle empty string as None for content_id
-        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
-
-        # Prepare state for workflow
-        state = {
-            "user_message": req.message,
-            "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
+    raise HTTPException(
+        status_code=410,  # Gone
+        detail={
+            "error": "This endpoint is deprecated and no longer available.",
+            "message": "Please use POST /api/v1/generate/uiux-wireframe instead.",
+            "migration_guide": {
+                "old_endpoint": "/api/v1/wireframe/generate",
+                "new_endpoint": "/api/v1/generate/uiux-wireframe",
+                "breaking_changes": [
+                    "Response format has changed to include detailed wireframe specifications",
+                    "Request body structure remains the same (message, content_id, storage_paths)"
+                ]
+            },
+            "deprecated_since": "2026-01-15"
         }
-
-        # Invoke Wireframe workflow
-        result = wireframe_graph.invoke(state)
-        return {"type": "wireframe", "response": result["response"]}
-
-    except Exception as e:
-        print("WIREFRAME ERROR FROM MAIN.PY: ", e)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error generating wireframe: {str(e)}"
-        )
+    )
 
 # Planning Document Services
 

@@ -103,7 +103,8 @@ def generate_lld_arch_diagram(state: LLDArchState) -> LLDArchState:
     ```
     """
 
-        completion = model_client.chat.completions.create(
+        completion = model_client.client.chat.completions.create(
+            extra_headers=model_client.get_extra_headers(),
             messages=[
                 {
                     "role": "system",
