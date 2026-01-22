@@ -45,10 +45,10 @@ The Document Constraint System ensures AI-generated documents are produced in th
 
 ### Responsibility Split
 
-| Component | Responsibility |
-|-----------|----------------|
-| **Backend** | Enforce constraints, fetch prerequisite files, provide `storage_paths` to AI |
-| **AI Service** | Validate that expected content was loaded, generate documents with context |
+| Component      | Responsibility                                                               |
+| -------------- | ---------------------------------------------------------------------------- |
+| **Backend**    | Enforce constraints, fetch prerequisite files, provide `storage_paths` to AI |
+| **AI Service** | Validate that expected content was loaded, generate documents with context   |
 
 ---
 
@@ -212,6 +212,7 @@ curl -X POST "http://localhost:8001/api/v1/design/hld-arch/generate" \
 **Scenario:** Generate `hld-arch` with all required prerequisites provided.
 
 **Input:**
+
 ```json
 {
   "message": "Create high-level architecture for task management app",
@@ -224,11 +225,13 @@ curl -X POST "http://localhost:8001/api/v1/design/hld-arch/generate" \
 ```
 
 **Expected Behavior:**
+
 - Validation passes
 - AI generates architecture document with context from prerequisites
 - Response includes generated content
 
 **Logs Expected:**
+
 ```
 INFO: Validating prerequisites for 'hld-arch'
 INFO: ✅ Prerequisites validated for 'hld-arch'. Found: ['high-level-requirements', 'scope-statement']
@@ -241,6 +244,7 @@ INFO: ✅ Prerequisites validated for 'hld-arch'. Found: ['high-level-requiremen
 **Scenario:** Generate `stakeholder-register` (no prerequisites required).
 
 **Input:**
+
 ```json
 {
   "message": "Create stakeholder register for mobile banking app"
@@ -248,6 +252,7 @@ INFO: ✅ Prerequisites validated for 'hld-arch'. Found: ['high-level-requiremen
 ```
 
 **Expected Behavior:**
+
 - No validation needed (entry point)
 - AI generates document
 - Response includes generated content
@@ -259,6 +264,7 @@ INFO: ✅ Prerequisites validated for 'hld-arch'. Found: ['high-level-requiremen
 **Scenario:** Generate `hld-arch` without providing required files (default mode).
 
 **Input:**
+
 ```json
 {
   "message": "Create high-level architecture",
@@ -268,11 +274,13 @@ INFO: ✅ Prerequisites validated for 'hld-arch'. Found: ['high-level-requiremen
 ```
 
 **Expected Behavior:**
+
 - Validation sets `valid: false`
 - Generation proceeds with warning logged
 - Response includes generated content (lower quality expected)
 
 **Logs Expected:**
+
 ```
 ERROR: Missing required prerequisites for 'hld-arch': high-level-requirements, scope-statement. Backend should have validated these before calling AI service.
 ```
@@ -287,6 +295,7 @@ ERROR: Missing required prerequisites for 'hld-arch': high-level-requirements, s
 **Provided:** Only `hld-arch`
 
 **Input:**
+
 ```json
 {
   "message": "Create API specification",
@@ -296,6 +305,7 @@ ERROR: Missing required prerequisites for 'hld-arch': high-level-requirements, s
 ```
 
 **Expected Behavior:**
+
 - Validation fails (missing `high-level-requirements`)
 - Generation proceeds with warning
 - Log indicates which prerequisites are missing
@@ -310,6 +320,7 @@ ERROR: Missing required prerequisites for 'hld-arch': high-level-requirements, s
 **Recommended:** `scope-statement`, `usecase-diagram` ✗
 
 **Input:**
+
 ```json
 {
   "message": "Create activity diagram for checkout process",
@@ -319,11 +330,13 @@ ERROR: Missing required prerequisites for 'hld-arch': high-level-requirements, s
 ```
 
 **Expected Behavior:**
+
 - Validation passes (`valid: true`)
 - Log notes missing recommended documents
 - Generation proceeds normally
 
 **Logs Expected:**
+
 ```
 INFO: ✅ Prerequisites validated for 'activity-diagram'. Found: ['high-level-requirements']
 INFO: ℹ️ Recommended prerequisites not provided: ['scope-statement', 'usecase-diagram']
@@ -336,6 +349,7 @@ INFO: ℹ️ Recommended prerequisites not provided: ['scope-statement', 'usecas
 **Scenario:** Request generation for an undefined document type.
 
 **Input:**
+
 ```json
 {
   "message": "Generate something",
@@ -344,6 +358,7 @@ INFO: ℹ️ Recommended prerequisites not provided: ['scope-statement', 'usecas
 ```
 
 **Expected Behavior:**
+
 - Validation passes with warning
 - Log indicates no constraints defined
 - Generation proceeds (endpoint may not exist)
@@ -355,6 +370,7 @@ INFO: ℹ️ Recommended prerequisites not provided: ['scope-statement', 'usecas
 **Scenario:** Prerequisites identified from file content rather than paths.
 
 **Input:**
+
 ```json
 {
   "message": "Create HLD architecture",
@@ -364,12 +380,13 @@ INFO: ℹ️ Recommended prerequisites not provided: ['scope-statement', 'usecas
 ```
 
 **Pre-populated State** (simulating `get_content_file` output):
+
 ```python
 {
   "extracted_text": """
   ### File: high-level-requirements.md
   The system shall support user authentication...
-  
+
   ### File: scope-statement.md
   Project scope includes web and mobile platforms...
   """
@@ -377,6 +394,7 @@ INFO: ℹ️ Recommended prerequisites not provided: ['scope-statement', 'usecas
 ```
 
 **Expected Behavior:**
+
 - Validation detects documents from `### File:` markers
 - Validation passes
 - Generation uses extracted context
@@ -441,6 +459,7 @@ HTTP Status: `500` (or `422` if Backend propagates validation error)
 **Symptom:** `ModuleNotFoundError: No module named 'services.constraint_validator'`
 
 **Solution:**
+
 ```bash
 # Ensure you're in the ba_copilot_ai directory
 cd ba_copilot_ai
@@ -453,6 +472,7 @@ pytest tests/test_constraint_validation.py -v
 **Symptom:** Health check shows `"openrouter_api_configured": false`
 
 **Solution:**
+
 ```bash
 # Set environment variable
 export OPEN_ROUTER_API_KEY=your_key_here
@@ -466,6 +486,7 @@ echo "OPEN_ROUTER_API_KEY=your_key" >> .env
 **Symptom:** Logs show "⚠️ Validator not ready"
 
 **Solution:**
+
 ```bash
 # Ensure mermaid-cli is available
 cd services/mermaid_validator/nodejs
@@ -480,6 +501,7 @@ docker-compose up --build
 **Symptom:** Tests fail with logging-related assertions
 
 **Solution:**
+
 ```bash
 # Run with explicit log capture
 pytest tests/test_constraint_validation.py -v --log-cli-level=DEBUG
@@ -497,11 +519,13 @@ For integration tests requiring actual file content, create test fixtures:
 # High-Level Requirements
 
 ## Functional Requirements
+
 - FR-001: User registration and authentication
 - FR-002: Product catalog browsing
 - FR-003: Shopping cart management
 
 ## Non-Functional Requirements
+
 - NFR-001: Response time < 2 seconds
 - NFR-002: 99.9% uptime SLA
 ```
@@ -512,11 +536,13 @@ For integration tests requiring actual file content, create test fixtures:
 # Project Scope Statement
 
 ## In Scope
+
 - Web application development
 - Mobile responsive design
 - Payment integration
 
 ## Out of Scope
+
 - Hardware procurement
 - Physical store integration
 ```
@@ -527,9 +553,11 @@ For integration tests requiring actual file content, create test fixtures:
 # High-Level Architecture
 
 ## System Overview
+
 Three-tier architecture with React frontend, FastAPI backend, PostgreSQL database.
 
 ## Components
+
 - Frontend: React + TypeScript
 - API Gateway: FastAPI
 - Database: PostgreSQL + Supabase
@@ -550,5 +578,6 @@ Three-tier architecture with React frontend, FastAPI backend, PostgreSQL databas
 ## Contact
 
 For issues or questions regarding constraint validation testing:
+
 - Check existing documentation in `docs/DOCUMENT_CONSTRAINTS_SPECIFICATION.md`
 - Review implementation guide in `docs/DOCUMENT_CONSTRAINTS_IMPLEMENTATION_GUIDE.md`
