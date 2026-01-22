@@ -1,4 +1,4 @@
-# Python
+# Python cache and compiled files
 __pycache__/
 *.py[cod]
 *$py.class
@@ -35,7 +35,7 @@ ENV/
 *~
 .DS_Store
 
-# Testing cache (exclude cache, but keep test files)
+# Testing
 .pytest_cache/
 .coverage
 .tox/
@@ -46,8 +46,9 @@ htmlcov/
 # Logs
 *.log
 *.log.*
+logs/
 
-# Database
+# Database files
 *.db
 *.sqlite
 *.sqlite3
@@ -56,24 +57,27 @@ htmlcov/
 .env
 .env.local
 .env.*.local
+.env.test
 
 # Git
 .git/
 .gitignore
 .gitattributes
 
-# Documentation (keep for development)
-# Uncomment to exclude in production:
-# docs/
-# *.md
-# README.md
+# Documentation (excluded in production builds)
+docs/
+*.md
+README.md
+inception/
+proof/
+backups/
 
 # CI/CD
 .github/
 .gitlab-ci.yml
 .travis.yml
 
-# Node.js (for validator service)
+# Node.js validator (exclude node_modules and temp)
 services/mermaid_validator/nodejs/node_modules/
 services/mermaid_validator/nodejs/temp/
 services/mermaid_validator/nodejs/*.log
@@ -83,17 +87,15 @@ services/mermaid_validator/nodejs/.env
 tmp/
 temp/
 *.tmp
-services/mermaid_validator/nodejs/temp/
 
 # OS files
 Thumbs.db
 .DS_Store
 
-# Keep test files for running tests in container
-# tests/ - DO NOT EXCLUDE
-# Test cache is excluded above
+# Docker files (excluded when building inside container)
+docker-compose.yml
+Dockerfile
+.dockerignore
 
-# Models (exclude large model files if any)
-# models/*.bin
-# models/*.safetensors
-# models/__pycache__/ is already excluded by __pycache__/ pattern
+# Keep tests directory for container testing
+# tests/ is included

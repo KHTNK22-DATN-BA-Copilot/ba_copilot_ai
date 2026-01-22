@@ -122,9 +122,11 @@ def get_content_file(state: Dict[str, Any]) -> Dict[str, Any]:
     This function replaces process_ocr for Supabase-based file retrieval.
 
     Args:
-        state: Current workflow state containing storage_paths
+        state: Current workflow state containing storage_paths, expect it to have the name "storage_paths",
+          i.e. `state.get("storage_paths", [])`
 
     Returns:
+        ""(empty string) if `state.get("storage_paths", [])` is empty or None
         Updated state with extracted_text
     """
     storage_paths = state.get("storage_paths", [])

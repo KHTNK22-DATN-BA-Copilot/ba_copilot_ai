@@ -114,13 +114,15 @@ class AIRequest(BaseModel):
     message: str
     content_id: Optional[str] = None
     storage_paths: Optional[List[str]] = None
+    document_type: Optional[str] = None  # For prerequisite validation
 
     class Config:
         json_schema_extra = {
             "example": {
                 "message": "Create SRS for hotel management system",
                 "content_id": "123e4567-e89b-12d3-a456-426614174000",
-                "storage_paths": ["folder/file1.txt", "folder/file2.pdf"]
+                "storage_paths": ["folder/file1.txt", "folder/file2.pdf"],
+                "document_type": "srs"
             }
         }
 

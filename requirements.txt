@@ -1,41 +1,39 @@
-# FastAPI and server
+# FastAPI Web Framework
 fastapi==0.115.5
 uvicorn[standard]==0.32.1
 pydantic==2.10.4
 pydantic-settings==2.7.1
 python-multipart==0.0.17
 
-# LangChain and LangGraph (Latest compatible versions)
+# LangChain AI Framework
 langchain==0.3.13
 langchain-core==0.3.28
 langgraph==0.2.60
 langgraph-checkpoint==2.0.12
 
-# OpenAI (for OpenRouter)
+# OpenAI API Client (for OpenRouter)
 openai==1.58.1
 
 # Database
 sqlalchemy==2.0.36
 psycopg2-binary==2.9.10
 
-# Utilities
+# Core Utilities
 python-dotenv==1.0.1
 requests==2.32.3
-
-# OCR and Document Processing
-pytesseract>=0.3.10
-Pillow>=10.0.0
-PyPDF2>=3.0.0
-python-docx>=1.0.0
-
-# Supabase Storage
-supabase==2.16.0
-
-# Subprocess Management & Validation
 httpx==0.28.1
 psutil==6.1.1
 
-# Testing 
+# Document Processing
+pytesseract==0.3.13
+Pillow==10.2.0
+PyPDF2==3.0.1
+python-docx==1.1.0
+
+# Supabase Client
+supabase==2.16.0
+
+# Testing Framework
 pytest==8.3.4
 pytest-asyncio==0.24.0
 pytest-mock==3.14.0
