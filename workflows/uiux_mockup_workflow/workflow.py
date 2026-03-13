@@ -66,50 +66,69 @@ def generate_uiux_mockup(state: UIUXMockupState) -> UIUXMockupState:
         
         context_str = "\n".join(context_parts)
         
-        prompt = f"""{context_str}
-        
+        prompt = f"""
+        {context_str}
+
         ### ROLE
-        You are an expert Visual Designer specializing in high-fidelity UI mockups. With deep knowledge of design systems, typography, color theory, and user interface principles.
-        
-        ### CONTEXT
-        Create comprehensive UI/UX mockup specifications for:
-        
+        You are an expert Visual Designer and Frontend Engineer specializing in high-fidelity UI mockups using pure HTML and CSS.
+
+        ### TASK
+        Create a detailed visual mockup for the following request:
+
         {user_message}
-        
-        Generate a detailed mockup that includes:
-        1. Title and mockup type (visual-design, high-fidelity, pixel-perfect)
-        2. Design system guidelines (colors, typography, spacing)
-        3. Visual hierarchy principles
-        4. Complete color palette with hex codes (primary, secondary, accent, neutrals)
-        5. Typography specifications (font families, sizes, weights, line heights)
-        6. Iconography style and set
-        7. Imagery and photography style
-        8. UI element specifications (buttons, forms, cards, etc.)
-        9. Complete mockup specification
-        
-        ### INSTRUCTIONS
-        1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
-        2. Create a detailed UI/UX mockup specification covering all specified sections.
-        3. Ensure clarity, completeness, and correctness in the document.
-        
-        ### NOTE
-        1. Use JSON format for the mockup specification.
-        2. Follow best practices for UI/UX design documentation.
-        3. Ensure the JSON is well-formed and valid.
-        
-        ### EXAMPLE OUTPUT
-        Return ONLY a valid JSON object with this exact structure:
+
+        ### REQUIREMENTS
+        Design a modern, clean with a focus on structure, typography over colors. Ensure UI following professional design principles, best practices.
+
+        Include:
+        1. Clear page structure and layout
+        2. Visual hierarchy
+        3. Consistent spacing system
+        4. Modern color palette
+        5. Typography hierarchy
+        6. UI components (buttons, cards, forms if relevant)
+        7. Responsive-friendly layout structure
+
+        ### DESIGN GUIDELINES
+        - Use semantic HTML elements (header, main, section, nav, footer).
+        - Use clean class naming.
+        - Follow modern UI design practices.
+        - Ensure good visual hierarchy.
+        - Use a minimal but professional color palette.
+        - Ensure layout clarity and readable spacing.
+
+        ### OUTPUT RULES
+        Return ONLY a valid JSON object.
+
+        Do NOT include:
+        - explanations
+        - markdown
+        - comments
+        - code blocks
+
+        The JSON must contain exactly two keys:
+        - "html"
+        - "css"
+
+        ### HTML RULES
+        - Entire HTML must be on ONE LINE.
+        - Use single quotes for HTML attributes.
+        - Do NOT include <style> tags.
+
+        ### CSS RULES
+        - Entire CSS must be on ONE LINE.
+        - Do not include comments.
+        - Only pure CSS.
+
+        ### JSON ESCAPING RULES
+        - Escape all double quotes inside JSON strings.
+        - Do not include line breaks.
+        - Ensure valid JSON syntax.
+
+        ### REQUIRED OUTPUT FORMAT
         {{
-          "title": "Mockup title",
-          "mockup_type": "visual-design or high-fidelity or pixel-perfect",
-          "design_system": "Design system overview and guidelines",
-          "visual_hierarchy": "Typography hierarchy, visual weight, spacing rhythm",
-          "color_palette": "Primary: #1A73E8, Secondary: #34A853, Accent: #FBBC04, Error: #EA4335, Success: #34A853, Neutral-900: #202124, Neutral-50: #F8F9FA",
-          "typography": "Headings: Inter Bold 32px/40px, Body: Inter Regular 16px/24px, etc.",
-          "iconography": "Material Icons, 24px, outlined style",
-          "imagery_style": "Flat illustrations, vibrant colors, modern minimalist photography",
-          "ui_elements": "Primary button: 48px height, 16px padding, #1A73E8 background, white text, 4px border-radius",
-          "detail": "Complete mockup specification with all visual details"
+        "html": "<!DOCTYPE html><html><head><title>Mockup</title></head><body><header class='header'><h1>Product</h1></header><main class='container'><section class='hero'><h2>Main heading</h2><p>Supporting text</p><button class='btn-primary'>Get Started</button></section></main><footer class='footer'><p>©2026</p></footer></body></html>",
+        "css": "body{{margin:0;font-family:Arial,sans-serif;background:#f8f9fb;color:#222;}} .container{{max-width:1100px;margin:0 auto;padding:40px;}} .hero{{text-align:center;padding:60px 0;}} .btn-primary{{background:#4f46e5;color:white;border:none;padding:12px 20px;border-radius:6px;cursor:pointer;}} .header{{padding:20px;border-bottom:1px solid #eee;}} .footer{{text-align:center;padding:30px;border-top:1px solid #eee;color:#777;}}"
         }}
         """
         
@@ -119,68 +138,67 @@ def generate_uiux_mockup(state: UIUXMockupState) -> UIUXMockupState:
         )
         
         response_text = completion.choices[0].message.content.strip()
-        
+        return {"type": "uiux_mockup_workflow", "response": response_text}
+    
         # Extract JSON from response
-        try:
-            # Try to find JSON in markdown code blocks
-            if "```json" in response_text:
-                json_start = response_text.find("```json") + 7
-                json_end = response_text.find("```", json_start)
-                response_text = response_text[json_start:json_end].strip()
-            elif "```" in response_text:
-                json_start = response_text.find("```") + 3
-                json_end = response_text.find("```", json_start)
-                response_text = response_text[json_start:json_end].strip()
+        # try:
+        #     # Try to find JSON in markdown code blocks
+        #     if "```json" in response_text:
+        #         json_start = response_text.find("```json") + 7
+        #         json_end = response_text.find("```", json_start)
+        #         response_text = response_text[json_start:json_end].strip()
+        #     elif "```" in response_text:
+        #         json_start = response_text.find("```") + 3
+        #         json_end = response_text.find("```", json_start)
+        #         response_text = response_text[json_start:json_end].strip()
             
-            mockup_data = json.loads(response_text)
+        #     mockup_data = json.loads(response_text)
             
-            response = {
-                "title": mockup_data.get("title", "UI/UX Mockup"),
-                "mockup_type": mockup_data.get("mockup_type", "high-fidelity"),
-                "design_system": mockup_data.get("design_system", ""),
-                "visual_hierarchy": mockup_data.get("visual_hierarchy", ""),
-                "color_palette": mockup_data.get("color_palette", ""),
-                "typography": mockup_data.get("typography", ""),
-                "iconography": mockup_data.get("iconography", ""),
-                "imagery_style": mockup_data.get("imagery_style", ""),
-                "ui_elements": mockup_data.get("ui_elements", ""),
-                "detail": mockup_data.get("detail", response_text)
-            }
+        #     response = {
+        #         "type": 
+        #         "mockup_type": mockup_data.get("mockup_type", "high-fidelity"),
+        #         "design_system": mockup_data.get("design_system", ""),
+        #         "visual_hierarchy": mockup_data.get("visual_hierarchy", ""),
+        #         "color_palette": mockup_data.get("color_palette", ""),
+        #         "typography": mockup_data.get("typography", ""),
+        #         "iconography": mockup_data.get("iconography", ""),
+        #         "imagery_style": mockup_data.get("imagery_style", ""),
+        #         "ui_elements": mockup_data.get("ui_elements", ""),
+        #         "detail": mockup_data.get("detail", response_text)
+        #     }
             
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON parsing error: {e}")
-            # Fallback response
-            response = {
-                "title": "UI/UX Mockup",
-                "mockup_type": "high-fidelity",
-                "design_system": "Modern design system",
-                "visual_hierarchy": "Clear visual hierarchy",
-                "color_palette": "Brand colors applied",
-                "typography": "System fonts",
-                "iconography": "Icon set included",
-                "imagery_style": "Professional imagery",
-                "ui_elements": "Consistent UI elements",
-                "detail": response_text
-            }
+        # except json.JSONDecodeError as e:
+        #     logger.error(f"JSON parsing error: {e}")
+        #     # Fallback response
+        #     response = {
+        #         "title": "UI/UX Mockup",
+        #         "mockup_type": "high-fidelity",
+        #         "design_system": "Modern design system",
+        #         "visual_hierarchy": "Clear visual hierarchy",
+        #         "color_palette": "Brand colors applied",
+        #         "typography": "System fonts",
+        #         "iconography": "Icon set included",
+        #         "imagery_style": "Professional imagery",
+        #         "ui_elements": "Consistent UI elements",
+        #         "detail": response_text
+        #     }
         
-        return {"response": response}
-        
-    except Exception as e:
-        logger.error(f"Error generating mockup: {str(e)}")
-        return {
-            "response": {
-                "title": "Error generating mockup",
-                "mockup_type": "error",
-                "design_system": "",
-                "visual_hierarchy": "",
-                "color_palette": "",
-                "typography": "",
-                "iconography": "",
-                "imagery_style": "",
-                "ui_elements": "",
-                "detail": f"Error: {str(e)}"
-            }
-        }
+    # except Exception as e:
+    #     logger.error(f"Error generating mockup: {str(e)}")
+    #     return {
+    #         "response": {
+    #             "title": "Error generating mockup",
+    #             "mockup_type": "error",
+    #             "design_system": "",
+    #             "visual_hierarchy": "",
+    #             "color_palette": "",
+    #             "typography": "",
+    #             "iconography": "",
+    #             "imagery_style": "",
+    #             "ui_elements": "",
+    #             "detail": f"Error: {str(e)}"
+    #         }
+    #     }
 
 
 # Build workflow graph
