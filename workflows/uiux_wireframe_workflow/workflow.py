@@ -68,46 +68,147 @@ def generate_uiux_wireframe(state: UIUXWireframeState) -> UIUXWireframeState:
         
         context_str = "\n".join(context_parts)
         
-        prompt = f"""{context_str}
+        prompt = f"""
+        {context_str}
 
         ### ROLE
-        You are an expert UX/UI Designer specializing in wireframe design. With deep knowledge of user-centered design principles, layout structuring, and UI component selection.
-        
-        ### CONTEXT
-        Create a comprehensive UI/UX wireframe specification for:
-        
+        You are an expert UX/UI Designer and Layout Architect specializing in wireframe systems and structured UI layouts using pure HTML and CSS.
+
+        You focus on:
+        - page architecture
+        - information hierarchy
+        - layout systems
+        - component placement
+        - responsive structure
+
+        ### TASK
+        Create a **comprehensive UI wireframe layout** for:
+
         {user_message}
-        
-        Generate a detailed wireframe that includes:
-        1. Title and wireframe type (low-fidelity, high-fidelity, or interactive)
-        2. List of screens/pages to be designed
-        3. Layout structure (grid system, columns, spacing)
-        4. UI components (headers, navigation, forms, buttons, cards, etc.)
-        5. Navigation flow between screens
-        6. Design annotations and notes
-        7. Responsive behavior considerations (mobile, tablet, desktop)
-        8. Complete wireframe specification
-        ### INSTRUCTIONS
-        1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
-        2. Create a detailed wireframe specification covering all specified sections.
-        3. Ensure clarity, completeness, and correctness in the document.
-        
-        ### NOTE
-        1. Use JSON format for the wireframe specification.
-        2. Follow best practices for structuring wireframe documentation.
-        
-        ### EXAMPLE OUTPUT
-        Return ONLY a valid JSON object with this exact structure:
+
+        The wireframe should represent the **overall product structure**, including layout hierarchy, navigation structure, and major UI sections.
+
+        This wireframe may incorporate ideas from mockups and prototypes but should primarily focus on **layout architecture and screen structure**.
+
+        ### WIREFRAME OBJECTIVES
+        Design a structured wireframe that demonstrates:
+
+        1. Overall page layout
+        2. Screen or section hierarchy
+        3. Information architecture
+        4. Navigation structure
+        5. Placement of UI components
+        6. Responsive layout structure
+        7. Clear visual hierarchy
+        8. Logical grouping of content areas
+
+        ### DESIGN GUIDELINES
+        Follow professional UX layout principles:
+
+        - grid-based layout
+        - consistent spacing system
+        - strong visual hierarchy
+        - clear content grouping
+        - intuitive navigation
+        - scalable component placement
+
+        ### LAYOUT STRUCTURE GUIDELINES
+        Use a modern layout structure such as:
+
+        - max-width container
+        - grid or flex layout
+        - section-based page structure
+        - clear header / main / footer separation
+
+        Typical wireframe sections may include:
+
+        - header navigation
+        - hero or page introduction
+        - feature sections
+        - content blocks
+        - cards or lists
+        - form areas
+        - call-to-action sections
+        - footer navigation
+
+        ### HTML STRUCTURE GUIDELINES
+        Use semantic HTML elements when possible:
+
+        header  
+        nav  
+        main  
+        section  
+        article  
+        aside  
+        footer  
+
+        Ensure the layout clearly represents **wireframe structure and page hierarchy**.
+
+        ### CSS STRUCTURE GUIDELINES
+        CSS should demonstrate:
+
+        - layout system (grid/flex)
+        - spacing scale
+        - typography hierarchy
+        - responsive breakpoints
+        - visual grouping
+        - basic UI component structure
+
+        The styling should reflect a **high-fidelity wireframe** (structured, readable, but not overly decorative).
+
+        ### RESPONSIVE BEHAVIOR
+        The wireframe must support multiple screen sizes:
+
+        Mobile:
+        - single-column layout
+
+        Tablet:
+        - two-column layout
+
+        Desktop:
+        - multi-column grid layout
+
+        Use responsive CSS techniques such as:
+
+        - flexible containers
+        - grid layouts
+        - media queries
+
+        ### OUTPUT RULES
+        Return ONLY a valid JSON object.
+
+        Do NOT include:
+
+        - explanations
+        - markdown
+        - comments
+        - code blocks
+
+        The JSON must contain exactly two fields:
+
+        - "html"
+        - "css"
+
+        ### HTML RULES
+        - Entire HTML must be on ONE LINE.
+        - Use single quotes for HTML attributes.
+        - Do NOT include <style> tags.
+        - Structure must clearly represent a wireframe layout.
+
+        ### CSS RULES
+        - Entire CSS must be on ONE LINE.
+        - Do not include comments.
+        - Demonstrate layout system and responsive behavior.
+
+        ### JSON ESCAPING RULES
+        - Escape all double quotes inside JSON strings.
+        - Do not include line breaks.
+        - Ensure valid JSON syntax.
+
+        ### REQUIRED OUTPUT FORMAT
         {{
-          "title": "Wireframe title",
-          "wireframe_type": "low-fidelity or high-fidelity or interactive",
-          "screens": "List of screens: Screen 1, Screen 2, etc.",
-          "layout_structure": "12-column grid, 8px spacing, max-width 1200px, etc.",
-          "components": "Header with logo and navigation, Hero section, Card grid, Footer, etc.",
-          "navigation_flow": "Home -> Product List -> Product Detail -> Cart -> Checkout",
-          "annotations": "Key design decisions and rationale",
-          "responsive_behavior": "Mobile: single column, Tablet: 2 columns, Desktop: 3 columns",
-          "detail": "Complete wireframe specification with all details"
+        "html": "<!DOCTYPE html><html><head><title>Wireframe</title></head><body><header class='header'><nav class='nav'><div class='logo'>Brand</div><ul class='nav-links'><li><a href='#'>Home</a></li><li><a href='#'>Features</a></li><li><a href='#'>Pricing</a></li><li><a href='#'>Contact</a></li></ul></nav></header><main class='container'><section class='hero'><h1>Main Page Heading</h1><p>Introductory description for the product or service.</p><button class='cta'>Primary Action</button></section><section class='features'><article class='feature-card'><h3>Feature One</h3><p>Short description</p></article><article class='feature-card'><h3>Feature Two</h3><p>Short description</p></article><article class='feature-card'><h3>Feature Three</h3><p>Short description</p></article></section><section class='content'><div class='content-left'><h2>Content Area</h2><p>Supporting information block.</p></div><div class='content-right'><div class='card'>Secondary content</div></div></section><section class='form-section'><form class='form'><input class='input' placeholder='Email'><button class='submit'>Submit</button></form></section></main><footer class='footer'><p>Footer navigation and information</p></footer></body></html>",
+        "css": "body{{margin:0;font-family:Arial,sans-serif;background:#fafafa;color:#222;}} .container{{max-width:1200px;margin:0 auto;padding:40px;}} .header{{border-bottom:1px solid #ddd;padding:16px;}} .nav{{display:flex;justify-content:space-between;align-items:center;}} .nav-links{{display:flex;gap:20px;list-style:none;margin:0;padding:0;}} .nav-links a{{text-decoration:none;color:#333;}} .hero{{padding:60px 0;text-align:center;}} .cta{{margin-top:20px;padding:12px 18px;border:none;background:#333;color:white;border-radius:6px;cursor:pointer;}} .features{{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;margin-top:40px;}} .feature-card{{padding:20px;border:1px solid #ddd;border-radius:8px;background:white;}} .content{{display:grid;grid-template-columns:2fr 1fr;gap:30px;margin-top:40px;}} .card{{padding:20px;border:1px solid #ddd;border-radius:8px;background:white;}} .form-section{{margin-top:40px;text-align:center;}} .input{{padding:10px;border:1px solid #ccc;border-radius:4px;margin-right:10px;}} .submit{{padding:10px 16px;border:none;background:#111;color:white;border-radius:4px;}} .footer{{margin-top:60px;border-top:1px solid #ddd;padding:20px;text-align:center;color:#666;}} @media(max-width:768px){{.nav{{flex-direction:column;gap:10px;}} .content{{grid-template-columns:1fr;}} .hero{{padding:40px 10px;}}}}"
         }}
         """
         
@@ -115,68 +216,19 @@ def generate_uiux_wireframe(state: UIUXWireframeState) -> UIUXWireframeState:
             messages=[{"role": "user", "content": prompt}],
             model=MODEL
         )
-        
         response_text = completion.choices[0].message.content.strip()
-        
-        # Extract JSON from response
-        try:
-            # Try to find JSON in markdown code blocks
-            if "```json" in response_text:
-                json_start = response_text.find("```json") + 7
-                json_end = response_text.find("```", json_start)
-                response_text = response_text[json_start:json_end].strip()
-            elif "```" in response_text:
-                json_start = response_text.find("```") + 3
-                json_end = response_text.find("```", json_start)
-                response_text = response_text[json_start:json_end].strip()
-            
-            wireframe_data = json.loads(response_text)
-            
-            response = {
-                "title": wireframe_data.get("title", "UI/UX Wireframe"),
-                "wireframe_type": wireframe_data.get("wireframe_type", "low-fidelity"),
-                "screens": wireframe_data.get("screens", ""),
-                "layout_structure": wireframe_data.get("layout_structure", ""),
-                "components": wireframe_data.get("components", ""),
-                "navigation_flow": wireframe_data.get("navigation_flow", ""),
-                "annotations": wireframe_data.get("annotations", ""),
-                "responsive_behavior": wireframe_data.get("responsive_behavior", ""),
-                "detail": wireframe_data.get("detail", response_text)
-            }
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON parsing error: {e}")
-            # Fallback response
-            response = {
-                "title": "UI/UX Wireframe",
-                "wireframe_type": "low-fidelity",
-                "screens": "Wireframe screens generated",
-                "layout_structure": "Standard grid layout",
-                "components": "Common UI components",
-                "navigation_flow": "Standard navigation",
-                "annotations": "Design notes",
-                "responsive_behavior": "Responsive design",
-                "detail": response_text
-            }
-        
-        return {"response": response}
-        
-    except Exception as e:
-        logger.error(f"Error generating wireframe: {str(e)}")
-        return {
-            "response": {
-                "title": "Error generating wireframe",
-                "wireframe_type": "error",
-                "screens": "",
-                "layout_structure": "",
-                "components": "",
-                "navigation_flow": "",
-                "annotations": "",
-                "responsive_behavior": "",
-                "detail": f"Error: {str(e)}"
-            }
-        }
+        # remove markdown fences if present
+        if response_text.startswith("```"):
+            response_text = response_text.split("```")[1]
+            if response_text.startswith("json"):
+                response_text = response_text[4:]
+            response_text = response_text.strip()
 
+        parsed = json.loads(response_text)
+        return {"type": "uiux_mockup", "response": {"html": parsed.get("html", ""), "css": parsed.get("css", "")}}
+    except json.JSONDecodeError as e:
+        logger.error(f"Error generating UIUX Wireframe: {e}")
+        raise e
 
 # Build workflow graph
 workflow = StateGraph(UIUXWireframeState)

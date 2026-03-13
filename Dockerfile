@@ -75,7 +75,9 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 
 # Copy and set up startup script
 COPY start.sh /app/start.sh
-RUN chmod +x /app/start.sh
+
+# Fix Windows CRLF line endings and make executable
+RUN sed -i 's/\r$//' /app/start.sh && chmod +x /app/start.sh
 
 # Run the startup script
 CMD ["/bin/bash", "/app/start.sh"]
