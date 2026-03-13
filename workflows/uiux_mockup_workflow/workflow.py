@@ -136,69 +136,20 @@ def generate_uiux_mockup(state: UIUXMockupState) -> UIUXMockupState:
             messages=[{"role": "user", "content": prompt}],
             model=MODEL
         )
-        
         response_text = completion.choices[0].message.content.strip()
-        return {"type": "uiux_mockup_workflow", "response": response_text}
-    
-        # Extract JSON from response
-        # try:
-        #     # Try to find JSON in markdown code blocks
-        #     if "```json" in response_text:
-        #         json_start = response_text.find("```json") + 7
-        #         json_end = response_text.find("```", json_start)
-        #         response_text = response_text[json_start:json_end].strip()
-        #     elif "```" in response_text:
-        #         json_start = response_text.find("```") + 3
-        #         json_end = response_text.find("```", json_start)
-        #         response_text = response_text[json_start:json_end].strip()
-            
-        #     mockup_data = json.loads(response_text)
-            
-        #     response = {
-        #         "type": 
-        #         "mockup_type": mockup_data.get("mockup_type", "high-fidelity"),
-        #         "design_system": mockup_data.get("design_system", ""),
-        #         "visual_hierarchy": mockup_data.get("visual_hierarchy", ""),
-        #         "color_palette": mockup_data.get("color_palette", ""),
-        #         "typography": mockup_data.get("typography", ""),
-        #         "iconography": mockup_data.get("iconography", ""),
-        #         "imagery_style": mockup_data.get("imagery_style", ""),
-        #         "ui_elements": mockup_data.get("ui_elements", ""),
-        #         "detail": mockup_data.get("detail", response_text)
-        #     }
-            
-        # except json.JSONDecodeError as e:
-        #     logger.error(f"JSON parsing error: {e}")
-        #     # Fallback response
-        #     response = {
-        #         "title": "UI/UX Mockup",
-        #         "mockup_type": "high-fidelity",
-        #         "design_system": "Modern design system",
-        #         "visual_hierarchy": "Clear visual hierarchy",
-        #         "color_palette": "Brand colors applied",
-        #         "typography": "System fonts",
-        #         "iconography": "Icon set included",
-        #         "imagery_style": "Professional imagery",
-        #         "ui_elements": "Consistent UI elements",
-        #         "detail": response_text
-        #     }
+        # remove markdown fences if present
+        if response_text.startswith("```"):
+            response_text = response_text.split("```")[1]
+            if response_text.startswith("json"):
+                response_text = response_text[4:]
+            response_text = response_text.strip()
+
+        parsed = json.loads(response_text)
+        return {"type": "uiux_mockup", "response": {"html": parsed.get("html", ""), "css": parsed.get("css", "")}}
         
-    # except Exception as e:
-    #     logger.error(f"Error generating mockup: {str(e)}")
-    #     return {
-    #         "response": {
-    #             "title": "Error generating mockup",
-    #             "mockup_type": "error",
-    #             "design_system": "",
-    #             "visual_hierarchy": "",
-    #             "color_palette": "",
-    #             "typography": "",
-    #             "iconography": "",
-    #             "imagery_style": "",
-    #             "ui_elements": "",
-    #             "detail": f"Error: {str(e)}"
-    #         }
-    #     }
+    except json.JSONDecodeError as e:
+        logger.error(f"Error generating UIUX Mockup: {e}")
+        raise e
 
 
 # Build workflow graph

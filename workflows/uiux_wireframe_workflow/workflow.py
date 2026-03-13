@@ -216,68 +216,19 @@ def generate_uiux_wireframe(state: UIUXWireframeState) -> UIUXWireframeState:
             messages=[{"role": "user", "content": prompt}],
             model=MODEL
         )
-        
         response_text = completion.choices[0].message.content.strip()
-        return {"type": "uiux_wireframe_workflow", "response": response_text}
-        # Extract JSON from response
-    #     try:
-    #         # Try to find JSON in markdown code blocks
-    #         if "```json" in response_text:
-    #             json_start = response_text.find("```json") + 7
-    #             json_end = response_text.find("```", json_start)
-    #             response_text = response_text[json_start:json_end].strip()
-    #         elif "```" in response_text:
-    #             json_start = response_text.find("```") + 3
-    #             json_end = response_text.find("```", json_start)
-    #             response_text = response_text[json_start:json_end].strip()
-            
-    #         wireframe_data = json.loads(response_text)
-            
-    #         response = {
-    #             "title": wireframe_data.get("title", "UI/UX Wireframe"),
-    #             "wireframe_type": wireframe_data.get("wireframe_type", "low-fidelity"),
-    #             "screens": wireframe_data.get("screens", ""),
-    #             "layout_structure": wireframe_data.get("layout_structure", ""),
-    #             "components": wireframe_data.get("components", ""),
-    #             "navigation_flow": wireframe_data.get("navigation_flow", ""),
-    #             "annotations": wireframe_data.get("annotations", ""),
-    #             "responsive_behavior": wireframe_data.get("responsive_behavior", ""),
-    #             "detail": wireframe_data.get("detail", response_text)
-    #         }
-            
-    #     except json.JSONDecodeError as e:
-    #         logger.error(f"JSON parsing error: {e}")
-    #         # Fallback response
-    #         response = {
-    #             "title": "UI/UX Wireframe",
-    #             "wireframe_type": "low-fidelity",
-    #             "screens": "Wireframe screens generated",
-    #             "layout_structure": "Standard grid layout",
-    #             "components": "Common UI components",
-    #             "navigation_flow": "Standard navigation",
-    #             "annotations": "Design notes",
-    #             "responsive_behavior": "Responsive design",
-    #             "detail": response_text
-    #         }
-        
-    #     return {"response": response}
-        
-    # except Exception as e:
-    #     logger.error(f"Error generating wireframe: {str(e)}")
-    #     return {
-    #         "response": {
-    #             "title": "Error generating wireframe",
-    #             "wireframe_type": "error",
-    #             "screens": "",
-    #             "layout_structure": "",
-    #             "components": "",
-    #             "navigation_flow": "",
-    #             "annotations": "",
-    #             "responsive_behavior": "",
-    #             "detail": f"Error: {str(e)}"
-    #         }
-    #     }
+        # remove markdown fences if present
+        if response_text.startswith("```"):
+            response_text = response_text.split("```")[1]
+            if response_text.startswith("json"):
+                response_text = response_text[4:]
+            response_text = response_text.strip()
 
+        parsed = json.loads(response_text)
+        return {"type": "uiux_mockup", "response": {"html": parsed.get("html", ""), "css": parsed.get("css", "")}}
+    except json.JSONDecodeError as e:
+        logger.error(f"Error generating UIUX Wireframe: {e}")
+        raise e
 
 # Build workflow graph
 workflow = StateGraph(UIUXWireframeState)

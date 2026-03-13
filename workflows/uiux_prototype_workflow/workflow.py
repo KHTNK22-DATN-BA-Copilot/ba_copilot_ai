@@ -206,71 +206,19 @@ def generate_uiux_prototype(state: UIUXPrototypeState) -> UIUXPrototypeState:
             messages=[{"role": "user", "content": prompt}],
             model=MODEL
         )
-        
         response_text = completion.choices[0].message.content.strip()
-        return {"type": "uiux_prototype_workflow", "response": response_text}
-        # # Extract JSON from response
-        # try:
-        #     # Try to find JSON in markdown code blocks
-        #     if "```json" in response_text:
-        #         json_start = response_text.find("```json") + 7
-        #         json_end = response_text.find("```", json_start)
-        #         response_text = response_text[json_start:json_end].strip()
-        #     elif "```" in response_text:
-        #         json_start = response_text.find("```") + 3
-        #         json_end = response_text.find("```", json_start)
-        #         response_text = response_text[json_start:json_end].strip()
-            
-        #     prototype_data = json.loads(response_text)
-            
-        #     response = {
-        #         "title": prototype_data.get("title", "UI/UX Prototype"),
-        #         "prototype_type": prototype_data.get("prototype_type", "interactive"),
-        #         "user_flows": prototype_data.get("user_flows", ""),
-        #         "interactions": prototype_data.get("interactions", ""),
-        #         "animations": prototype_data.get("animations", ""),
-        #         "states": prototype_data.get("states", ""),
-        #         "scenarios": prototype_data.get("scenarios", ""),
-        #         "accessibility": prototype_data.get("accessibility", ""),
-        #         "testing_notes": prototype_data.get("testing_notes", ""),
-        #         "detail": prototype_data.get("detail", response_text)
-        #     }
-            
-        # except json.JSONDecodeError as e:
-        #     logger.error(f"JSON parsing error: {e}")
-        #     # Fallback response
-        #     response = {
-        #         "title": "UI/UX Prototype",
-        #         "prototype_type": "interactive",
-        #         "user_flows": "User flows documented",
-        #         "interactions": "Interactive elements defined",
-        #         "animations": "Transitions specified",
-        #         "states": "UI states included",
-        #         "scenarios": "Use cases covered",
-        #         "accessibility": "Accessibility considered",
-        #         "testing_notes": "Testing guidelines provided",
-        #         "detail": response_text
-        #     }
-        
-        # return {"response": response}
-        
-    # except Exception as e:
-    #     logger.error(f"Error generating prototype: {str(e)}")
-    #     return {
-    #         "response": {
-    #             "title": "Error generating prototype",
-    #             "prototype_type": "error",
-    #             "user_flows": "",
-    #             "interactions": "",
-    #             "animations": "",
-    #             "states": "",
-    #             "scenarios": "",
-    #             "accessibility": "",
-    #             "testing_notes": "",
-    #             "detail": f"Error: {str(e)}"
-    #         }
-    #     }
+        # remove markdown fences if present
+        if response_text.startswith("```"):
+            response_text = response_text.split("```")[1]
+            if response_text.startswith("json"):
+                response_text = response_text[4:]
+            response_text = response_text.strip()
 
+        parsed = json.loads(response_text)
+        return {"type": "uiux_mockup", "response": {"html": parsed.get("html", ""), "css": parsed.get("css", "")}}
+    except json.JSONDecodeError as e:
+        logger.error(f"Error generating UIUX Prototype: {e}")
+        raise e
 
 # Build workflow graph
 workflow = StateGraph(UIUXPrototypeState)
