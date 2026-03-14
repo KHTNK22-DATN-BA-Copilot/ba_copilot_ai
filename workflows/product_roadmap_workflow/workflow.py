@@ -139,10 +139,17 @@ def validate_diagram(state: ProductRoadmapState) -> ProductRoadmapState:
 
     # Extract mermaid code from markdown
     mermaid_code = extract_mermaid_code(raw_diagram)
-
+    # Clean up mermaid_code: remove lines that are not valid Mermaid syntax
+    lines = mermaid_code.splitlines()
+    cleaned_lines = []
+    for line in lines:
+        if re.match(r'^(Architecture Design|System Architec)', line.strip()):
+            continue
+        cleaned_lines.append(line)
+    cleaned_mermaid = '\n'.join(cleaned_lines).strip()
     validator = MermaidSubprocessManager()
     try:
-        result = validator.validate_sync(mermaid_code)
+        result = validator.validate_sync(cleaned_mermaid)
         logger.info(f"Validation result: {result.get('valid', False)}")
         return {"validation_result": result}
     except Exception as e:

@@ -121,6 +121,7 @@ def generate_lld_api_specs(state: LLDAPIState) -> LLDAPIState:
             model=MODEL
         )
 
+
         response_text = completion.choices[0].message.content.strip()
 
         # Extract JSON from markdown code blocks if present
@@ -133,23 +134,52 @@ def generate_lld_api_specs(state: LLDAPIState) -> LLDAPIState:
             json_end = response_text.find("```", json_start)
             response_text = response_text[json_start:json_end].strip()
 
-        # Parse JSON response
-        try:
-            api_data = json.loads(response_text)
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON parsing error: {e}")
-            # Fallback response
+        # Clean up response_text: remove lines that are not valid JSON (e.g. Mermaid, architecture lines)
+        def is_likely_json(text):
+            text = text.strip()
+            return (text.startswith('{') and text.endswith('}')) or (text.startswith('[') and text.endswith(']'))
+
+        # Remove lines that look like Mermaid or diagram code
+        lines = response_text.splitlines()
+        cleaned_lines = []
+        for line in lines:
+            # Skip lines that look like Mermaid, diagram, or architecture
+            if re.match(r'^(gantt|graph|sequenceDiagram|classDiagram|stateDiagram|flowchart|Architecture Design)', line.strip()):
+                continue
+            cleaned_lines.append(line)
+        cleaned_text = '\n'.join(cleaned_lines).strip()
+
+        # Only parse if likely JSON
+        if not is_likely_json(cleaned_text):
+            logger.error(f"Response is not valid JSON: {cleaned_text[:100]}")
             api_data = {
                 "title": "API Specifications",
-                "api_overview": "Error parsing response",
+                "api_overview": "Error: Response is not valid JSON",
                 "authentication": "Error",
                 "endpoints": "Error",
                 "data_models": "Error",
                 "error_handling": "Error",
                 "rate_limiting": "Error",
                 "versioning": "Error",
-                "detail": f"Error generating API specifications: {str(e)}"
+                "detail": f"Error: Response is not valid JSON. Raw: {cleaned_text[:200]}"
             }
+        else:
+            try:
+                api_data = json.loads(cleaned_text)
+            except json.JSONDecodeError as e:
+                logger.error(f"JSON parsing error: {e}")
+                # Fallback response
+                api_data = {
+                    "title": "API Specifications",
+                    "api_overview": "Error parsing response",
+                    "authentication": "Error",
+                    "endpoints": "Error",
+                    "data_models": "Error",
+                    "error_handling": "Error",
+                    "rate_limiting": "Error",
+                    "versioning": "Error",
+                    "detail": f"Error generating API specifications: {str(e)}"
+                }
 
         # Create response using Pydantic model
         api_response = LLDAPIResponse(**api_data)

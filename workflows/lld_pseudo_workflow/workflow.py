@@ -134,22 +134,47 @@ def generate_lld_pseudocode(state: LLDPseudoState) -> LLDPseudoState:
             json_end = response_text.find("```", json_start)
             response_text = response_text[json_start:json_end].strip()
 
-        # Parse JSON response
-        try:
-            pseudo_data = json.loads(response_text)
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON parsing error: {e}")
-            # Fallback response
+
+        # Clean up response_text: remove lines that are not valid JSON (e.g. Mermaid, architecture lines)
+        def is_likely_json(text):
+            text = text.strip()
+            return (text.startswith('{') and text.endswith('}')) or (text.startswith('[') and text.endswith(']'))
+
+        lines = response_text.splitlines()
+        cleaned_lines = []
+        for line in lines:
+            if re.match(r'^(gantt|graph|sequenceDiagram|classDiagram|stateDiagram|flowchart|Architecture Design)', line.strip()):
+                continue
+            cleaned_lines.append(line)
+        cleaned_text = '\n'.join(cleaned_lines).strip()
+
+        if not is_likely_json(cleaned_text):
+            logger.error(f"Response is not valid JSON: {cleaned_text[:100]}")
             pseudo_data = {
                 "title": "Pseudocode Document",
-                "algorithm_overview": "Error parsing response",
+                "algorithm_overview": "Error: Response is not valid JSON",
                 "input_output": "Error",
                 "pseudocode": "Error",
                 "complexity_analysis": "Error",
                 "edge_cases": "Error",
                 "implementation_notes": "Error",
-                "detail": f"Error generating pseudocode: {str(e)}"
+                "detail": f"Error: Response is not valid JSON. Raw: {cleaned_text[:200]}"
             }
+        else:
+            try:
+                pseudo_data = json.loads(cleaned_text)
+            except json.JSONDecodeError as e:
+                logger.error(f"JSON parsing error: {e}")
+                pseudo_data = {
+                    "title": "Pseudocode Document",
+                    "algorithm_overview": "Error parsing response",
+                    "input_output": "Error",
+                    "pseudocode": "Error",
+                    "complexity_analysis": "Error",
+                    "edge_cases": "Error",
+                    "implementation_notes": "Error",
+                    "detail": f"Error generating pseudocode: {str(e)}"
+                }
 
         # Create response using Pydantic model
         pseudo_response = LLDPseudoResponse(**pseudo_data)
