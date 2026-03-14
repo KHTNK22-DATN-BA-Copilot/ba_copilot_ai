@@ -10,6 +10,7 @@ import logging
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
 from models.lld_api import LLDAPIResponse, LLDAPIOutput
+import re
 
 logger = logging.getLogger(__name__)
 
