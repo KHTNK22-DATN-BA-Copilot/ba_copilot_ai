@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: ba-copilot-ai
     ports:
-      - "8000:8000"
+      - '8000:8000'
     environment:
       # OpenRouter AI Configuration
       - OPEN_ROUTER_API_KEY=${OPEN_ROUTER_API_KEY}
@@ -45,7 +45,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres123}
       - POSTGRES_DB=${POSTGRES_DB:-bacopilot_db}
     ports:
-      - "5433:5432"
+      - '5433:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
