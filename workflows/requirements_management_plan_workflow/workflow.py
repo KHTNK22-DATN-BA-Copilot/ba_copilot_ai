@@ -140,7 +140,7 @@ def generate_requirements_management_plan(state: RequirementsManagementPlanState
         # Fallback response
         return {
             "response": {
-                "type": "Requirements Management Plan",
+                "title": "Requirements Management Plan",
                 "content": f"Error generating document: {str(e)}"
             }
         } # pyright: ignore[reportReturnType]

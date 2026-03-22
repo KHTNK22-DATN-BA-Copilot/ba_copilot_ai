@@ -151,23 +151,23 @@ def generate_lld_api_specs(state: LLDAPIState) -> LLDAPIState:
             except:
                 pass
         response_data = {
-            "title": doc_data.get("title", "Requirements Management Plan"),
+            "title": doc_data.get("title", "Low-level-design API Specs"),
             "content": doc_data.get("content", "")
         }
         # Fallback if still broken
         if not doc_data or not doc_data.get("content"):
             print("⚠️ Falling back to raw output")
             response_data = {
-                "title": "Requirements Management Plan",
+                "title": "Low-level-design API Specs",
                 "content": result_content
             }
         return {"response": response_data} # pyright: ignore[reportReturnType]
     except Exception as e:
-        print(f"Error generating Requirements Management Plan: {e}")
+        print(f"Error generating Low-level-design API Specs: {e}")
         # Fallback response
         return {
             "response": {
-                "type": "Requirements Management Plan",
+                "title": "Low-level-design API Specs",
                 "content": f"Error generating document: {str(e)}"
             }
         } # pyright: ignore[reportReturnType]

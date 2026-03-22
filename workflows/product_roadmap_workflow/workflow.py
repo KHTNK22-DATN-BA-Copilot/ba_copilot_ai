@@ -5,7 +5,7 @@ import os
 import re
 import logging
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from models.product_roadmap import ProductRoadmapOutput, ProductRoadmapResponse
+# from models.product_roadmap import ProductRoadmapOutput, ProductRoadmapResponse
 from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
@@ -25,7 +25,6 @@ class ProductRoadmapState(TypedDict):
     retry_count: int
 
 def extract_mermaid(text: str) -> str:
-    import re
     match = re.search(r"```mermaid\s*(.*?)```", text, re.DOTALL)
     return match.group(0) if match else ""
 
@@ -105,7 +104,7 @@ def generate_product_roadmap_diagram(state: ProductRoadmapState):
             diagram = raw_output
         return {
             "response": {
-                "type": "product-roadmap",
+                "title": "Product Roadmap",
                 "detail": diagram or "",
             }
         } # pyright: ignore[reportReturnType]
