@@ -24,7 +24,12 @@ class ProductRoadmapState(TypedDict):
     validation_result: Optional[dict]
     retry_count: int
 
-def generate_product_roadmap_diagram(state: ProductRoadmapState) -> ProductRoadmapState:
+def extract_mermaid(text: str) -> str:
+    import re
+    match = re.search(r"```mermaid\s*(.*?)```", text, re.DOTALL)
+    return match.group(0) if match else ""
+
+def generate_product_roadmap_diagram(state: ProductRoadmapState):
     """Generate product roadmap Gantt diagram using OpenRouter AI"""
     model_client = get_model_client()
 
@@ -42,56 +47,44 @@ def generate_product_roadmap_diagram(state: ProductRoadmapState) -> ProductRoadm
     context_str = "\n".join(context_parts)
 
     prompt = f"""
-    {context_str}
-    ### ROLE
-    You are a professional Product Manager. With strong expertise in creating detailed and effective product roadmaps
-    
-    ### CONTEXT
-    Create a detailed Product Roadmap as a Mermaid Gantt chart based on the following project:
+    You are a Product Manager.
 
+    TASK:
+    Generate a Product Roadmap as a Mermaid Gantt chart.
+
+    PROJECT:
     {user_message}
 
-    The roadmap should include:
-    - Project phases (Planning, Design, Development, Testing, Deployment)
-    - Major milestones with specific dates
-    - Dependencies between tasks
-    - Timeline spanning multiple months/quarters
-    - Key deliverables at each phase
+    CONTEXT:
+    {context_str}
 
-    ### INSTRUCTIONS
-    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
-    2. Create a detailed Product Roadmap Gantt chart covering all specified sections.
-    3. Ensure clarity, completeness, and correctness in the diagram.
-    
-    ### NOTE
-    1. Use Mermaid Gantt chart format for the roadmap.
-    2. Follow proper Gantt chart syntax.
-    3. IMPORTANT: Return ONLY the Mermaid Gantt chart code block, starting with ```mermaid and ending with ```.
-    Do not include any explanatory text before or after the code block.
+    OUTPUT RULES (STRICT):
+    - Return ONLY a Mermaid code block
+    - No explanation text
+    - Start with ```mermaid
+    - End with ```
+    - Must be valid Gantt syntax
 
-    ### EXAMPLE OUTPUT
+    REQUIREMENTS:
+    - title
+    - dateFormat YYYY-MM-DD
+    - sections: Planning, Design, Development, Testing, Deployment
+    - tasks with:
+        - start date + duration OR
+        - dependencies using "after"
+    - timeline spans multiple months
+
+    EXAMPLE FORMAT:
     ```mermaid
     gantt
         title Product Roadmap
         dateFormat YYYY-MM-DD
         section Planning
-        Requirements Gathering    :2024-01-01, 30d
-        Stakeholder Interviews     :2024-01-15, 20d
-        section Design
-        System Architecture        :2024-02-01, 25d
-        UI/UX Design              :2024-02-10, 30d
-    ```
-
-    Use proper Gantt chart syntax with:
-    - title
-    - dateFormat
-    - sections for each phase
-    - tasks with start dates and durations
-    - Use format: task_name :start_date, duration
-    - Or: task_name :after other_task, duration
+        Task A :2024-01-01, 30d
     """
 
     try:
+        # Using Open Router (default)
         completion = model_client.chat_completion(
             messages=[
                 {
@@ -101,24 +94,23 @@ def generate_product_roadmap_diagram(state: ProductRoadmapState) -> ProductRoadm
             ],
             model=MODEL
         )
+        raw_output = completion.choices[0].message.content or ""
 
-        markdown_diagram = completion.choices[0].message.content
-
-        # Store raw diagram for validation
-        return {
-            "raw_diagram": markdown_diagram,
-            "retry_count": 0
-        }
-
-    except Exception as e:
-        logger.error(f"Error generating product roadmap: {e}")
-        # Fallback response
+        # Using Gemini 2.5 Flash lite
+        # raw_output = model_client.gemini_completion(prompt)
+        
+        diagram = extract_mermaid(raw_output)
+        if not diagram:
+            logger.warning("No valid mermaid block found, returning raw output")
+            diagram = raw_output
         return {
             "response": {
                 "type": "product-roadmap",
-                "detail": f"Error generating product roadmap: {str(e)}"
+                "detail": diagram or "",
             }
-        }
+        } # pyright: ignore[reportReturnType]
+    except Exception as e:
+        logger.exception(f"Error generating product roadmap: {e}")
 
 # def extract_mermaid_code(markdown_text: str) -> str:
 #     """Extract mermaid code from markdown fenced code block"""

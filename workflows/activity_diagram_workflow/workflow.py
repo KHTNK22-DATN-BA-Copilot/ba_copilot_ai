@@ -70,13 +70,16 @@ def generate_activity_diagram_description(state: ActivityDiagramState) -> Activi
     ### NOTE
     1. Ensure the diagram is syntactically correct and can be rendered by Mermaid.
     2. Focus on clarity and logical flow of activities.
-    3. Return ONLY the Mermaid markdown code block for the activity diagram, starting with triple backticks mermaid and ending with triple backticks.
-    Do not include any explanatory text before or after the code block.
-    
+    3. Return the Mermaid markdown code block for the activity diagram, starting with triple backticks mermaid and ending with triple backticks.
+    4. Include a graph title after the ticks
+    5. After the closing triple backticks, output EXACTLY ONE LINE containing the title.
+    6. Do NOT add any extra explanation or blank lines.
+    Do not include any other text before or after the code block.
+
     ### EXAMPLE OUTPUT:
     Start with triple backticks mermaid
     graph TD with activities, decisions, and connections
-    End with triple backticks
+    End with triple backticks, immediately followed by a summary line that acts as the title of the graph
     """
 
     try:
@@ -91,11 +94,18 @@ def generate_activity_diagram_description(state: ActivityDiagramState) -> Activi
         )
 
         markdown_diagram = completion.choices[0].message.content
-
+        content = markdown_diagram or ""
+        code_match = re.search(r"```mermaid\s*(.*?)```", content, re.DOTALL)
+        mermaid_code = code_match.group(1).strip() if code_match else ""
+        # Extract summary (text after last ```)
+        summary_match = re.search(r"```\s*(.+)$", content, re.DOTALL)
+        summary_line = summary_match.group(1).strip() if summary_match else ""
+        summary_line = summary_line.splitlines()[0] if summary_line else ""  # clean
         # Create response with diagram type and markdown detail
         diagram_response = DiagramResponse(
             type="activity_diagram",
-            detail=markdown_diagram or ""
+            detail=mermaid_code or "None",
+            summary=summary_line or "None"
         )
         output = DiagramOutput(type="diagram", response=diagram_response)
 

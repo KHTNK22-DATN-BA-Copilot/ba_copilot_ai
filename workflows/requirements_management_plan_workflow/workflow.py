@@ -3,6 +3,7 @@ from langgraph.graph import StateGraph, END
 import sys
 import os
 import json
+import re
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
@@ -17,16 +18,21 @@ class RequirementsManagementPlanState(TypedDict):
     chat_context: Optional[str]
 
 def extract_json(text: str) -> dict:
-    """Extract JSON from text response"""
     try:
-        # Find JSON block
-        start = text.find('{')
-        end = text.rfind('}') + 1
-        if start != -1 and end > start:
-            return json.loads(text[start:end])
-        return {}
+        # Step 1: extract JSON block
+        match = re.search(r'\{.*\}', text, re.DOTALL)
+        if not match:
+            return {}
+        json_str = match.group(0)
+        # Step 2: first parse
+        data = json.loads(json_str)
+        # Step 3: handle double-encoded JSON (VERY IMPORTANT)
+        if isinstance(data, str):
+            data = json.loads(data)
+        return data
     except Exception as e:
-        print(f"Error extracting JSON: {e}")
+        print(f"[extract_json ERROR] {e}")
+        print(f"[extract_json RAW]\n{text}")
         return {}
 
 def generate_requirements_management_plan(state: RequirementsManagementPlanState) -> RequirementsManagementPlanState:
@@ -47,59 +53,53 @@ def generate_requirements_management_plan(state: RequirementsManagementPlanState
     context_str = "\n".join(context_parts)
 
     prompt = f"""
+    You are a Business Analyst.
+
+    TASK:
+    Generate a Requirements Management Plan.
+
+    PROJECT:
+    {user_message}
+
+    CONTEXT:
     {context_str}
 
-    ### ROLE
-    You are a professional Business Analyst. With strong expertise in creating detailed and structured Requirements Management Plans that effectively outline the processes for managing project requirements throughout the project lifecycle.
-    
-    ### CONTEXT
-    Create a comprehensive Requirements Management Plan for the following project:
-    Project Requirements: {user_message}
+    OUTPUT RULES (STRICT):
+    - Return ONLY valid JSON
+    - No explanation, no markdown outside JSON
+    - Escape all newlines as \\n inside JSON
 
-    ### INSTRUCTIONS
-    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
-    2. Create a detailed Requirements Management Plan covering all specified sections.
-    3. Ensure clarity, completeness, and correctness in the document.
-    
-    ### NOTE
-    1. Use markdown format for the document.
-    2. Follow best practices for structuring Requirements Management Plans.
-    
-    ### EXAMPLE OUTPUT
-    Return the response in JSON format with this structure:
+    FORMAT:
     {{
-        "title": "Requirements Management Plan - [Project Name]",
-        "content": "Complete markdown document with sections:
-            1. Introduction (Purpose, Scope, Objectives)
-            2. Requirements Management Approach (Methodology Alignment, Requirements Levels)
-            3. Requirements Elicitation (Techniques, Schedule with table)
-            4. Requirements Analysis (Techniques, Prioritization using MoSCoW)
-            5. Requirements Documentation (Standards, Tools, Attributes)
-            6. Requirements Validation (Techniques, Acceptance Criteria Checklist)
-            7. Requirements Traceability (Matrix, Tools)
-            8. Requirements Change Management (Process, Change Control Board, Criteria)
-            9. Communication Plan (Table with Audience, Method, Frequency, Content)
-            10. Roles and Responsibilities (Product Owner, BA, Scrum Master, Dev Team, Stakeholders)
-            11. Tools and Techniques
-            12. Metrics and Reporting
-            13. Quality Assurance
-            14. Training and Support
-            15. Appendices
-            16. Document Approval section with signature table"
+    "title": "Requirements Management Plan - <Project Name>",
+    "content": "<FULL markdown document here>"
     }}
 
-    Include:
-    - User Story Format template
-    - MoSCoW prioritization method
-    - Change request process flowchart (in text format)
-    - Requirements attributes list
-    - Traceability matrix example table
-    - Communication plan table
-    - Metrics for tracking requirements (velocity, volatility, defect density)
-    - Quality criteria checklist
+    CONTENT REQUIREMENTS:
+    - Use markdown inside "content"
+    - Include all sections:
+    1. Introduction
+    2. Requirements Management Approach
+    3. Elicitation
+    4. Analysis (MoSCoW)
+    5. Documentation
+    6. Validation
+    7. Traceability (with table)
+    8. Change Management
+    9. Communication Plan (table)
+    10. Roles & Responsibilities
+    11. Tools
+    12. Metrics
+    13. QA
+    14. Training
+    15. Appendices
+    16. Approval
+
+    - MUST NOT return empty content
     """
 
     try:
+        # Using OpenRouter (default)
         completion = model_client.chat_completion(
             messages=[
                 {
@@ -109,26 +109,41 @@ def generate_requirements_management_plan(state: RequirementsManagementPlanState
             ],
             model=MODEL
         )
-
         result_content = completion.choices[0].message.content
-        doc_data = extract_json(str(result_content))
 
+        # Using Gemini 2.5 Flash Lite
+        # result_content = model_client.gemini_completion(prompt)
+
+        doc_data = extract_json(str(result_content))
+        # Handle nested/double JSON
+        if isinstance(doc_data.get("content"), str):
+            try:
+                inner = extract_json(doc_data["content"])
+                if inner:
+                    doc_data = inner
+            except:
+                pass
         response_data = {
             "title": doc_data.get("title", "Requirements Management Plan"),
             "content": doc_data.get("content", "")
         }
-
-        return {"response": response_data}
-
+        # Fallback if still broken
+        if not doc_data or not doc_data.get("content"):
+            print("⚠️ Falling back to raw output")
+            response_data = {
+                "title": "Requirements Management Plan",
+                "content": result_content
+            }
+        return {"response": response_data} # pyright: ignore[reportReturnType]
     except Exception as e:
         print(f"Error generating Requirements Management Plan: {e}")
         # Fallback response
         return {
             "response": {
-                "title": "Requirements Management Plan",
+                "type": "Requirements Management Plan",
                 "content": f"Error generating document: {str(e)}"
             }
-        }
+        } # pyright: ignore[reportReturnType]
 
 # Build LangGraph pipeline for Requirements Management Plan
 workflow = StateGraph(RequirementsManagementPlanState)
