@@ -5,11 +5,11 @@ import os
 import re
 import logging
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from models.product_roadmap import ProductRoadmapOutput, ProductRoadmapResponse
+# from models.product_roadmap import ProductRoadmapOutput, ProductRoadmapResponse
 from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
-from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
+# from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,11 @@ class ProductRoadmapState(TypedDict):
     validation_result: Optional[dict]
     retry_count: int
 
-def generate_product_roadmap_diagram(state: ProductRoadmapState) -> ProductRoadmapState:
+def extract_mermaid(text: str) -> str:
+    match = re.search(r"```mermaid\s*(.*?)```", text, re.DOTALL)
+    return match.group(0) if match else ""
+
+def generate_product_roadmap_diagram(state: ProductRoadmapState):
     """Generate product roadmap Gantt diagram using OpenRouter AI"""
     model_client = get_model_client()
 
@@ -42,56 +46,44 @@ def generate_product_roadmap_diagram(state: ProductRoadmapState) -> ProductRoadm
     context_str = "\n".join(context_parts)
 
     prompt = f"""
-    {context_str}
-    ### ROLE
-    You are a professional Product Manager. With strong expertise in creating detailed and effective product roadmaps
-    
-    ### CONTEXT
-    Create a detailed Product Roadmap as a Mermaid Gantt chart based on the following project:
+    You are a Product Manager.
 
+    TASK:
+    Generate a Product Roadmap as a Mermaid Gantt chart.
+
+    PROJECT:
     {user_message}
 
-    The roadmap should include:
-    - Project phases (Planning, Design, Development, Testing, Deployment)
-    - Major milestones with specific dates
-    - Dependencies between tasks
-    - Timeline spanning multiple months/quarters
-    - Key deliverables at each phase
+    CONTEXT:
+    {context_str}
 
-    ### INSTRUCTIONS
-    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
-    2. Create a detailed Product Roadmap Gantt chart covering all specified sections.
-    3. Ensure clarity, completeness, and correctness in the diagram.
-    
-    ### NOTE
-    1. Use Mermaid Gantt chart format for the roadmap.
-    2. Follow proper Gantt chart syntax.
-    3. IMPORTANT: Return ONLY the Mermaid Gantt chart code block, starting with ```mermaid and ending with ```.
-    Do not include any explanatory text before or after the code block.
+    OUTPUT RULES (STRICT):
+    - Return ONLY a Mermaid code block
+    - No explanation text
+    - Start with ```mermaid
+    - End with ```
+    - Must be valid Gantt syntax
 
-    ### EXAMPLE OUTPUT
+    REQUIREMENTS:
+    - title
+    - dateFormat YYYY-MM-DD
+    - sections: Planning, Design, Development, Testing, Deployment
+    - tasks with:
+        - start date + duration OR
+        - dependencies using "after"
+    - timeline spans multiple months
+
+    EXAMPLE FORMAT:
     ```mermaid
     gantt
         title Product Roadmap
         dateFormat YYYY-MM-DD
         section Planning
-        Requirements Gathering    :2024-01-01, 30d
-        Stakeholder Interviews     :2024-01-15, 20d
-        section Design
-        System Architecture        :2024-02-01, 25d
-        UI/UX Design              :2024-02-10, 30d
-    ```
-
-    Use proper Gantt chart syntax with:
-    - title
-    - dateFormat
-    - sections for each phase
-    - tasks with start dates and durations
-    - Use format: task_name :start_date, duration
-    - Or: task_name :after other_task, duration
+        Task A :2024-01-01, 30d
     """
 
     try:
+        # Using Open Router (default)
         completion = model_client.chat_completion(
             messages=[
                 {
@@ -101,83 +93,89 @@ def generate_product_roadmap_diagram(state: ProductRoadmapState) -> ProductRoadm
             ],
             model=MODEL
         )
+        raw_output = completion.choices[0].message.content or ""
 
-        markdown_diagram = completion.choices[0].message.content
-
-        # Store raw diagram for validation
-        return {
-            "raw_diagram": markdown_diagram,
-            "retry_count": 0
-        }
-
-    except Exception as e:
-        logger.error(f"Error generating product roadmap: {e}")
-        # Fallback response
+        # Using Gemini 2.5 Flash lite
+        # raw_output = model_client.gemini_completion(prompt)
+        
+        diagram = extract_mermaid(raw_output)
+        if not diagram:
+            logger.warning("No valid mermaid block found, returning raw output")
+            diagram = raw_output
         return {
             "response": {
-                "type": "product-roadmap",
-                "detail": f"Error generating product roadmap: {str(e)}"
+                "title": "Product Roadmap",
+                "detail": diagram or "",
             }
-        }
-
-def extract_mermaid_code(markdown_text: str) -> str:
-    """Extract mermaid code from markdown fenced code block"""
-    pattern = r'```mermaid\s*\n(.*?)```'
-    match = re.search(pattern, markdown_text, re.DOTALL)
-    if match:
-        return match.group(1).strip()
-    return markdown_text.strip()
-
-def validate_diagram(state: ProductRoadmapState) -> ProductRoadmapState:
-    """Validate the generated mermaid diagram"""
-    raw_diagram = state.get("raw_diagram", "")
-    if not raw_diagram:
-        logger.error("No diagram to validate")
-        return {
-            "validation_result": {"valid": False, "errors": ["No diagram generated"]}
-        }
-
-    # Extract mermaid code from markdown
-    mermaid_code = extract_mermaid_code(raw_diagram)
-
-    validator = MermaidSubprocessManager()
-    try:
-        result = validator.validate_sync(mermaid_code)
-        logger.info(f"Validation result: {result.get('valid', False)}")
-        return {"validation_result": result}
+        } # pyright: ignore[reportReturnType]
     except Exception as e:
-        logger.error(f"Validation failed: {e}")
-        return {
-            "validation_result": {"valid": False, "errors": [str(e)]}
-        }
-    finally:
-        validator.sync_client.close()
+        logger.exception(f"Error generating product roadmap: {e}")
 
-def finalize_response(state: ProductRoadmapState) -> ProductRoadmapState:
-    """Create final response based on validation result"""
-    validation_result = state.get("validation_result", {})
-    raw_diagram = state.get("raw_diagram", "")
+# def extract_mermaid_code(markdown_text: str) -> str:
+#     """Extract mermaid code from markdown fenced code block"""
+#     pattern = r'```mermaid\s*\n(.*?)```'
+#     match = re.search(pattern, markdown_text, re.DOTALL)
+#     if match:
+#         return match.group(1).strip()
+#     return markdown_text.strip()
 
-    if validation_result.get("valid", False):
-        # Validation passed
-        diagram_response = ProductRoadmapResponse(
-            type="product-roadmap",
-            detail=raw_diagram
-        )
-        output = ProductRoadmapOutput(type="diagram", response=diagram_response)
-        return {"response": output.model_dump()["response"]}
-    else:
-        # Validation failed - still return the diagram but log the error
-        errors = validation_result.get("errors", [])
-        logger.warning(f"Product roadmap validation failed: {errors}")
+# def validate_diagram(state: ProductRoadmapState) -> ProductRoadmapState:
+#     """Validate the generated mermaid diagram"""
+#     raw_diagram = state.get("raw_diagram", "")
+#     if not raw_diagram:
+#         logger.error("No diagram to validate")
+#         return {
+#             "validation_result": {"valid": False, "errors": ["No diagram generated"]}
+#         }
 
-        # Return diagram anyway with a warning in the metadata
-        diagram_response = ProductRoadmapResponse(
-            type="product-roadmap",
-            detail=raw_diagram + f"\n\n<!-- Validation Warning: {errors} -->"
-        )
-        output = ProductRoadmapOutput(type="diagram", response=diagram_response)
-        return {"response": output.model_dump()["response"]}
+#     # Extract mermaid code from markdown
+#     mermaid_code = extract_mermaid_code(raw_diagram)
+#     # Clean up mermaid_code: remove lines that are not valid Mermaid syntax
+#     lines = mermaid_code.splitlines()
+#     cleaned_lines = []
+#     for line in lines:
+#         if re.match(r'^(Architecture Design|System Architec)', line.strip()):
+#             continue
+#         cleaned_lines.append(line)
+#     cleaned_mermaid = '\n'.join(cleaned_lines).strip()
+#     validator = MermaidSubprocessManager()
+#     try:
+#         result = validator.validate_sync(cleaned_mermaid)
+#         logger.info(f"Validation result: {result.get('valid', False)}")
+#         return {"validation_result": result}
+#     except Exception as e:
+#         logger.error(f"Validation failed: {e}")
+#         return {
+#             "validation_result": {"valid": False, "errors": [str(e)]}
+#         }
+#     finally:
+#         validator.sync_client.close()
+
+# def finalize_response(state: ProductRoadmapState) -> ProductRoadmapState:
+#     """Create final response based on validation result"""
+#     validation_result = state.get("validation_result", {})
+#     raw_diagram = state.get("raw_diagram", "")
+
+#     if validation_result.get("valid", False):
+#         # Validation passed
+#         diagram_response = ProductRoadmapResponse(
+#             type="product-roadmap",
+#             detail=raw_diagram
+#         )
+#         output = ProductRoadmapOutput(type="diagram", response=diagram_response)
+#         return {"response": output.model_dump()["response"]}
+#     else:
+#         # Validation failed - still return the diagram but log the error
+#         errors = validation_result.get("errors", [])
+#         logger.warning(f"Product roadmap validation failed: {errors}")
+
+#         # Return diagram anyway with a warning in the metadata
+#         diagram_response = ProductRoadmapResponse(
+#             type="product-roadmap",
+#             detail=raw_diagram + f"\n\n<!-- Validation Warning: {errors} -->"
+#         )
+#         output = ProductRoadmapOutput(type="diagram", response=diagram_response)
+#         return {"response": output.model_dump()["response"]}
 
 # Build LangGraph pipeline for Product Roadmap
 workflow = StateGraph(ProductRoadmapState)
@@ -186,16 +184,17 @@ workflow = StateGraph(ProductRoadmapState)
 workflow.add_node("get_content_file", get_content_file)
 workflow.add_node("get_chat_history", get_chat_history)
 workflow.add_node("generate_product_roadmap", generate_product_roadmap_diagram)
-workflow.add_node("validate_diagram", validate_diagram)
-workflow.add_node("finalize_response", finalize_response)
+# workflow.add_node("validate_diagram", validate_diagram)
+# workflow.add_node("finalize_response", finalize_response)
 
 # Set entry point and edges
 workflow.set_entry_point("get_content_file")
 workflow.add_edge("get_content_file", "get_chat_history")
 workflow.add_edge("get_chat_history", "generate_product_roadmap")
-workflow.add_edge("generate_product_roadmap", "validate_diagram")
-workflow.add_edge("validate_diagram", "finalize_response")
-workflow.add_edge("finalize_response", END)
+# workflow.add_edge("generate_product_roadmap", "validate_diagram")
+# workflow.add_edge("validate_diagram", "finalize_response")
+# workflow.add_edge("finalize_response", END)
+workflow.add_edge("generate_product_roadmap", END)
 
 # Compile graph
 product_roadmap_graph = workflow.compile()

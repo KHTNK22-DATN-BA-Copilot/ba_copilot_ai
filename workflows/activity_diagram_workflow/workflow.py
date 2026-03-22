@@ -9,7 +9,7 @@ from models.diagram import DiagramOutput, DiagramResponse
 from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
-from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
+# from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
 
 logger = logging.getLogger(__name__)
 
@@ -70,13 +70,16 @@ def generate_activity_diagram_description(state: ActivityDiagramState) -> Activi
     ### NOTE
     1. Ensure the diagram is syntactically correct and can be rendered by Mermaid.
     2. Focus on clarity and logical flow of activities.
-    3. Return ONLY the Mermaid markdown code block for the activity diagram, starting with triple backticks mermaid and ending with triple backticks.
-    Do not include any explanatory text before or after the code block.
-    
+    3. Return the Mermaid markdown code block for the activity diagram, starting with triple backticks mermaid and ending with triple backticks.
+    4. Include a graph title after the ticks
+    5. After the closing triple backticks, output EXACTLY ONE LINE containing the title.
+    6. Do NOT add any extra explanation or blank lines.
+    Do not include any other text before or after the code block.
+
     ### EXAMPLE OUTPUT:
     Start with triple backticks mermaid
     graph TD with activities, decisions, and connections
-    End with triple backticks
+    End with triple backticks, immediately followed by a summary line that acts as the title of the graph
     """
 
     try:
@@ -91,11 +94,18 @@ def generate_activity_diagram_description(state: ActivityDiagramState) -> Activi
         )
 
         markdown_diagram = completion.choices[0].message.content
-
+        content = markdown_diagram or ""
+        code_match = re.search(r"```mermaid\s*(.*?)```", content, re.DOTALL)
+        mermaid_code = code_match.group(1).strip() if code_match else ""
+        # Extract summary (text after last ```)
+        summary_match = re.search(r"```\s*(.+)$", content, re.DOTALL)
+        summary_line = summary_match.group(1).strip() if summary_match else ""
+        summary_line = summary_line.splitlines()[0] if summary_line else ""  # clean
         # Create response with diagram type and markdown detail
         diagram_response = DiagramResponse(
             type="activity_diagram",
-            detail=markdown_diagram or ""
+            detail=mermaid_code or "None",
+            summary=summary_line or "None"
         )
         output = DiagramOutput(type="diagram", response=diagram_response)
 
@@ -110,123 +120,116 @@ def generate_activity_diagram_description(state: ActivityDiagramState) -> Activi
                 "detail": f"Error generating activity diagram: {str(e)}"
             }
         } # pyright: ignore[reportReturnType]
-def extract_mermaid_code(markdown_text: str) -> str:
-    """Extract mermaid code from markdown fenced code block"""
-    pattern = r'```mermaid\s*\n(.*?)```'
-    match = re.search(pattern, markdown_text, re.DOTALL)
-    if match:
-        return match.group(1).strip()
-    return markdown_text.strip()
 
-def validate_diagram(state: ActivityDiagramState) -> ActivityDiagramState:
-    """Validate the generated mermaid diagram"""
-    raw_diagram = state.get("raw_diagram", "")
-    if not raw_diagram:
-        logger.error("No diagram to validate")
-        return {
-            "validation_result": {"valid": False, "errors": ["No diagram generated"]}
-        }
+# def validate_diagram(state: ActivityDiagramState) -> ActivityDiagramState:
+#     """Validate the generated mermaid diagram"""
+#     raw_diagram = state.get("raw_diagram", "")
+#     if not raw_diagram:
+#         logger.error("No diagram to validate")
+#         return {
+#             "validation_result": {"valid": False, "errors": ["No diagram generated"]}
+#         }
     
-    # Extract mermaid code from markdown
-    mermaid_code = extract_mermaid_code(raw_diagram)
+#     # Extract mermaid code from markdown
+#     mermaid_code = extract_mermaid_code(raw_diagram)
     
-    validator = MermaidSubprocessManager()
-    try:
-        result = validator.validate_sync(mermaid_code)
-        logger.info(f"Validation result: {result.get('valid', False)}")
-        return {"validation_result": result}
-    except Exception as e:
-        logger.error(f"Validation failed: {e}")
-        return {
-            "validation_result": {"valid": False, "errors": [str(e)]}
-        }
-    finally:
-        validator.sync_client.close()
+#     validator = MermaidSubprocessManager()
+#     try:
+#         result = validator.validate_sync(mermaid_code)
+#         logger.info(f"Validation result: {result.get('valid', False)}")
+#         return {"validation_result": result}
+#     except Exception as e:
+#         logger.error(f"Validation failed: {e}")
+#         return {
+#             "validation_result": {"valid": False, "errors": [str(e)]}
+#         }
+#     finally:
+#         validator.sync_client.close()
 
-def finalize_response(state: ActivityDiagramState) -> ActivityDiagramState:
-    """Create final response based on validation result"""
-    validation_result = state.get("validation_result", {})
-    raw_diagram = state.get("raw_diagram", "")
+# def finalize_response(state: ActivityDiagramState) -> ActivityDiagramState:
+#     """Create final response based on validation result"""
+#     validation_result = state.get("validation_result", {})
+#     raw_diagram = state.get("raw_diagram", "")
     
-    if validation_result.get("valid", False):
-        # Validation passed
-        diagram_response = DiagramResponse(
-            type="activity_diagram",
-            detail=raw_diagram
-        )
-        output = DiagramOutput(type="diagram", response=diagram_response)
-        return {"response": output.model_dump()["response"]}
-    else:
-        # Validation failed - still return the diagram but log the error
-        errors = validation_result.get("errors", [])
-        logger.warning(f"Activity diagram validation failed: {errors}")
+#     if validation_result.get("valid", False):
+#         # Validation passed
+#         diagram_response = DiagramResponse(
+#             type="activity_diagram",
+#             detail=raw_diagram
+#         )
+#         output = DiagramOutput(type="diagram", response=diagram_response)
+#         return {"response": output.model_dump()["response"]}
+#     else:
+#         # Validation failed - still return the diagram but log the error
+#         errors = validation_result.get("errors", [])
+#         logger.warning(f"Activity diagram validation failed: {errors}")
         
-        # Return diagram anyway with a warning in the metadata
-        diagram_response = DiagramResponse(
-            type="activity_diagram",
-            detail=raw_diagram + f"\n\n<!-- Validation Warning: {errors} -->"
-        )
-        output = DiagramOutput(type="diagram", response=diagram_response)
-        return {"response": output.model_dump()["response"]}
+#         # Return diagram anyway with a warning in the metadata
+#         diagram_response = DiagramResponse(
+#             type="activity_diagram",
+#             detail=raw_diagram + f"\n\n<!-- Validation Warning: {errors} -->"
+#         )
+#         output = DiagramOutput(type="diagram", response=diagram_response)
+#         return {"response": output.model_dump()["response"]}
 
-def extract_mermaid_code(markdown_text: str) -> str:
-    """Extract mermaid code from markdown fenced code block"""
-    pattern = r'```mermaid\s*\n(.*?)```'
-    match = re.search(pattern, markdown_text, re.DOTALL)
-    if match:
-        return match.group(1).strip()
-    return markdown_text.strip()
+# def extract_mermaid_code(markdown_text: str) -> str:
+#     """Extract mermaid code from markdown fenced code block"""
+#     pattern = r'```mermaid\s*\n(.*?)```'
+#     match = re.search(pattern, markdown_text, re.DOTALL)
+#     if match:
+#         return match.group(1).strip()
+#     return markdown_text.strip()
 
-def validate_diagram(state: ActivityDiagramState) -> ActivityDiagramState:
-    """Validate the generated mermaid diagram"""
-    raw_diagram = state.get("raw_diagram", "")
-    if not raw_diagram:
-        logger.error("No diagram to validate")
-        return {
-            "validation_result": {"valid": False, "errors": ["No diagram generated"]}
-        }
+# def validate_diagram(state: ActivityDiagramState) -> ActivityDiagramState:
+#     """Validate the generated mermaid diagram"""
+#     raw_diagram = state.get("raw_diagram", "")
+#     if not raw_diagram:
+#         logger.error("No diagram to validate")
+#         return {
+#             "validation_result": {"valid": False, "errors": ["No diagram generated"]}
+#         }
     
-    # Extract mermaid code from markdown
-    mermaid_code = extract_mermaid_code(raw_diagram)
+#     # Extract mermaid code from markdown
+#     mermaid_code = extract_mermaid_code(raw_diagram)
     
-    validator = MermaidSubprocessManager()
-    try:
-        result = validator.validate_sync(mermaid_code)
-        logger.info(f"Validation result: {result.get('valid', False)}")
-        return {"validation_result": result}
-    except Exception as e:
-        logger.error(f"Validation failed: {e}")
-        return {
-            "validation_result": {"valid": False, "errors": [str(e)]}
-        }
-    finally:
-        validator.sync_client.close()
+#     validator = MermaidSubprocessManager()
+#     try:
+#         result = validator.validate_sync(mermaid_code)
+#         logger.info(f"Validation result: {result.get('valid', False)}")
+#         return {"validation_result": result}
+#     except Exception as e:
+#         logger.error(f"Validation failed: {e}")
+#         return {
+#             "validation_result": {"valid": False, "errors": [str(e)]}
+#         }
+#     finally:
+#         validator.sync_client.close()
 
-def finalize_response(state: ActivityDiagramState) -> ActivityDiagramState:
-    """Create final response based on validation result"""
-    validation_result = state.get("validation_result", {})
-    raw_diagram = state.get("raw_diagram", "")
+# def finalize_response(state: ActivityDiagramState) -> ActivityDiagramState:
+#     """Create final response based on validation result"""
+#     validation_result = state.get("validation_result", {})
+#     raw_diagram = state.get("raw_diagram", "")
     
-    if validation_result.get("valid", False):
-        # Validation passed
-        diagram_response = DiagramResponse(
-            type="activity_diagram",
-            detail=raw_diagram
-        )
-        output = DiagramOutput(type="diagram", response=diagram_response)
-        return {"response": output.model_dump()["response"]}
-    else:
-        # Validation failed - still return the diagram but log the error
-        errors = validation_result.get("errors", [])
-        logger.warning(f"Activity diagram validation failed: {errors}")
+#     if validation_result.get("valid", False):
+#         # Validation passed
+#         diagram_response = DiagramResponse(
+#             type="activity_diagram",
+#             detail=raw_diagram
+#         )
+#         output = DiagramOutput(type="diagram", response=diagram_response)
+#         return {"response": output.model_dump()["response"]}
+#     else:
+#         # Validation failed - still return the diagram but log the error
+#         errors = validation_result.get("errors", [])
+#         logger.warning(f"Activity diagram validation failed: {errors}")
         
-        # Return diagram anyway with a warning in the metadata
-        diagram_response = DiagramResponse(
-            type="activity_diagram",
-            detail=raw_diagram + f"\n\n<!-- Validation Warning: {errors} -->"
-        )
-        output = DiagramOutput(type="diagram", response=diagram_response)
-        return {"response": output.model_dump()["response"]}
+#         # Return diagram anyway with a warning in the metadata
+#         diagram_response = DiagramResponse(
+#             type="activity_diagram",
+#             detail=raw_diagram + f"\n\n<!-- Validation Warning: {errors} -->"
+#         )
+#         output = DiagramOutput(type="diagram", response=diagram_response)
+#         return {"response": output.model_dump()["response"]}
 
 # Build LangGraph pipeline for Activity Diagram
 workflow = StateGraph(ActivityDiagramState)
@@ -235,16 +238,17 @@ workflow = StateGraph(ActivityDiagramState)
 workflow.add_node("get_content_file", get_content_file)
 workflow.add_node("get_chat_history", get_chat_history)
 workflow.add_node("generate_activity_diagram", generate_activity_diagram_description)
-workflow.add_node("validate_diagram", validate_diagram)
-workflow.add_node("finalize_response", finalize_response)
+# workflow.add_node("validate_diagram", validate_diagram)
+# workflow.add_node("finalize_response", finalize_response)
 
 # Set entry point and edges
 workflow.set_entry_point("get_content_file")
 workflow.add_edge("get_content_file", "get_chat_history")
 workflow.add_edge("get_chat_history", "generate_activity_diagram")
-workflow.add_edge("generate_activity_diagram", "validate_diagram")
-workflow.add_edge("validate_diagram", "finalize_response")
-workflow.add_edge("finalize_response", END)
+# workflow.add_edge("generate_activity_diagram", "validate_diagram")
+# workflow.add_edge("validate_diagram", "finalize_response")
+# workflow.add_edge("finalize_response", END)
+workflow.add_edge("generate_activity_diagram", END)
 
 # Compile graph
 activity_diagram_graph = workflow.compile()

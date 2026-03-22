@@ -4,6 +4,7 @@ from pydantic import BaseModel
 class DiagramResponse(BaseModel):
     type: str  # "class_diagram", "usecase_diagram", or "activity_diagram"
     detail: str  # Markdown content of the diagram
+    summary: str
 
 class DiagramOutput(BaseModel):
     type: str

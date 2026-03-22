@@ -10,6 +10,7 @@ import os
 from typing import Optional, Dict, List, Any
 from openai import OpenAI
 from dotenv import load_dotenv
+import google.generativeai as genai
 
 # Load environment variables
 load_dotenv()
@@ -21,7 +22,7 @@ OPENROUTER_REFERER = os.getenv("OPENROUTER_REFERER", "http://localhost:8000")
 OPENROUTER_TITLE = os.getenv("OPENROUTER_TITLE", "BA-Copilot")
 MODEL = os.getenv("MODEL", "tngtech/deepseek-r1t2-chimera:free")
 MAX_CONTEXT_TOKENS = int(os.getenv("MAX_CONTEXT_TOKENS", "4096"))
-
+GOOGLE_AI_API_KEY = os.getenv("GOOGLE_AI_API_KEY", "")
 class ModelClient:
     """
     Singleton-like model client for managing OpenRouter AI connections.
@@ -92,6 +93,21 @@ class ModelClient:
             messages=messages,
             **kwargs
         )
+    
+    def _create_gemini_client(self):
+        if not GOOGLE_AI_API_KEY:
+            raise ValueError("GOOGLE_AI_API_KEY not set")
+        
+        genai.configure(api_key=GOOGLE_AI_API_KEY)
+        return genai
+    
+    def gemini_completion(self, prompt: str, model: str = "gemini-2.5-flash-lite") -> str:
+        genai_client = self._create_gemini_client()
+        
+        model_instance = genai_client.GenerativeModel(model)
+        response = model_instance.generate_content(prompt)
+        
+        return response.text
 
 
 # Global instance for easy access

@@ -41,15 +41,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN node --version && npm --version
 
 # Copy and install Node.js validator dependencies first (for better caching)
-COPY services/mermaid_validator/nodejs/package*.json /app/services/mermaid_validator/nodejs/
-WORKDIR /app/services/mermaid_validator/nodejs
-RUN npm ci --only=production && npm cache clean --force
+# COPY services/mermaid_validator/nodejs/package*.json /app/services/mermaid_validator/nodejs/
+# WORKDIR /app/services/mermaid_validator/nodejs
+# RUN npm ci --only=production && npm cache clean --force
 
 # Copy Node.js validator source code
-COPY services/mermaid_validator/nodejs/ /app/services/mermaid_validator/nodejs/
+# COPY services/mermaid_validator/nodejs/ /app/services/mermaid_validator/nodejs/
 
 # Create temp directory for validator
-RUN mkdir -p /app/services/mermaid_validator/nodejs/temp
+# RUN mkdir -p /app/services/mermaid_validator/nodejs/temp
 
 # Switch back to app root
 WORKDIR /app

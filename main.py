@@ -47,58 +47,58 @@ from models.metadata_extraction import (
 import logging
 
 # subprocess imports
-import asyncio
-from contextlib import asynccontextmanager
-from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
+# import asyncio
+# from contextlib import asynccontextmanager
+# from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
 
 # Load environment variables
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """
-    Application lifespan manager.
+# @asynccontextmanager
+# async def lifespan(app: FastAPI):
+#     """
+#     Application lifespan manager.
 
-    Startup:
-        - Check if validator service is available
-        - Log validator status
+#     Startup:
+#         - Check if validator service is available
+#         - Log validator status
 
-    Shutdown:
-        - Cleanup if needed
-    """
-    # Startup - Check validator availability
-    logger.info("Checking Mermaid validator service...")
-    validator = MermaidSubprocessManager()
+#     Shutdown:
+#         - Cleanup if needed
+#     """
+#     # Startup - Check validator availability
+#     logger.info("Checking Mermaid validator service...")
+#     validator = MermaidSubprocessManager()
 
-    # Wait for validator to be ready (retries if fail)
-    max_retries = 30
-    validator_ready = False
-    for i in range(max_retries):
-        if await validator.health_check():
-            logger.info("✅ Mermaid validator service is ready")
-            validator_ready = True
-            break
-        logger.info(f"⏳ Waiting for validator to be ready... ({i+1}/{max_retries})")
-        await asyncio.sleep(1)
+#     # Wait for validator to be ready (retries if fail)
+#     max_retries = 30
+#     validator_ready = False
+#     for i in range(max_retries):
+#         if await validator.health_check():
+#             logger.info("✅ Mermaid validator service is ready")
+#             validator_ready = True
+#             break
+#         logger.info(f"⏳ Waiting for validator to be ready... ({i+1}/{max_retries})")
+#         await asyncio.sleep(1)
     
-    if not validator_ready:
-        logger.warning("⚠️ Validator not ready, diagram validation may fail")
+#     if not validator_ready:
+#         logger.warning("⚠️ Validator not ready, diagram validation may fail")
     
-    # Close the health check validator instance
-    await validator.close()
+#     # Close the health check validator instance
+#     await validator.close()
 
-    yield
+#     yield
 
-    # Shutdown
-    logger.info("AI Service shutting down...")
+#     # Shutdown
+#     logger.info("AI Service shutting down...")
 
 app = FastAPI(
     title="AI Service - BA Copilot",
     description="AI service for supporting Planning, Analysis, and Design phases in SDLC.",
     version="1.0.0",
-    lifespan=lifespan
+    # lifespan=lifespan
 )
 
 # CORS middleware

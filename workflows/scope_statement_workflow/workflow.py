@@ -59,7 +59,7 @@ def generate_scope_statement(state: ScopeStatementState) -> ScopeStatementState:
     {user_message}
 
     ### INSTRUCTIONS
-    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
+    1. Read and analyze the context in {context_str} and **CONTEXT** section above.
     2. Create a detailed Project Scope Statement covering all specified sections.
     3. Ensure clarity, completeness, and correctness in the document.
     
@@ -70,7 +70,6 @@ def generate_scope_statement(state: ScopeStatementState) -> ScopeStatementState:
     ### EXAMPLE OUTPUT
     Return the response in JSON format:
     {{
-        "title": "Project Scope Statement - [Project Name]",
         "content": "Complete Project Scope Statement document in Markdown format with these sections:
                    # Project Scope Statement
 
