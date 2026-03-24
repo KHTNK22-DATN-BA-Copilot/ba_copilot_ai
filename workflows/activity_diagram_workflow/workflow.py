@@ -9,7 +9,7 @@ from models.diagram import DiagramOutput, DiagramResponse
 from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
-from ..utils import extractors
+from ..utils import extractor
 
 # from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
 
@@ -90,7 +90,7 @@ def generate_activity_diagram_description(state: ActivityDiagramState):
         # Using Gemini 2.5 Flash lite
         raw_output = model_client.gemini_completion(prompt)
         
-        json_data = extractors.extract_json(raw_output)
+        json_data = extractor.extract_json(raw_output)
         summary = "Activity Diagram"
         content = ""
         if not json_data:

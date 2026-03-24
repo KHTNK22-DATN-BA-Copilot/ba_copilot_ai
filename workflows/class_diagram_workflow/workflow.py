@@ -3,12 +3,12 @@ from langgraph.graph import StateGraph, END
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from models.diagram import DiagramOutput, DiagramResponse
+# from models.diagram import DiagramOutput, DiagramResponse
 from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
-import re
 import logging
+from ..utils import extractor
 # from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
 
 logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ class ClassDiagramState(TypedDict):
     validation_result: Optional[dict]
     retry_count: int
 
-def generate_class_diagram_description(state: ClassDiagramState) -> ClassDiagramState:
+def generate_class_diagram_description(state: ClassDiagramState):
     """Generate class diagram in markdown format using OpenRouter AI"""
     model_client = get_model_client()
 
@@ -43,48 +43,36 @@ def generate_class_diagram_description(state: ClassDiagramState) -> ClassDiagram
 
     prompt = f"""
     {context_str}
+
     ### ROLE
-    You are an expert UML Class Diagram designer. with strong skills in creating clear and comprehensive diagrams using Mermaid markdown syntax.
-    
-    ### CONTEXT
-    Create a detailed UML Class Diagram in Mermaid markdown format based on the requirement: {user_message}
-    The diagram should include:
-    - Classes with their attributes (name, type, visibility: +public, -private, #protected)
-    - Methods/Operations for each class (name, parameters, return type, visibility)
-    - Relationships between classes:
-      * Association (simple connection between classes)
-      * Aggregation (has-a relationship, hollow diamond)
-      * Composition (strong ownership, filled diamond)
-      * Inheritance (is-a relationship, hollow arrow)
-      * Dependency (uses, dashed arrow)
-      * Multiplicity (1, 0..1, 1..*, 0..*, etc.)
-    - Abstract classes and interfaces if applicable
-    - Key design patterns if relevant
+    Expert UML Class Diagram designer (Mermaid).
 
-    ### INSTRUCTIONS
-    1. Read and analyze the context in {context_str} and **<CONTEXT>** section above.
-    2. Create a detailed UML Class Diagram in Mermaid markdown format covering all specified elements.
+    ### TASK
+    Create a UML Class Diagram for: {user_message}
 
-    ### NOTE
-    1. Ensure the diagram is syntactically correct and can be rendered by Mermaid.
-    2. Focus on clarity and accurate representation of class relationships.
-    3. Return ONLY the Mermaid markdown code block for the class diagram, starting with ```mermaid and ending with ```.
-    Do not include any explanatory text before or after the code block.
+    ### REQUIREMENTS
+    - Classes: attributes (+/-/#, name, type) and methods (params, return, visibility)
+    - Relationships: association, aggregation, composition, inheritance, dependency
+    - Include multiplicity where relevant
+    - Use abstract classes/interfaces if needed
+    - Apply design patterns if appropriate
+    - Ensure clear, logical structure and valid Mermaid syntax
 
-    ### EXAMPLE OUTPUT:
-    ```mermaid
-    classDiagram
-        class ClassName {{
-            +String attribute
-            -int privateAttribute
-            +method()
-        }}
-        ClassA --|> ClassB : Inheritance
-        ClassC --* ClassD : Composition
-    ```
+    ### OUTPUT (STRICT JSON ONLY)
+    {{
+    "content": "Mermaid class diagram starting with 'classDiagram' (no backticks, use \\n for newlines)",
+    "summary": "One-line concise description of the diagram"
+    }}
+
+    ### RULES
+    - Do NOT include ``` or markdown wrappers
+    - Escape newlines properly (\\n)
+    - No extra keys, no extra text
+    - Must be valid JSON (parsable)
     """
 
     try:
+        # Use OpenRouter (default)
         completion = model_client.chat_completion(
             messages=[
                 {
@@ -94,27 +82,29 @@ def generate_class_diagram_description(state: ClassDiagramState) -> ClassDiagram
             ],
             model=MODEL
         )
+        raw_output = completion.choices[0].message.content
 
-        markdown_diagram = completion.choices[0].message.content
+        # Use Gemini 2.5 Flash Lite
+        raw_output = model_client.gemini_completion(prompt)
 
-        # Create response with diagram type and markdown detail
-        diagram_response = DiagramResponse(
-            type="class_diagram",
-            detail=markdown_diagram
-        )
-        output = DiagramOutput(type="diagram", response=diagram_response)
-
-        return {"response": output.model_dump()["response"]}
+        json_data = extractor.extract_json(raw_output)
+        summary = "Class Diagram"
+        content = ""
+        if not json_data:
+            logger.warning("No JSON data found returning raw output")
+            content = json_data
+        else:
+            summary = json_data.get("summary", "Class Diagram")
+            content = json_data.get("content", "")
+        return {
+            "response": {
+                "summary": summary,
+                "content": content
+            }
+        } # pyright: ignore[reportReturnType]
 
     except Exception as e:
         print(f"Error generating class diagram: {e}")
-        # Fallback response
-        return {
-            "response": {
-                "type": "class_diagram",
-                "detail": f"Error generating class diagram: {str(e)}"
-            }
-        }
      
 # def extract_mermaid_code(markdown_text: str) -> str:
 #     """Extract mermaid code from markdown fenced code block"""

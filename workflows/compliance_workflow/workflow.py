@@ -8,7 +8,7 @@ from models.compliance import ComplianceOutput, ComplianceResponse
 from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
-
+from ..utils import extractor
 class ComplianceState(TypedDict):
     user_message: str
     response: dict
@@ -17,20 +17,7 @@ class ComplianceState(TypedDict):
     extracted_text: Optional[str]
     chat_context: Optional[str]
 
-def extract_json(text: str) -> dict:
-    """Extract JSON from text response"""
-    try:
-        # Find JSON block
-        start = text.find('{')
-        end = text.rfind('}') + 1
-        if start != -1 and end > start:
-            return json.loads(text[start:end])
-        return {}
-    except Exception as e:
-        print(f"Error extracting JSON: {e}")
-        return {}
-
-def generate_compliance(state: ComplianceState) -> ComplianceState:
+def generate_compliance(state: ComplianceState):
     """Generate Compliance document using OpenRouter AI"""
     model_client = get_model_client()
 
@@ -49,56 +36,54 @@ def generate_compliance(state: ComplianceState) -> ComplianceState:
 
     prompt = f"""
     {context_str}
-    ### ROLE
-    You are a professional Business Analyst. With strong expertise in legal and regulatory compliance requirements across various industries.
-    
-    ### CONTEXT
-    Create a comprehensive Compliance document for the following requirement: {user_message}
-    Analyze all legal and regulatory compliance requirements including:
-    1. Regulatory Requirements - Industry-specific regulations and standards
-    2. Legal Requirements - Applicable laws and legal obligations
-    3. Compliance Status - Current compliance level and gaps
-    4. Recommendations - Actions needed to achieve full compliance
 
-    Consider various compliance domains:
-    - Data Privacy (GDPR, CCPA, etc.)
-    - Industry Standards (ISO, SOC 2, PCI-DSS, HIPAA, etc.)
-    - Accessibility (WCAG, ADA, etc.)
-    - Security Standards
-    - Local and International Laws
-    
-    ### INSTRUCTIONS
-    1. Read and analyze the context in {context_str} and **<CONTEXT>** section above.
-    2. Create a detailed Compliance document covering all specified sections.
-    3. Ensure clarity, completeness, and correctness in the document.
-    
-    ### NOTE
-    1. Use Markdown format for the Compliance document.
-    2. Follow best practices for structuring compliance documentation.
-    
-    ### EXAMPLE OUTPUT
-    Return the response in JSON format:
+    ### ROLE
+    Professional Business Analyst (Compliance).
+
+    ### TASK
+    Create a Compliance document for: {user_message}
+
+    ### REQUIREMENTS
+    Cover:
+    - Regulatory requirements (industry standards)
+    - Legal obligations (laws, contracts)
+    - Compliance status (current state + gaps)
+    - Recommendations (actions, timeline)
+
+    Consider:
+    - Data Privacy (GDPR, CCPA)
+    - Industry Standards (ISO, SOC 2, PCI-DSS, HIPAA)
+    - Accessibility (WCAG, ADA)
+    - Security standards
+    - Local & international laws
+
+    ### OUTPUT (STRICT JSON ONLY)
     {{
-        "title": "Compliance Document - [Project Name]",
-        "executive_summary": "Overview of compliance requirements and current status",
-        "regulatory_requirements": "Detailed analysis of all applicable regulatory requirements and standards",
-        "legal_requirements": "Legal obligations, contracts, and statutory requirements",
-        "compliance_status": "Current compliance status assessment with identified gaps",
-        "recommendations": "Recommended actions, timeline, and implementation plan for compliance",
-        "detail": "Complete detailed compliance document in Markdown format with sections:
-                   1. Executive Summary
-                   2. Scope and Applicability
-                   3. Regulatory Requirements (detailed breakdown)
-                   4. Legal Requirements and Obligations
-                   5. Compliance Status Assessment
-                   6. Gap Analysis
-                   7. Compliance Roadmap and Implementation Plan
-                   8. Monitoring and Maintenance Plan
-                   9. Recommendations and Next Steps"
+    "content": "Markdown compliance document with sections below",
+    "summary": "One-line concise compliance overview"
     }}
+
+    ### REQUIRED STRUCTURE (Markdown)
+    # Compliance Document
+    ## Executive Summary
+    ## Scope and Applicability
+    ## Regulatory Requirements
+    ## Legal Requirements
+    ## Compliance Status
+    ## Gap Analysis
+    ## Compliance Roadmap
+    ## Monitoring and Maintenance
+    ## Recommendations
+
+    ### RULES
+    - Return ONLY valid JSON (no markdown wrapper, no extra text)
+    - Use clear, structured Markdown
+    - Keep content concise but complete
+    - Ensure JSON is parsable (escape \\n properly)
     """
 
     try:
+        # Use OpenRouter (default)
         completion = model_client.chat_completion(
             messages=[
                 {
@@ -108,37 +93,29 @@ def generate_compliance(state: ComplianceState) -> ComplianceState:
             ],
             model=MODEL
         )
+        raw_output = completion.choices[0].message.content
 
-        result_content = completion.choices[0].message.content
-        compliance_data = extract_json(result_content)
+        # Use Gemini 2.5 Flash Lite
+        raw_output = model_client.gemini_completion(prompt)
 
-        compliance_response = ComplianceResponse(
-            title=compliance_data.get("title", "Compliance Document"),
-            executive_summary=compliance_data.get("executive_summary", ""),
-            regulatory_requirements=compliance_data.get("regulatory_requirements", ""),
-            legal_requirements=compliance_data.get("legal_requirements", ""),
-            compliance_status=compliance_data.get("compliance_status", ""),
-            recommendations=compliance_data.get("recommendations", ""),
-            detail=compliance_data.get("detail", "")
-        )
-
-        output = ComplianceOutput(type="compliance", response=compliance_response)
-        return {"response": output.model_dump()["response"]}
+        json_data = extractor.extract_json(raw_output)
+        summary = "Class Diagram"
+        content = ""
+        if not json_data:
+            print("No JSON data found returning raw output")
+            content = json_data
+        else:
+            summary = json_data.get("summary", "Class Diagram")
+            content = json_data.get("content", "")
+        return {
+            "response": {
+                "summary": summary,
+                "content": content
+            }
+        } # pyright: ignore[reportReturnType]
 
     except Exception as e:
         print(f"Error generating compliance document: {e}")
-        # Fallback response
-        return {
-            "response": {
-                "title": "Compliance Document",
-                "executive_summary": "Error generating compliance document",
-                "regulatory_requirements": "Error",
-                "legal_requirements": "Error",
-                "compliance_status": "Error",
-                "recommendations": "Error",
-                "detail": f"Error: {str(e)}"
-            }
-        }
 
 # Build LangGraph pipeline for Compliance
 workflow = StateGraph(ComplianceState)
