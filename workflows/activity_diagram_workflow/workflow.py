@@ -9,6 +9,8 @@ from models.diagram import DiagramOutput, DiagramResponse
 from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
+from ..utils import extractors
+
 # from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
 
 logger = logging.getLogger(__name__)
@@ -24,7 +26,7 @@ class ActivityDiagramState(TypedDict):
     validation_result: Optional[dict]
     retry_count: int
 
-def generate_activity_diagram_description(state: ActivityDiagramState) -> ActivityDiagramState:
+def generate_activity_diagram_description(state: ActivityDiagramState):
     """Generate activity diagram in markdown format using OpenRouter AI"""
     model_client = get_model_client()
 
@@ -43,83 +45,68 @@ def generate_activity_diagram_description(state: ActivityDiagramState) -> Activi
 
     prompt = f"""
     {context_str}
-    ### ROLE
-    You are an expert UML Activity Diagram designer. with strong skills in creating clear and comprehensive diagrams using Mermaid markdown syntax.
-    
-    ### CONTEXT
-    Create a detailed UML Activity Diagram in Mermaid markdown format based on the requirement: {user_message}
-    The diagram should include:
-    - Start and end nodes (indicating the beginning and end of the workflow)
-    - Activities (actions or processes that occur):
-      * Use clear, action-oriented names (verb + object format, e.g., "Validate Input", "Process Payment")
-      * Group related activities logically
-    - Decision nodes (branching points in the flow):
-      * Conditions that determine which path to take
-      * Clear labels for each branch (e.g., "Valid" / "Invalid")
-    - Merge nodes (where parallel or branching flows come together)
-    - Swim lanes (if applicable) to show responsibilities across different actors or systems
-    - Flow arrows showing the sequence and direction of activities
-    - Parallel activities (fork/join) if tasks can happen concurrently
-    - Guard conditions (constraints on transitions)
-    
-    ### INSTRUCTIONS
-    1. Read and analyze the context in ${context_str} and **<CONTEXT>** section above.
-    2. Design a UML Activity Diagram that accurately represents the workflow described in the requirement.
-    3. Use Mermaid markdown syntax to create the diagram.
-    
-    ### NOTE
-    1. Ensure the diagram is syntactically correct and can be rendered by Mermaid.
-    2. Focus on clarity and logical flow of activities.
-    3. Return the Mermaid markdown code block for the activity diagram, starting with triple backticks mermaid and ending with triple backticks.
-    4. Include a graph title after the ticks
-    5. After the closing triple backticks, output EXACTLY ONE LINE containing the title.
-    6. Do NOT add any extra explanation or blank lines.
-    Do not include any other text before or after the code block.
 
-    ### EXAMPLE OUTPUT:
-    Start with triple backticks mermaid
-    graph TD with activities, decisions, and connections
-    End with triple backticks, immediately followed by a summary line that acts as the title of the graph
+    ### ROLE
+    Expert UML Activity Diagram designer (Mermaid).
+
+    ### TASK
+    Create a UML Activity Diagram for: {user_message}
+
+    ### REQUIREMENTS
+    - Include: start/end, activities (verb + object), decisions (labeled), merges, flows
+    - Add swimlanes and parallel flows if applicable
+    - Ensure clear, logical structure
+    - Mermaid syntax must be valid
+
+    ### OUTPUT FORMAT (STRICT JSON)
+    Return ONLY valid JSON (no markdown, no explanation):
+
+    {{
+    "content": "",
+    "summary": ""
+    }}
+
+    ### RULES
+    - "content" is mermaid diagram code starting and ending with backtick
+    - "summary" is one-line concise description of the diagram
+    - Escape newlines properly (\\n)
+    - No extra keys
+    - No extra text before/after JSON
     """
 
     try:
-        completion = model_client.chat_completion(
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            model=MODEL
-        )
+        # Using Open Router (default)
+        # completion = model_client.chat_completion(
+        #     messages=[
+        #         {
+        #             "role": "user",
+        #             "content": prompt
+        #         }
+        #     ],
+        #     model=MODEL
+        # )
+        # raw_output = completion.choices[0].message.content or ""
 
-        markdown_diagram = completion.choices[0].message.content
-        content = markdown_diagram or ""
-        code_match = re.search(r"```mermaid\s*(.*?)```", content, re.DOTALL)
-        mermaid_code = code_match.group(1).strip() if code_match else ""
-        # Extract summary (text after last ```)
-        summary_match = re.search(r"```\s*(.+)$", content, re.DOTALL)
-        summary_line = summary_match.group(1).strip() if summary_match else ""
-        summary_line = summary_line.splitlines()[0] if summary_line else ""  # clean
-        # Create response with diagram type and markdown detail
-        diagram_response = DiagramResponse(
-            type="activity_diagram",
-            detail=mermaid_code or "None",
-            summary=summary_line or "None"
-        )
-        output = DiagramOutput(type="diagram", response=diagram_response)
-
-        return {"response": output.model_dump()["response"]} # pyright: ignore[reportReturnType]
-
-    except Exception as e:
-        print(f"Error generating activity diagram: {e}")
-        # Fallback response
+        # Using Gemini 2.5 Flash lite
+        raw_output = model_client.gemini_completion(prompt)
+        
+        json_data = extractors.extract_json(raw_output)
+        summary = "Activity Diagram"
+        content = ""
+        if not json_data:
+            logger.warning("No JSON data found returning raw output")
+            content = json_data
+        else:
+            summary = json_data.get("summary", "Activity Diagram")
+            content = json_data.get("content", "")
         return {
             "response": {
-                "type": "activity_diagram",
-                "detail": f"Error generating activity diagram: {str(e)}"
+                "summary": summary,
+                "content": content
             }
         } # pyright: ignore[reportReturnType]
+    except Exception as e:
+        logger.exception(f"Error generating product roadmap: {e}")
 
 # def validate_diagram(state: ActivityDiagramState) -> ActivityDiagramState:
 #     """Validate the generated mermaid diagram"""
