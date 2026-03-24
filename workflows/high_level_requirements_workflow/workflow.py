@@ -2,11 +2,12 @@
 from langgraph.graph import StateGraph, END
 import sys
 import os
-import json
+# import json
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
+from ..utils import extractor
 
 class HighLevelRequirementsState(TypedDict):
     user_message: str
@@ -16,20 +17,7 @@ class HighLevelRequirementsState(TypedDict):
     extracted_text: Optional[str]
     chat_context: Optional[str]
 
-def extract_json(text: str) -> dict:
-    """Extract JSON from text response"""
-    try:
-        # Find JSON block
-        start = text.find('{')
-        end = text.rfind('}') + 1
-        if start != -1 and end > start:
-            return json.loads(text[start:end])
-        return {}
-    except Exception as e:
-        print(f"Error extracting JSON: {e}")
-        return {}
-
-def generate_high_level_requirements(state: HighLevelRequirementsState) -> HighLevelRequirementsState:
+def generate_high_level_requirements(state: HighLevelRequirementsState):
     """Generate High-Level Requirements document using OpenRouter AI"""
     model_client = get_model_client()
 
@@ -50,76 +38,80 @@ def generate_high_level_requirements(state: HighLevelRequirementsState) -> HighL
     {context_str}
 
     ### ROLE
-    You are a professional Business Analyst. With strong expertise in gathering, analyzing, and documenting high-level requirements for projects across various domains.
-    
-    ### CONTEXT
-    Create a comprehensive High-Level Requirements document for the following project:
+    Professional Business Analyst (Requirements).
 
-    Project Requirements: {user_message}
+    ### TASK
+    Create a High-Level Requirements document for: {user_message}
 
-    ### INSTRUCTIONS
-    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
-    2. Create a detailed High-Level Requirements document covering all specified sections.
-    3. Ensure clarity, completeness, and correctness in the document.
-    
-    ### NOTE
-    1. Use Markdown format for the High-Level Requirements document.
-    2. Follow best practices for structuring requirements documentation.
-    
-    ### EXAMPLE OUTPUT
-    Return the response in JSON format with this structure:
+    ### REQUIREMENTS
+    Include:
+    - Functional requirements (categorized, unique IDs: FR-XXX)
+    - Non-functional requirements (measurable, IDs: NFR-XXX)
+    - Stakeholder needs
+    - Constraints, assumptions, dependencies
+    - Acceptance criteria (specific, measurable)
+
+    ### OUTPUT (STRICT JSON ONLY)
     {{
-        "title": "High-Level Requirements - [Project Name]",
-        "content": "Complete markdown document with sections:
-            1. Introduction (Purpose, Scope, Business Objectives)
-            2. Stakeholder Requirements (for each user type)
-            3. Functional Requirements (organized by categories with FR-XXX identifiers)
-            4. Non-Functional Requirements (Performance, Security, Usability, Reliability with NFR-XXX identifiers)
-            5. Constraints (Budget, Timeline, Technical, Regulatory)
-            6. Assumptions
-            7. Dependencies
-            8. Acceptance Criteria
-            9. Next Steps
-            10. Approval section with signature table"
+    "content": "Markdown requirements document with sections below",
+    "summary": "One-line overview of the system scope and purpose"
     }}
 
-    Include:
-    - Clearly categorized functional requirements with unique identifiers (FR-UM-001, FR-PC-001, etc.)
-    - Non-functional requirements with metrics (NFR-P-001: Page load < 2 seconds, etc.)
-    - Tables for constraints, assumptions, and dependencies
-    - Specific, measurable acceptance criteria
+    ### REQUIRED STRUCTURE (Markdown)
+    # High-Level Requirements
+    ## Introduction (Purpose, Scope, Objectives)
+    ## Stakeholder Requirements
+    ## Functional Requirements
+    ## Non-Functional Requirements
+    ## Constraints
+    ## Assumptions
+    ## Dependencies
+    ## Acceptance Criteria
+    ## Next Steps
+    ## Approval
+
+    ### RULES
+    - Return ONLY valid JSON (no markdown wrapper, no extra text)
+    - Use clear, structured Markdown
+    - Use IDs for requirements (FR-XXX, NFR-XXX)
+    - Include tables where appropriate
+    - Keep content concise but complete
+    - Ensure JSON is parsable (escape \\n properly)
     """
 
     try:
-        completion = model_client.chat_completion(
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            model=MODEL
-        )
+        # Use OpenRouter (default)
+        # completion = model_client.chat_completion(
+        #     messages=[
+        #         {
+        #             "role": "user",
+        #             "content": prompt
+        #         }
+        #     ],
+        #     model=MODEL
+        # )
+        # raw_output = completion.choices[0].message.content
 
-        result_content = completion.choices[0].message.content
-        doc_data = extract_json(result_content)
+        # Use Gemini 2.5 Flash Lite
+        raw_output = model_client.gemini_completion(prompt)
 
-        response_data = {
-            "title": doc_data.get("title", "High-Level Requirements Document"),
-            "content": doc_data.get("content", "")
-        }
-
-        return {"response": response_data}
-
-    except Exception as e:
-        print(f"Error generating High-Level Requirements: {e}")
-        # Fallback response
+        json_data = extractor.extract_json(raw_output)
+        summary = "High-Level Requirements"
+        content = ""
+        if not json_data:
+            print("No JSON data found returning raw output")
+            content = json_data
+        else:
+            summary = json_data.get("summary", "High-Level Requirements")
+            content = json_data.get("content", "")
         return {
             "response": {
-                "title": "High-Level Requirements Document",
-                "content": f"Error generating document: {str(e)}"
+                "summary": summary,
+                "content": content
             }
-        }
+        } # pyright: ignore[reportReturnType]
+    except Exception as e:
+        print(f"Error generating High-Level Requirements: {e}")
 
 # Build LangGraph pipeline for High-Level Requirements
 workflow = StateGraph(HighLevelRequirementsState)

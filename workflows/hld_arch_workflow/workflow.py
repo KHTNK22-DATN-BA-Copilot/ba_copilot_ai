@@ -3,13 +3,13 @@ from langgraph.graph import StateGraph, END
 
 import sys
 import os
-import re
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from models.hld_arch import HLDArchOutput, HLDArchResponse
+# from models.hld_arch import HLDArchOutput, HLDArchResponse
 from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
 import logging
+from ..utils import extractor
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ class HLDArchState(TypedDict):
     validation_result: Optional[dict]
     retry_count: int
 
-def generate_hld_arch_diagram(state: HLDArchState) -> HLDArchState:
+def generate_hld_arch_diagram(state: HLDArchState):
     """Generate High-Level Design Architecture Diagram in Mermaid format"""
     model_client = get_model_client()
 
@@ -45,94 +45,71 @@ def generate_hld_arch_diagram(state: HLDArchState) -> HLDArchState:
     {context_str}
 
     ### ROLE
-    You are a professional Solution Architect. With strong expertise in designing high-level system architectures that effectively communicate system components, their interactions, and data flow using Mermaid markdown syntax.
-    
-    ### CONTEXT
-    Create a High-Level Design (HLD) System Architecture Diagram in Mermaid markdown format based on the requirement: {user_message}
+    Solution Architect (HLD, Mermaid).
 
-    The diagram should show:
-    - **System Components**: Major system modules/services (Frontend, Backend, Database, etc.)
-    - **External Systems**: Third-party integrations, APIs, external services
-    - **Data Flow**: How data moves between components
-    - **Technology Layers**: Presentation, Application, Data layers
-    - **Infrastructure**: Load balancers, caching, message queues
-    - **Security Boundaries**: Authentication, API Gateway, firewalls
+    ### TASK
+    Create a High-Level System Architecture Diagram for: {user_message}
 
-    Use Mermaid graph syntax (flowchart) with:
-    - Clear component names and labels
-    - Directional arrows showing data flow
-    - Subgraphs for logical grouping (e.g., Frontend Layer, Backend Layer)
-    - Proper notation for different component types
+    ### REQUIREMENTS
+    Include:
+    - System components (frontend, backend, database, services)
+    - External systems (APIs, third-party)
+    - Data flow (directional)
+    - Layers (presentation, application, data)
+    - Infrastructure (LB, cache, queues)
+    - Security boundaries (auth, gateway, firewall)
 
-    ### INSTRUCTIONS
-    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
-    2. Create a comprehensive HLD architecture diagram covering all specified elements.
-    ### NOTE
-    1. Use Mermaid markdown format for the architecture diagram.
-    2. Ensure clarity and correctness in representing system architecture.
-    3. Validate that the Mermaid syntax is correct and can be rendered properly.
-    4. Return ONLY the Mermaid markdown code block for the architecture diagram, starting with ```mermaid and ending with ```.
-    Do not include any explanatory text before or after the code block.
+    Use:
+    - Mermaid flowchart (graph TD/TB)
+    - Subgraphs for layers
+    - Clear labels and connections
 
-    ### EXAMPLE OUTPUT
-    ```mermaid
-    graph TB
-        subgraph "Client Layer"
-            WebApp[Web Application]
-            MobileApp[Mobile App]
-        end
-        
-        subgraph "Application Layer"
-            API[API Gateway]
-            Auth[Authentication Service]
-            BizLogic[Business Logic Service]
-        end
-        
-        subgraph "Data Layer"
-            DB[(Database)]
-            Cache[(Redis Cache)]
-        end
-        
-        WebApp --> API
-        MobileApp --> API
-        API --> Auth
-        API --> BizLogic
-        BizLogic --> DB
-        BizLogic --> Cache
-    ```
+    ### OUTPUT (STRICT JSON ONLY)
+    {{
+    "content": "Mermaid diagram starting with 'graph TD' or 'graph TB' (no backticks, use \\n for newlines)",
+    "summary": "One-line description of the architecture"
+    }}
+
+    ### RULES
+    - Do NOT include ``` or markdown wrappers
+    - Valid Mermaid syntax only
+    - No extra keys, no extra text
+    - Ensure JSON is parsable (escape \\n properly)
     """
 
     try:
-        completion = model_client.chat_completion(
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            model=MODEL
-        )
+        # Use OpenRouter (default)
+        # completion = model_client.chat_completion(
+        #     messages=[
+        #         {
+        #             "role": "user",
+        #             "content": prompt
+        #         }
+        #     ],
+        #     model=MODEL
+        # )
+        # raw_output = completion.choices[0].message.content
 
-        markdown_diagram = completion.choices[0].message.content
+        # Use Gemini 2.5 Flash Lite
+        raw_output = model_client.gemini_completion(prompt)
 
-        # Create response with diagram type and markdown detail
-        diagram_response = HLDArchResponse(
-            type="hld-arch",
-            detail=markdown_diagram
-        )
-        output = HLDArchOutput(type="diagram", response=diagram_response)
-
-        return {"response": output.model_dump()["response"]}
-
-    except Exception as e:
-        logger.error(f"Error generating HLD architecture diagram: {e}")
-        # Fallback response
+        json_data = extractor.extract_json(raw_output)
+        summary = "HLD architecture diagram"
+        content = ""
+        if not json_data:
+            print("No JSON data found returning raw output")
+            content = json_data
+        else:
+            summary = json_data.get("summary", "HLD architecture diagram")
+            content = json_data.get("content", "")
         return {
             "response": {
-                "type": "hld-arch",
-                "detail": f"Error generating architecture diagram: {str(e)}"
+                "summary": summary,
+                "content": content
             }
-        }
+        } # pyright: ignore[reportReturnType]
+    except Exception as e:
+        logger.error(f"Error generating HLD architecture diagram: {e}")
 
 # Build LangGraph pipeline for HLD Architecture
 workflow = StateGraph(HLDArchState)

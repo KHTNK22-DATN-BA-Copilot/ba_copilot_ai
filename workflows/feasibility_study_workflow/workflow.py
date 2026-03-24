@@ -2,12 +2,13 @@
 from langgraph.graph import StateGraph, END
 import sys
 import os
-import json
+# import json
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from models.feasibility_study import FeasibilityStudyOutput, FeasibilityStudyResponse
+# from models.feasibility_study import FeasibilityStudyOutput, FeasibilityStudyResponse
 from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
+from ..utils import extractor
 
 class FeasibilityStudyState(TypedDict):
     user_message: str
@@ -17,20 +18,7 @@ class FeasibilityStudyState(TypedDict):
     extracted_text: Optional[str]
     chat_context: Optional[str]
 
-def extract_json(text: str) -> dict:
-    """Extract JSON from text response"""
-    try:
-        # Find JSON block
-        start = text.find('{')
-        end = text.rfind('}') + 1
-        if start != -1 and end > start:
-            return json.loads(text[start:end])
-        return {}
-    except Exception as e:
-        print(f"Error extracting JSON: {e}")
-        return {}
-
-def generate_feasibility_study(state: FeasibilityStudyState) -> FeasibilityStudyState:
+def generate_feasibility_study(state: FeasibilityStudyState):
     """Generate Feasibility Study document using OpenRouter AI"""
     model_client = get_model_client()
 
@@ -51,50 +39,46 @@ def generate_feasibility_study(state: FeasibilityStudyState) -> FeasibilityStudy
     {context_str}
 
     ### ROLE
-    You are a professional Business Analyst. With strong expertise in conducting feasibility studies to evaluate the viability of projects from multiple dimensions including technical, operational, economic, schedule, and legal aspects.
-    
-    ### CONTEXT
-    Create a comprehensive Feasibility Study Report for the following requirement: {user_message}
+    Professional Business Analyst (Feasibility Study).
 
-    Analyze the project from multiple feasibility dimensions:
-    1. Technical Feasibility - Can the project be technically implemented with current technology?
-    2. Operational Feasibility - Will the organization be able to operate and maintain the solution?
-    3. Economic Feasibility - Is the project financially viable?
-    4. Schedule Feasibility - Can the project be completed within the required timeframe?
-    5. Legal Feasibility - Are there any legal or regulatory barriers?
+    ### TASK
+    Create a Feasibility Study for: {user_message}
 
-    ### INSTRUCTIONS
-    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
-    2. Create a comprehensive Feasibility Study document covering all specified sections.
-    3. Ensure clarity, completeness, and correctness in the document.
-    
-    ### NOTE
-    1. Use Markdown format for the Feasibility Study document.
-    2. Follow best practices for structuring feasibility study documentation.
-    
-    ### EXAMPLE OUTPUT
-    Return the response in JSON format:
+    ### REQUIREMENTS
+    Analyze:
+    - Technical feasibility (technology, infrastructure)
+    - Operational feasibility (resources, processes)
+    - Economic feasibility (costs, benefits, ROI)
+    - Schedule feasibility (timeline, constraints)
+    - Legal feasibility (laws, compliance)
+
+    ### OUTPUT (STRICT JSON ONLY)
     {{
-        "title": "Feasibility Study - [Project Name]",
-        "executive_summary": "Brief overview of feasibility analysis findings",
-        "technical_feasibility": "Assessment of technical capability, infrastructure, and technology requirements",
-        "operational_feasibility": "Analysis of organizational readiness, resources, and operational impact",
-        "economic_feasibility": "Financial viability analysis including costs, benefits, and ROI projections",
-        "schedule_feasibility": "Timeline analysis and assessment of project duration",
-        "legal_feasibility": "Legal and regulatory compliance assessment",
-        "detail": "Complete detailed feasibility study report in Markdown format with sections:
-                   1. Executive Summary
-                   2. Project Overview
-                   3. Technical Feasibility Analysis
-                   4. Operational Feasibility Analysis
-                   5. Economic Feasibility Analysis
-                   6. Schedule Feasibility Analysis
-                   7. Legal Feasibility Analysis
-                   8. Recommendations and Conclusion"
+    "content": "Markdown feasibility study with sections below",
+    "summary": "One-line feasibility conclusion (e.g., feasible / conditionally feasible / not feasible)"
     }}
+
+    ### REQUIRED STRUCTURE (Markdown)
+    # Feasibility Study
+    ## Executive Summary
+    ## Project Overview
+    ## Technical Feasibility
+    ## Operational Feasibility
+    ## Economic Feasibility
+    ## Schedule Feasibility
+    ## Legal Feasibility
+    ## Recommendations
+
+    ### RULES
+    - Return ONLY valid JSON (no markdown wrapper, no extra text)
+    - Use clear, structured Markdown
+    - Keep content concise but complete
+    - Include key assumptions where relevant
+    - Ensure JSON is parsable (escape \\n properly)
     """
 
     try:
+        # Use OpenRouter (default)
         completion = model_client.chat_completion(
             messages=[
                 {
@@ -104,39 +88,28 @@ def generate_feasibility_study(state: FeasibilityStudyState) -> FeasibilityStudy
             ],
             model=MODEL
         )
+        raw_output = completion.choices[0].message.content
 
-        result_content = completion.choices[0].message.content
-        feasibility_data = extract_json(result_content)
+        # Use Gemini 2.5 Flash Lite
+        raw_output = model_client.gemini_completion(prompt)
 
-        feasibility_response = FeasibilityStudyResponse(
-            title=feasibility_data.get("title", "Feasibility Study Report"),
-            executive_summary=feasibility_data.get("executive_summary", ""),
-            technical_feasibility=feasibility_data.get("technical_feasibility", ""),
-            operational_feasibility=feasibility_data.get("operational_feasibility", ""),
-            economic_feasibility=feasibility_data.get("economic_feasibility", ""),
-            schedule_feasibility=feasibility_data.get("schedule_feasibility", ""),
-            legal_feasibility=feasibility_data.get("legal_feasibility", ""),
-            detail=feasibility_data.get("detail", "")
-        )
-
-        output = FeasibilityStudyOutput(type="feasibility-study", response=feasibility_response)
-        return {"response": output.model_dump()["response"]}
-
-    except Exception as e:
-        print(f"Error generating feasibility study: {e}")
-        # Fallback response
+        json_data = extractor.extract_json(raw_output)
+        summary = "Feasibility Study"
+        content = ""
+        if not json_data:
+            print("No JSON data found returning raw output")
+            content = json_data
+        else:
+            summary = json_data.get("summary", "Feasibility Study")
+            content = json_data.get("content", "")
         return {
             "response": {
-                "title": "Feasibility Study Report",
-                "executive_summary": "Error generating feasibility study",
-                "technical_feasibility": "Error",
-                "operational_feasibility": "Error",
-                "economic_feasibility": "Error",
-                "schedule_feasibility": "Error",
-                "legal_feasibility": "Error",
-                "detail": f"Error: {str(e)}"
+                "summary": summary,
+                "content": content
             }
-        }
+        } # pyright: ignore[reportReturnType]
+    except Exception as e:
+        print(f"Error generating feasibility study: {e}")
 
 # Build LangGraph pipeline for Feasibility Study
 workflow = StateGraph(FeasibilityStudyState)

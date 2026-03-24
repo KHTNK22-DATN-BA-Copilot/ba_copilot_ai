@@ -99,13 +99,13 @@ def generate_compliance(state: ComplianceState):
         raw_output = model_client.gemini_completion(prompt)
 
         json_data = extractor.extract_json(raw_output)
-        summary = "Class Diagram"
+        summary = "Compliance"
         content = ""
         if not json_data:
             print("No JSON data found returning raw output")
             content = json_data
         else:
-            summary = json_data.get("summary", "Class Diagram")
+            summary = json_data.get("summary", "Compliance")
             content = json_data.get("content", "")
         return {
             "response": {

@@ -2,13 +2,13 @@
 from langgraph.graph import StateGraph, END
 import sys
 import os
-import json
+# import json
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from models.cost_benefit_analysis import CostBenefitAnalysisOutput, CostBenefitAnalysisResponse
+# from models.cost_benefit_analysis import CostBenefitAnalysisOutput, CostBenefitAnalysisResponse
 from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
-
+from ..utils import extractor
 class CostBenefitAnalysisState(TypedDict):
     user_message: str
     response: dict
@@ -17,20 +17,7 @@ class CostBenefitAnalysisState(TypedDict):
     extracted_text: Optional[str]
     chat_context: Optional[str]
 
-def extract_json(text: str) -> dict:
-    """Extract JSON from text response"""
-    try:
-        # Find JSON block
-        start = text.find('{')
-        end = text.rfind('}') + 1
-        if start != -1 and end > start:
-            return json.loads(text[start:end])
-        return {}
-    except Exception as e:
-        print(f"Error extracting JSON: {e}")
-        return {}
-
-def generate_cost_benefit_analysis(state: CostBenefitAnalysisState) -> CostBenefitAnalysisState:
+def generate_cost_benefit_analysis(state: CostBenefitAnalysisState):
     """Generate Cost-Benefit Analysis document using OpenRouter AI"""
     model_client = get_model_client()
 
@@ -96,6 +83,7 @@ def generate_cost_benefit_analysis(state: CostBenefitAnalysisState) -> CostBenef
     """
 
     try:
+        # Use OpenRouter (default)
         completion = model_client.chat_completion(
             messages=[
                 {
@@ -105,39 +93,28 @@ def generate_cost_benefit_analysis(state: CostBenefitAnalysisState) -> CostBenef
             ],
             model=MODEL
         )
+        raw_output = completion.choices[0].message.content
 
-        result_content = completion.choices[0].message.content
-        analysis_data = extract_json(result_content)
+        # Use Gemini 2.5 Flash Lite
+        raw_output = model_client.gemini_completion(prompt)
 
-        analysis_response = CostBenefitAnalysisResponse(
-            title=analysis_data.get("title", "Cost-Benefit Analysis"),
-            executive_summary=analysis_data.get("executive_summary", ""),
-            cost_analysis=analysis_data.get("cost_analysis", ""),
-            benefit_analysis=analysis_data.get("benefit_analysis", ""),
-            roi_calculation=analysis_data.get("roi_calculation", ""),
-            npv_analysis=analysis_data.get("npv_analysis", ""),
-            payback_period=analysis_data.get("payback_period", ""),
-            detail=analysis_data.get("detail", "")
-        )
-
-        output = CostBenefitAnalysisOutput(type="cost-benefit-analysis", response=analysis_response)
-        return {"response": output.model_dump()["response"]}
-
-    except Exception as e:
-        print(f"Error generating cost-benefit analysis: {e}")
-        # Fallback response
+        json_data = extractor.extract_json(raw_output)
+        summary = "Cost Benefit Analysis"
+        content = ""
+        if not json_data:
+            print("No JSON data found returning raw output")
+            content = json_data
+        else:
+            summary = json_data.get("summary", "Cost Benefit Analysis")
+            content = json_data.get("content", "")
         return {
             "response": {
-                "title": "Cost-Benefit Analysis",
-                "executive_summary": "Error generating cost-benefit analysis",
-                "cost_analysis": "Error",
-                "benefit_analysis": "Error",
-                "roi_calculation": "Error",
-                "npv_analysis": "Error",
-                "payback_period": "Error",
-                "detail": f"Error: {str(e)}"
+                "summary": summary,
+                "content": content
             }
-        }
+        } # pyright: ignore[reportReturnType]
+    except Exception as e:
+        print(f"Error generating cost-benefit analysis: {e}")
 
 # Build LangGraph pipeline for Cost-Benefit Analysis
 workflow = StateGraph(CostBenefitAnalysisState)
