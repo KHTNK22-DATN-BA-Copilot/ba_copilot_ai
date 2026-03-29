@@ -1,87 +1,68 @@
-name: AI CI
+name: AI CI/CD
 
 on:
   push:
     branches: 
       - main
-  pull_request:
-    branches:
-      - main
 
-  jobs:
-    # ========== CI: Build ==========
-    build:
-      runs-on: ["self-hosted", "Linux", "X64"]
-      steps:
-        - name: Checkout code
-          uses: actions/checkout@v4
+env:
+  IMAGE_NAME: ghcr.io/khtnk22-datn-ba-copilot/ba_copilot_ai/ai:latest
 
-        - name: Setup Python
-          uses: actions/setup-python@v4
-          with:
-            python-version: 3.11
-            cache: 'pip'
+jobs:
+  # ========== CI: Build & Lint ==========
+  build_and_publish:
+    runs-on: ubuntu-latest
 
-        - name: Install dependencies
-          run: pip install -r requirements.txt
+    permissions:
+      contents: read
+      packages: write 
 
-        - name: Syntax check
-          run: ruff check .
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    # ========== CI: Test ==========
-    # test:
-    #   runs-on: ["self-hosted", "Linux", "X64"]
-    #   needs: build
-    #   steps:
-    #     - name: Checkout code
-    #       uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+          cache: 'pip'
 
-    #     - name: Setup Python
-    #       uses: actions/setup-python@v4
-    #       with:
-    #         python-version: 3.11
-    #         cache: 'pip'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
-    #     - name: Install dependencies
-    #       run: pip install -r requirements.txt
+      # ===== Docker =====
+      - name: Login to GHCR
+        run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ secrets.ACTOR }} --password-stdin
 
-    #     - name: Run tests
-    #       run: pytest tests/
+      - name: Build Docker image
+        run: docker build -t $IMAGE_NAME .
 
-    # ========== CD: Deploy to VPS ==========
-    deploy:
-      runs-on: ["self-hosted", "Linux", "X64"]
-      needs: test
-      steps:
-        - name: Checkout code
-          uses: actions/checkout@v4
+      - name: Push Docker image
+        run: docker push $IMAGE_NAME
 
-        - name: Pull latest code to VPS
-          run: |
-            cd /home/bacopilot/bacopilot/ba_copilot_ai  
-            git pull origin main
+  # ========== CD: Deploy ==========
+  deploy:
+    runs-on: ["self-hosted", "Linux", "X64"]
+    needs: build_and_publish
 
-        - name: Stop ai container
-          run: docker compose stop ai || true
-          working-directory: /home/bacopilot/bacopilot
+    steps:
+      - name: Login to GHCR (server)
+        run: echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u ${{ secrets.ACTOR }} --password-stdin
 
-        - name: Remove ai container
-          run: docker compose rm -f ai || true
-          working-directory: /home/bacopilot/bacopilot
+      - name: Pull latest AI image
+        run: docker pull $IMAGE_NAME
 
-        - name: Build ai image
-          run: docker compose build --no-cache ai
-          working-directory: /home/bacopilot/bacopilot
+      - name: Restart AI service
+        run: |
+          docker compose pull ai
+          docker compose up -d --force-recreate ai
+        working-directory: /home/bacopilot/bacopilot
 
-        - name: Start ai container
-          run: docker compose up -d ai
-          working-directory: /home/bacopilot/bacopilot
+      - name: Cleanup old images
+        run: docker image prune -f
 
-        - name: Cleanup old Docker images
-          run: docker image prune -f
-
-        - name: Health check
-          run: |
-            echo "Waiting for ai container to start..."
-            sleep 10
-            docker ps | grep ba-copilot-ai || echo "Warning: AI container may not be running"
+      - name: Health check
+        run: |
+          echo "Waiting for AI..."
+          sleep 10
+          docker ps | grep ba-copilot-ai || echo "Warning: AI may not be running"
