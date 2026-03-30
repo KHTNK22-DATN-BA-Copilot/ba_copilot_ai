@@ -2,13 +2,11 @@
 from langgraph.graph import StateGraph, END
 import sys
 import os
-import json
-import re
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
-
+from ..utils import extractor
 class RequirementsManagementPlanState(TypedDict):
     user_message: str
     response: dict
@@ -17,25 +15,7 @@ class RequirementsManagementPlanState(TypedDict):
     extracted_text: Optional[str]
     chat_context: Optional[str]
 
-def extract_json(text: str) -> dict:
-    try:
-        # Step 1: extract JSON block
-        match = re.search(r'\{.*\}', text, re.DOTALL)
-        if not match:
-            return {}
-        json_str = match.group(0)
-        # Step 2: first parse
-        data = json.loads(json_str)
-        # Step 3: handle double-encoded JSON (VERY IMPORTANT)
-        if isinstance(data, str):
-            data = json.loads(data)
-        return data
-    except Exception as e:
-        print(f"[extract_json ERROR] {e}")
-        print(f"[extract_json RAW]\n{text}")
-        return {}
-
-def generate_requirements_management_plan(state: RequirementsManagementPlanState) -> RequirementsManagementPlanState:
+def generate_requirements_management_plan(state: RequirementsManagementPlanState):
     """Generate Requirements Management Plan document using OpenRouter AI"""
     model_client = get_model_client()
 
@@ -53,97 +33,89 @@ def generate_requirements_management_plan(state: RequirementsManagementPlanState
     context_str = "\n".join(context_parts)
 
     prompt = f"""
-    You are a Business Analyst.
-
-    TASK:
-    Generate a Requirements Management Plan.
-
-    PROJECT:
-    {user_message}
-
-    CONTEXT:
     {context_str}
 
-    OUTPUT RULES (STRICT):
-    - Return ONLY valid JSON
-    - No explanation, no markdown outside JSON
-    - Escape all newlines as \\n inside JSON
+    ### ROLE
+    Business Analyst (requirements management).
 
-    FORMAT:
+    ### TASK
+    Create a Requirements Management Plan for: {user_message}
+
+    ### REQUIREMENTS
+    The "content" MUST be a Markdown document (use \\n) with EXACT structure:
+
+    # Requirements Management Plan - <Project Name>
+
+    ## 1. Introduction
+    ## 2. Requirements Management Approach
+    ## 3. Elicitation
+    ## 4. Analysis (MoSCoW)
+    ## 5. Documentation
+    ## 6. Validation
+    ## 7. Traceability
+    - Include a traceability table
+
+    ## 8. Change Management
+    ## 9. Communication Plan
+    - Include a table
+
+    ## 10. Roles & Responsibilities
+    ## 11. Tools
+    ## 12. Metrics
+    ## 13. Quality Assurance
+    ## 14. Training
+    ## 15. Appendices
+    ## 16. Approval
+
+    - Use concise bullet points
+    - Do NOT leave any section empty
+
+    ### OUTPUT (STRICT JSON ONLY)
     {{
-    "title": "Requirements Management Plan - <Project Name>",
-    "content": "<FULL markdown document here>"
+    "content": "Markdown document following REQUIRED structure (use \\n for newlines)",
+    "summary": "One-line plan summary"
     }}
 
-    CONTENT REQUIREMENTS:
-    - Use markdown inside "content"
-    - Include all sections:
-    1. Introduction
-    2. Requirements Management Approach
-    3. Elicitation
-    4. Analysis (MoSCoW)
-    5. Documentation
-    6. Validation
-    7. Traceability (with table)
-    8. Change Management
-    9. Communication Plan (table)
-    10. Roles & Responsibilities
-    11. Tools
-    12. Metrics
-    13. QA
-    14. Training
-    15. Appendices
-    16. Approval
-
-    - MUST NOT return empty content
+    ### RULES
+    - Output JSON ONLY (no markdown wrappers, no explanations)
+    - No extra keys, no missing keys
+    - Do NOT change section titles or order
+    - Escape \\n properly
+    - All values must be strings
     """
 
     try:
-        # Using OpenRouter (default)
-        completion = model_client.chat_completion(
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            model=MODEL
-        )
-        result_content = completion.choices[0].message.content
+        # completion = model_client.chat_completion(
+        #     messages=[
+        #         {
+        #             "role": "user",
+        #             "content": prompt
+        #         }
+        #     ],
+        #     model=MODEL
+        # )
+        # raw_output = completion.choices[0].message.content
 
-        # Using Gemini 2.5 Flash Lite
-        # result_content = model_client.gemini_completion(prompt)
+        # Use Gemini 2.5 Flash Lite
+        raw_output = model_client.gemini_completion(prompt)
 
-        doc_data = extract_json(str(result_content))
-        # Handle nested/double JSON
-        if isinstance(doc_data.get("content"), str):
-            try:
-                inner = extract_json(doc_data["content"])
-                if inner:
-                    doc_data = inner
-            except:
-                pass
-        response_data = {
-            "title": doc_data.get("title", "Requirements Management Plan"),
-            "content": doc_data.get("content", "")
-        }
-        # Fallback if still broken
-        if not doc_data or not doc_data.get("content"):
-            print("⚠️ Falling back to raw output")
-            response_data = {
-                "title": "Requirements Management Plan",
-                "content": result_content
-            }
-        return {"response": response_data} # pyright: ignore[reportReturnType]
-    except Exception as e:
-        print(f"Error generating Requirements Management Plan: {e}")
-        # Fallback response
+        json_data = extractor.extract_json(raw_output)
+        summary = "Requirements Management Plan"
+        content = ""
+        if not json_data:
+            print("No JSON data found returning raw output")
+            content = json_data
+        else:
+            summary = json_data.get("summary", "Requirements Management Plan")
+            content = json_data.get("content", "")
         return {
             "response": {
-                "title": "Requirements Management Plan",
-                "content": f"Error generating document: {str(e)}"
+                "summary": summary,
+                "content": content
             }
         } # pyright: ignore[reportReturnType]
+    except Exception as e:
+        print(f"Error generating Requirements Management Plan: {e}")
 
 # Build LangGraph pipeline for Requirements Management Plan
 workflow = StateGraph(RequirementsManagementPlanState)

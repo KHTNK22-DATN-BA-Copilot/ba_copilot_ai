@@ -7,7 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
-
+from ..utils import extractor
 
 class RTMState(TypedDict):
     user_message: str
@@ -16,7 +16,6 @@ class RTMState(TypedDict):
     storage_paths: Optional[List]
     extracted_text: Optional[str]
     chat_context: Optional[str]
-
 
 def extract_json(text: str) -> dict:
     """Extract JSON from text response"""
@@ -32,7 +31,7 @@ def extract_json(text: str) -> dict:
         return {}
 
 
-def generate_rtm(state: RTMState) -> RTMState:
+def generate_rtm(state: RTMState):
     """Generate Requirements Traceability Matrix document using OpenRouter AI"""
     model_client = get_model_client()
 
@@ -53,92 +52,98 @@ def generate_rtm(state: RTMState) -> RTMState:
     {context_str}
 
     ### ROLE
-    You are a professional Business Analyst and Quality Assurance specialist. With strong expertise in requirements management, traceability, and quality assurance processes.
-    
-    ### CONTEXT
-    Create a comprehensive Requirements Traceability Matrix (RTM) document for the following project:
-    Project Requirements: {user_message}
+    Business Analyst / QA Specialist (traceability, quality).
 
-    ### INSTRUCTIONS
-    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
-    2. Create a detailed Requirements Traceability Matrix covering all specified sections.
-    3. Ensure clarity, completeness, and correctness in the document.
-    
-    ### NOTE
-    1. Use Markdown format for the Requirements Traceability Matrix document.
-    2. Follow best practices for structuring RTMs.
-    
-    ### EXAMPLE OUTPUT
-    Return the response in JSON format with this structure:
+    ### TASK
+    Create a Requirements Traceability Matrix (RTM) for: {user_message}
+
+    ### REQUIREMENTS
+    The "content" MUST be a Markdown document (use \\n) with EXACT structure:
+
+    # Requirements Traceability Matrix - <Project Name>
+
+    ## 1. Document Information
+    - Date, version, author
+
+    ## 2. Executive Summary
+    - Overview of traceability and coverage
+
+    ## 3. Purpose and Scope
+
+    ## 4. Traceability Matrix Overview
+
+    ## 5. Requirements Traceability Matrix
+    - Include table with columns:
+    ID | Description | Priority | Source | Design | Implementation | Test Cases | Test Status | Coverage | Verification
+
+    ## 6. Forward Traceability
+    - Requirements → Design → Implementation → Test Cases
+
+    ## 7. Backward Traceability
+    - Test Cases → Implementation → Design → Requirements
+
+    ## 8. Coverage Analysis
+    - Coverage % and key insights
+
+    ## 9. Gap Analysis
+    - Missing links, untested requirements
+
+    ## 10. Change Impact Assessment
+
+    ## 11. Quality Metrics
+    - Coverage, pass rate, defect trends
+
+    ## 12. Conclusion and Recommendations
+
+    - Use concise bullet points (except table)
+    - Do NOT leave any section empty
+
+    ### OUTPUT (STRICT JSON ONLY)
     {{
-        "title": "Requirements Traceability Matrix - [Project Name]",
-        "content": "Complete markdown document with the following sections:
-            1. Document Information (Date, Version, Prepared by)
-            2. Executive Summary
-            3. Purpose and Scope
-            4. Traceability Matrix Overview
-            5. Requirements Traceability Matrix Table
-            6. Forward Traceability (Requirements → Design → Implementation → Test Cases)
-            7. Backward Traceability (Test Cases → Implementation → Design → Requirements)
-            8. Coverage Analysis
-            9. Gap Analysis
-            10. Change Impact Assessment
-            11. Quality Metrics
-            12. Conclusion and Recommendations"
+    "content": "Markdown document following REQUIRED structure (use \\n for newlines)",
+    "summary": "One-line RTM summary"
     }}
 
-    The Traceability Matrix should include:
-    - Requirement ID
-    - Requirement Description
-    - Priority (High/Medium/Low)
-    - Source (Stakeholder/Document)
-    - Design Reference
-    - Implementation Module
-    - Test Case ID(s)
-    - Test Status (Passed/Failed/Pending/Not Started)
-    - Coverage Status (Full/Partial/None)
-    - Verification Method (Review/Inspection/Test/Demo)
-
-    Include:
-    - A comprehensive matrix table showing all requirements
-    - Forward and backward traceability links
-    - Coverage analysis with percentage metrics
-    - Gap identification for missing test coverage
-    - Risk assessment for untested requirements
-    - Recommendations for improving coverage and traceability processes
+    ### RULES
+    - Output JSON ONLY (no markdown wrappers, no explanations)
+    - No extra keys, no missing keys
+    - Do NOT change section titles or order
+    - Escape \\n properly
+    - All values must be strings
     """
 
     try:
-        completion = model_client.chat_completion(
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            model=MODEL
-        )
+        # completion = model_client.chat_completion(
+        #     messages=[
+        #         {
+        #             "role": "user",
+        #             "content": prompt
+        #         }
+        #     ],
+        #     model=MODEL
+        # )
+        # raw_output = completion.choices[0].message.content
 
-        result_content = completion.choices[0].message.content
-        doc_data = extract_json(str(result_content))
+        # Use Gemini 2.5 Flash Lite
+        raw_output = model_client.gemini_completion(prompt)
 
-        response_data = {
-            "title": doc_data.get("title", "Requirements Traceability Matrix"),
-            "content": doc_data.get("content", "")
-        }
-
-        return {"response": response_data}
-
-    except Exception as e:
-        print(f"Error generating RTM: {e}")
-        # Fallback response
+        json_data = extractor.extract_json(raw_output)
+        summary = "RTM"
+        content = ""
+        if not json_data:
+            print("No JSON data found returning raw output")
+            content = json_data
+        else:
+            summary = json_data.get("summary", "RTM")
+            content = json_data.get("content", "")
         return {
             "response": {
-                "title": "Requirements Traceability Matrix",
-                "content": f"Error generating document: {str(e)}"
+                "summary": summary,
+                "content": content
             }
-        }
-
+        } # pyright: ignore[reportReturnType]
+    except Exception as e:
+        print(f"Error generating RTM: {e}")
 
 # Build LangGraph pipeline for RTM
 workflow = StateGraph(RTMState)

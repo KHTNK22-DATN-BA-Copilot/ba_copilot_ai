@@ -2,7 +2,6 @@
 from langgraph.graph import StateGraph, END
 import sys
 import os
-import re
 import logging
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 # from models.product_roadmap import ProductRoadmapOutput, ProductRoadmapResponse
@@ -10,6 +9,7 @@ from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
 # from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
+from ..utils import extractor
 
 logger = logging.getLogger(__name__)
 
@@ -23,10 +23,6 @@ class ProductRoadmapState(TypedDict):
     raw_diagram: Optional[str]
     validation_result: Optional[dict]
     retry_count: int
-
-def extract_mermaid(text: str) -> str:
-    match = re.search(r"```mermaid\s*(.*?)```", text, re.DOTALL)
-    return match.group(0) if match else ""
 
 def generate_product_roadmap_diagram(state: ProductRoadmapState):
     """Generate product roadmap Gantt diagram using OpenRouter AI"""
@@ -46,78 +42,72 @@ def generate_product_roadmap_diagram(state: ProductRoadmapState):
     context_str = "\n".join(context_parts)
 
     prompt = f"""
-    You are a Product Manager.
-
-    TASK:
-    Generate a Product Roadmap as a Mermaid Gantt chart.
-
-    PROJECT:
-    {user_message}
-
-    CONTEXT:
     {context_str}
 
-    OUTPUT RULES (STRICT):
-    - Return ONLY a Mermaid code block
-    - No explanation text
-    - Start with ```mermaid
-    - End with ```
-    - Must be valid Gantt syntax
+    ### ROLE
+    Product Manager (roadmap planning, Mermaid Gantt).
 
-    REQUIREMENTS:
+    ### TASK
+    Create a Product Roadmap for: {user_message}
+
+    ### REQUIREMENTS
+    - Use Mermaid Gantt
+    - Include:
     - title
     - dateFormat YYYY-MM-DD
     - sections: Planning, Design, Development, Testing, Deployment
     - tasks with:
-        - start date + duration OR
+        - start date + duration (e.g., 2024-01-01, 30d) OR
         - dependencies using "after"
-    - timeline spans multiple months
+    - Timeline must span multiple months
+    - Use clear, realistic task names and sequencing
 
-    EXAMPLE FORMAT:
-    ```mermaid
-    gantt
-        title Product Roadmap
-        dateFormat YYYY-MM-DD
-        section Planning
-        Task A :2024-01-01, 30d
+    ### OUTPUT (STRICT JSON ONLY)
+    {{
+    "content": "Mermaid Gantt chart starting with 'gantt' (no backticks, use \\n for newlines)",
+    "summary": "One-line roadmap summary"
+    }}
+
+    ### RULES
+    - Do NOT include ``` or markdown wrappers
+    - Escape \\n properly
+    - No extra keys, no extra text
+    - Must be valid JSON (parsable)
+    - Use valid Mermaid syntax only
     """
 
     try:
-        # Using Open Router (default)
-        completion = model_client.chat_completion(
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            model=MODEL
-        )
-        raw_output = completion.choices[0].message.content or ""
+        # completion = model_client.chat_completion(
+        #     messages=[
+        #         {
+        #             "role": "user",
+        #             "content": prompt
+        #         }
+        #     ],
+        #     model=MODEL
+        # )
+        # raw_output = completion.choices[0].message.content
 
-        # Using Gemini 2.5 Flash lite
-        # raw_output = model_client.gemini_completion(prompt)
-        
-        diagram = extract_mermaid(raw_output)
-        if not diagram:
-            logger.warning("No valid mermaid block found, returning raw output")
-            diagram = raw_output
+        # Use Gemini 2.5 Flash Lite
+        raw_output = model_client.gemini_completion(prompt)
+
+        json_data = extractor.extract_json(raw_output)
+        summary = "Product Roadmap"
+        content = ""
+        if not json_data:
+            print("No JSON data found returning raw output")
+            content = json_data
+        else:
+            summary = json_data.get("summary", "Product Roadmap")
+            content = json_data.get("content", "")
         return {
             "response": {
-                "title": "Product Roadmap",
-                "detail": diagram or "",
+                "summary": summary,
+                "content": content
             }
         } # pyright: ignore[reportReturnType]
     except Exception as e:
         logger.exception(f"Error generating product roadmap: {e}")
-
-# def extract_mermaid_code(markdown_text: str) -> str:
-#     """Extract mermaid code from markdown fenced code block"""
-#     pattern = r'```mermaid\s*\n(.*?)```'
-#     match = re.search(pattern, markdown_text, re.DOTALL)
-#     if match:
-#         return match.group(1).strip()
-#     return markdown_text.strip()
 
 # def validate_diagram(state: ProductRoadmapState) -> ProductRoadmapState:
 #     """Validate the generated mermaid diagram"""
