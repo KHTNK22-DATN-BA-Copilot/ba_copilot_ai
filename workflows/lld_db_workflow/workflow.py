@@ -10,6 +10,7 @@ import re
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
 # from models.lld_db import LLDDBResponse, LLDDBOutput
+from ..utils import extractor
 
 logger = logging.getLogger(__name__)
 
@@ -47,103 +48,83 @@ def generate_lld_db_schema(state: LLDDBState):
     context_str = "\n".join(context_parts)
 
     prompt = f"""
-    You are a Database Architect.
-
-    TASK:
-    Generate a Low-Level Database Design (ERD) using Mermaid.
-
-    PROJECT:
-    {user_message}
-
-    CONTEXT:
     {context_str}
 
-    OUTPUT RULES (STRICT):
-    - Return ONLY a Mermaid code block
-    - Start with ```mermaid
-    - End with ```
-    - No explanation or extra text
-    - Must be valid Mermaid erDiagram syntax
+    ### ROLE
+    Database Architect (ERD, Mermaid).
 
-    ERD REQUIREMENTS:
+    ### TASK
+    Create a Low-Level Database Design (ERD) for: {user_message}
 
-    ENTITIES:
-    - Define all tables with attributes
-    - Include data types: uuid, string, int, decimal, boolean, timestamp
-    - Mark:
-    - PK (primary key)
-    - FK (foreign key)
-    - UNIQUE if applicable
-
-    RELATIONSHIPS:
-    - Define ALL relationships based on foreign keys
-    - Use correct direction: parent ||--o{{ child
-    - Use proper cardinality:
-    - ||--o{{ : one-to-many
-    - ||--|| : one-to-one
-    - }}o--o{{ : many-to-many (via join table)
-    - Every FK MUST have a relationship line
-
-    NAMING:
-    - Use uppercase for entity names
-    - Use snake_case for columns
-    - Use clear relationship labels (e.g., has, belongs_to, contains)
-
-    QUALITY RULES:
-    - No missing relationships
-    - No incorrect directions
+    ### REQUIREMENTS
+    - Use Mermaid erDiagram
+    - Entities:
+    - Tables with attributes (name, type)
+    - Types: uuid, string, int, decimal, boolean, timestamp
+    - Mark PK, FK, UNIQUE where applicable
+    - Relationships:
+    - Define ALL relationships from foreign keys
+    - Use correct cardinality:
+        - ||--o{{ : one-to-many
+        - ||--|| : one-to-one
+        - }}o--o{{ : many-to-many (via join table)
+    - Every FK MUST have a relationship
+    - Use clear labels (e.g., has, belongs_to)
+    - Naming:
+    - UPPERCASE table names
+    - snake_case columns
+    - Quality:
+    - No missing or incorrect relationships
     - No orphan tables
-    - Avoid redundant relationships
-    - Ensure normalized structure (no duplicated data)
+    - Avoid redundancy, ensure normalized design
 
-    EXAMPLE FORMAT:
-    ```mermaid
-    erDiagram
-        CUSTOMER ||--o{{ ORDER : places
+    ### OUTPUT (STRICT JSON ONLY)
+    {{
+    "content": "Mermaid ERD starting with 'erDiagram' (no backticks, use \\n for newlines)",
+    "summary": "One-line concise description of the database design"
+    }}
 
-        CUSTOMER {{
-            uuid id PK
-            string email UNIQUE
-            string name
-            timestamp created_at
-        }}
-
-        ORDER {{
-            uuid id PK
-            uuid customer_id FK
-            decimal total
-            timestamp created_at
-        }}
+    ### RULES
+    - Do NOT include ``` or markdown wrappers
+    - Escape \\n properly
+    - No extra keys, no extra text
+    - Must be valid JSON (parsable)
+    - Use valid Mermaid syntax only
     """
 
     try:
-        # Using Open Router (default)
-        completion = model_client.chat_completion(
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            model=MODEL
-        )
-        raw_output = completion.choices[0].message.content or ""
+        # Use OpenRouter (default)
+        # completion = model_client.chat_completion(
+        #     messages=[
+        #         {
+        #             "role": "user",
+        #             "content": prompt
+        #         }
+        #     ],
+        #     model=MODEL
+        # )
+        # raw_output = completion.choices[0].message.content
 
-        # Using Gemini 2.5 Flash lite
-        # raw_output = model_client.gemini_completion(prompt)
-        
-        diagram = extract_mermaid(raw_output)
-        if not diagram:
-            logger.warning("No valid mermaid block found, returning raw output")
-            diagram = raw_output
+        # Use Gemini 2.5 Flash Lite
+        raw_output = model_client.gemini_completion(prompt)
+
+        json_data = extractor.extract_json(raw_output)
+        summary = "LLD DB"
+        content = ""
+        if not json_data:
+            print("No JSON data found returning raw output")
+            content = json_data
+        else:
+            summary = json_data.get("summary", "LLD DB")
+            content = json_data.get("content", "")
         return {
             "response": {
-                "title": "Product Roadmap",
-                "detail": diagram or "",
+                "summary": summary,
+                "content": content
             }
         } # pyright: ignore[reportReturnType]
     except Exception as e:
-        logger.exception(f"Error generating product roadmap: {e}")
+        logger.exception(f"Error generating LLD DB: {e}")
     
 # Build LangGraph pipeline for LLD Database Schema
 workflow = StateGraph(LLDDBState)

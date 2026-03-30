@@ -9,8 +9,9 @@ import json
 import logging
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
-from models.lld_api import LLDAPIResponse, LLDAPIOutput
+# from models.lld_api import LLDAPIResponse, LLDAPIOutput
 import re
+from ..utils import extractor
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,7 @@ def extract_json(text: str) -> dict:
         print(f"[extract_json RAW]\n{text}")
         return {}
 
-def generate_lld_api_specs(state: LLDAPIState) -> LLDAPIState:
+def generate_lld_api_specs(state: LLDAPIState):
     """
     Generate detailed API specifications document using LLM.
     Creates comprehensive API documentation with endpoints, models, authentication.
@@ -61,116 +62,98 @@ def generate_lld_api_specs(state: LLDAPIState) -> LLDAPIState:
         context_str += f"Extracted content from uploaded files:\n{extracted_text}\n\n"
 
     prompt = f"""
-    You are an API Architect.
-
-    TASK:
-    Generate a Low-Level API Specification (REST, OpenAPI-style).
-
-    PROJECT:
-    {user_message}
-
-    CONTEXT:
     {context_str}
 
-    OUTPUT RULES (STRICT):
-    - Return ONLY valid JSON
-    - No explanation, no markdown outside JSON
-    - ALL values MUST be strings (no arrays/objects)
-    - Escape newlines as \\n
+    ### ROLE
+    API Architect (REST, OpenAPI-style).
 
-    FORMAT:
+    ### TASK
+    Design a Low-Level API Specification for: {user_message}
+
+    ### REQUIREMENTS
+    The "content" MUST be a Markdown document (use \\n) with EXACT structure:
+
+    # API Specification - <Project Name>
+
+    ## 1. API Overview
+    - Purpose, base URL, format (JSON), REST style
+
+    ## 2. Authentication
+    - Method (JWT/API key), token flow, security notes
+
+    ## 3. Endpoints
+    - Group by resource
+    - For each endpoint include:
+    - Method + path + description
+    - Parameters (path/query/body)
+    - Request/response JSON examples
+    - Status codes
+
+    ## 4. Data Models
+    - Fields: name, type, required, validation, example
+
+    ## 5. Error Handling
+    - Standard HTTP codes + response format
+
+    ## 6. Rate Limiting
+    - Limits, headers, throttling
+
+    ## 7. Versioning
+    - Strategy + deprecation
+
+    ## 8. Examples
+    - cURL, JavaScript, Python
+
+    - Use concise formatting and clear examples
+    - Do NOT leave any section empty
+
+    ### OUTPUT (STRICT JSON ONLY)
     {{
-    "title": "API Specifications - <Project Name>",
-    "content": "<FULL markdown document here>"
+    "content": "Markdown document following REQUIRED structure (use \\n for newlines)",
+    "summary": "One-line API summary"
     }}
 
-    CONTENT REQUIREMENTS:
-
-    api_overview:
-    - purpose, base URL, formats (JSON), architecture (REST)
-
-    authentication:
-    - method (JWT/API key), token flow, security notes
-
-    endpoints:
-    - MUST be a STRING
-    - include: method, path, description
-    - include: parameters (path/query/body)
-    - include: request/response JSON examples
-    - include: status codes
-    - format clearly (markdown-like inside string)
-
-    data_models:
-    - MUST be a STRING
-    - include: field name, type, required, validation, example
-
-    error_handling:
-    - standard HTTP codes + format
-
-    rate_limiting:
-    - requests/minute, headers, throttling
-
-    versioning:
-    - strategy + deprecation
-
-    detail:
-    - FULL markdown document including:
-    - overview
-    - authentication
-    - endpoints grouped by resource
-    - data models
-    - examples (cURL, JS, Python)
-
-    IMPORTANT:
-    - DO NOT return empty fields
-    - DO NOT include any text outside JSON
+    ### RULES
+    - Output JSON ONLY (no markdown wrappers, no explanations)
+    - No extra keys, no missing keys
+    - Do NOT change section titles or order
+    - Escape \\n properly
+    - All values must be strings
     """
     try:
-        # Using OpenRouter (default)
-        completion = model_client.chat_completion(
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            model=MODEL
-        )
-        result_content = completion.choices[0].message.content
+        # Use OpenRouter (default)
+        # completion = model_client.chat_completion(
+        #     messages=[
+        #         {
+        #             "role": "user",
+        #             "content": prompt
+        #         }
+        #     ],
+        #     model=MODEL
+        # )
+        # raw_output = completion.choices[0].message.content
 
-        # Using Gemini 2.5 Flash Lite
-        # result_content = model_client.gemini_completion(prompt)
+        # Use Gemini 2.5 Flash Lite
+        raw_output = model_client.gemini_completion(prompt)
 
-        doc_data = extract_json(str(result_content))
-        # Handle nested/double JSON
-        if isinstance(doc_data.get("content"), str):
-            try:
-                inner = extract_json(doc_data["content"])
-                if inner:
-                    doc_data = inner
-            except:
-                pass
-        response_data = {
-            "title": doc_data.get("title", "Low-level-design API Specs"),
-            "content": doc_data.get("content", "")
-        }
-        # Fallback if still broken
-        if not doc_data or not doc_data.get("content"):
-            print("⚠️ Falling back to raw output")
-            response_data = {
-                "title": "Low-level-design API Specs",
-                "content": result_content
+        json_data = extractor.extract_json(raw_output)
+        summary = "LLD API"
+        content = ""
+        if not json_data:
+            print("No JSON data found returning raw output")
+            content = json_data
+        else:
+            summary = json_data.get("summary", "LLD API")
+            content = json_data.get("content", "")
+        return {
+            "response": {
+                "summary": summary,
+                "content": content
             }
-        return {"response": response_data} # pyright: ignore[reportReturnType]
+        } # pyright: ignore[reportReturnType]
     except Exception as e:
         print(f"Error generating Low-level-design API Specs: {e}")
         # Fallback response
-        return {
-            "response": {
-                "title": "Low-level-design API Specs",
-                "content": f"Error generating document: {str(e)}"
-            }
-        } # pyright: ignore[reportReturnType]
 
 # Build LangGraph pipeline for LLD API Specifications
 workflow = StateGraph(LLDAPIState)

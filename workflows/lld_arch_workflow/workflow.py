@@ -10,6 +10,7 @@ import logging
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
 from models.lld_arch import LLDArchResponse, LLDArchOutput
+from ..utils import extractor
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,7 @@ class LLDArchState(TypedDict):
     extracted_text: Optional[str]
     chat_context: Optional[str]
 
-def generate_lld_arch_diagram(state: LLDArchState) -> LLDArchState:
+def generate_lld_arch_diagram(state: LLDArchState):
     """
     Generate detailed low-level architecture diagram using LLM.
     Creates component diagrams, deployment diagrams, or detailed system architecture.
@@ -43,102 +44,75 @@ def generate_lld_arch_diagram(state: LLDArchState) -> LLDArchState:
             context_str += f"Extracted content from uploaded files:\n{extracted_text}\n\n"
 
         prompt = f"""
-    {context_str}
+        {context_str}
 
-    ### ROLE
-    You are a professional Software Architect. With strong expertise in designing and documenting low-level system architectures using Mermaid syntax.
-    
-    ### CONTEXT
-    Create a detailed LOW-LEVEL DESIGN architecture diagram in Mermaid format for the following requirement: {user_message}
+        ### ROLE
+        Expert Software Architect (Low-Level Design, Mermaid).
 
-    Create a comprehensive component or deployment diagram showing:
-    1. Component Diagrams - Detailed components, interfaces, dependencies, internal structure
-    2. Deployment Diagrams - Hardware nodes, software components, network topology, deployment artifacts
-    3. Detailed System Architecture - All layers, components, data flows, integration points
+        ### TASK
+        Create a detailed LLD architecture diagram for: {user_message}
 
-    ### INSTRUCTIONS
-    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
-    2. Create a comprehensive LLD architecture diagram covering all specified elements.
-    3. Ensure clarity, completeness, and correctness in the diagram.
-    
-    ### NOTE
-    1. Use Mermaid markdown format for the architecture diagram.
-    2. Choose appropriate diagram type (component, deployment) based on the requirement.
-    3. Follow best practices for diagram clarity and readability.
-    4. Return ONLY the Mermaid code block starting with ```mermaid and ending with ```
-    
-    ### EXAMPLE OUTPUT
-    Use appropriate Mermaid syntax:
-    - For component diagrams: Use graph/flowchart with detailed component boxes
-    - For deployment diagrams: Use graph with nodes representing servers/containers
-    - Include subgraphs for logical groupings (layers, subsystems, deployment zones)
-    - Show all connections, dependencies, and data flows
-    - Add descriptive labels and annotations
-    
-    Example structure:
-    ```mermaid
-    graph TB
-        subgraph "Presentation Layer"
-            UI[Web UI Component]
-            API[API Gateway]
-        end
-        
-        subgraph "Application Layer"
-            Auth[Authentication Service]
-            Business[Business Logic Engine]
-            Cache[Cache Manager]
-        end
-        
-        subgraph "Data Layer"
-            DB[(Primary Database)]
-            Queue[Message Queue]
-        end
-        
-        UI --> API
-        API --> Auth
-        API --> Business
-        Business --> Cache
-        Business --> DB
-        Business --> Queue
-    ```
-    """
+        ### REQUIREMENTS
+        - Use Mermaid flowchart (graph TD or TB)
+        - Include:
+        - Components (services, modules, interfaces)
+        - Internal structure and dependencies
+        - Deployment elements (nodes, containers, network)
+        - Data flow (directional)
+        - Layers (presentation, application, data)
+        - Use subgraphs for layers, subsystems, or deployment zones
+        - Clearly label all nodes and connections
+        - Choose appropriate style (component, deployment, or hybrid)
+        - Ensure logical structure and readability
 
-        completion = model_client.client.chat.completions.create(
-            extra_headers=model_client.get_extra_headers(),
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are an expert Software Architect who creates detailed low-level design diagrams in Mermaid syntax."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            model=MODEL
-        )
+        ### OUTPUT (STRICT JSON ONLY)
+        {{
+        "content": "Mermaid diagram starting with 'graph TD' or 'graph TB' (no backticks, use \\n for newlines)",
+        "summary": "One-line concise description of the architecture"
+        }}
 
-        markdown_diagram = completion.choices[0].message.content
+        ### RULES
+        - Do NOT include ``` or markdown wrappers
+        - Escape newlines properly (\\n)
+        - No extra keys, no extra text
+        - Must be valid JSON (parsable)
+        - Use valid Mermaid syntax only
+        """
 
-        # Create response with diagram type and markdown detail
-        diagram_response = LLDArchResponse(
-            type="lld-arch",
-            detail=markdown_diagram
-        )
-        output = LLDArchOutput(type="diagram", response=diagram_response)
+        # Use OpenRouter (default)
+        # completion = model_client.chat_completion(
+        #     messages=[
+        #         {
+        #             "role": "user",
+        #             "content": prompt
+        #         }
+        #     ],
+        #     model=MODEL
+        # )
+        # raw_output = completion.choices[0].message.content
 
-        return {"response": output.model_dump()["response"]}
+        # Use Gemini 2.5 Flash Lite
+        raw_output = model_client.gemini_completion(prompt)
+
+        json_data = extractor.extract_json(raw_output)
+        summary = "LLD Architecture"
+        content = ""
+        if not json_data:
+            print("No JSON data found returning raw output")
+            content = json_data
+        else:
+            summary = json_data.get("summary", "LLD Architecture")
+            content = json_data.get("content", "")
+        return {
+            "response": {
+                "summary": summary,
+                "content": content
+            }
+        } # pyright: ignore[reportReturnType]
 
     except Exception as e:
         logger.error(f"Error generating LLD architecture diagram: {e}")
-        # Fallback response
-        return {
-            "response": {
-                "type": "lld-arch",
-                "detail": f"Error generating architecture diagram: {str(e)}"
-            }
-        }
-
+        
 # Build LangGraph pipeline for LLD Architecture
 workflow = StateGraph(LLDArchState)
 

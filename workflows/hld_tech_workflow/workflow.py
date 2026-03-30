@@ -8,6 +8,7 @@ from models.hld_tech import HLDTechOutput, HLDTechResponse
 from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
+from ..utils import extractor
 
 class HLDTechState(TypedDict):
     user_message: str
@@ -17,20 +18,7 @@ class HLDTechState(TypedDict):
     extracted_text: Optional[str]
     chat_context: Optional[str]
 
-def extract_json(text: str) -> dict:
-    """Extract JSON from text response"""
-    try:
-        # Find JSON block
-        start = text.find('{')
-        end = text.rfind('}') + 1
-        if start != -1 and end > start:
-            return json.loads(text[start:end])
-        return {}
-    except Exception as e:
-        print(f"Error extracting JSON: {e}")
-        return {}
-
-def generate_hld_tech(state: HLDTechState) -> HLDTechState:
+def generate_hld_tech(state: HLDTechState):
     """Generate Tech Stack Selection document using OpenRouter AI"""
     model_client = get_model_client()
 
@@ -51,115 +39,86 @@ def generate_hld_tech(state: HLDTechState) -> HLDTechState:
     {context_str}
 
     ### ROLE
-    You are a professional Technical Architect. With strong expertise in selecting appropriate technology stacks for software projects based on requirements, scalability, performance, and maintainability.
-    
-    ### CONTEXT 
-    Create a comprehensive Technology Stack Selection document for the following requirement: {user_message}
+    Senior Technical Architect (tech stack selection for scalable, maintainable systems).
 
-    Provide detailed technology selection covering:
-    1. Frontend Technologies - Framework, libraries, UI components, state management
-    2. Backend Technologies - Programming language, frameworks, API design
-    3. Database Selection - Primary database, caching, data warehousing
-    4. Infrastructure Tools - CI/CD, monitoring, logging, containerization
-    5. Justification - Why each technology was selected (performance, scalability, team expertise, community support, cost)
-    6. Alternatives Considered - Other options evaluated and why they were not chosen
+    ### TASK
+    Design a Technology Stack Selection for: {user_message}
 
-    ### INSTRUCTIONS
-    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
-    2. Create a comprehensive Tech Stack Selection document covering all specified sections.
-    3. Ensure clarity, completeness, and correctness in the document.
-    
-    ### NOTE
-    1. Use Markdown format for the Tech Stack Selection document.
-    2. Follow best practices for structuring technical documentation.
-    
-    ### EXAMPLE OUTPUT
-    Return the response in JSON format with ALL FIELDS AS STRINGS (no nested objects or arrays):
+    ### REQUIREMENTS
+    The "content" MUST be a Markdown document (use \\n) with EXACT structure:
+
+    # Technology Stack Selection - <Project Name>
+
+    ## 1. Executive Summary
+    - 1–2 sentence overview
+
+    ## 2. Frontend Technologies
+    - Framework, state management, UI, tools
+
+    ## 3. Backend Technologies
+    - Language, framework, API design, auth
+
+    ## 4. Database and Data Layer
+    - Primary DB, caching, search, analytics
+
+    ## 5. Infrastructure and DevOps
+    - CI/CD, containerization, monitoring, logging
+
+    ## 6. Technology Justification
+    - Why each key tech is chosen (performance, scalability, cost, team fit)
+
+    ## 7. Alternatives Considered
+    - Key alternatives + brief rejection reasons
+
+    - Use concise bullet points
+    - Use concrete technologies (e.g., React, Node.js, PostgreSQL, Docker)
+
+    ### OUTPUT (STRICT JSON ONLY)
     {{
-        "title": "Technology Stack Selection - [Project Name]",
-        "executive_summary": "Overview of selected technology stack and key architectural decisions",
-        "frontend_technologies": "Frontend framework (React/Vue/Angular), state management, UI libraries, build tools, testing frameworks",
-        "backend_technologies": "Programming language (Node.js/Python/Java), framework (Express/Django/Spring), API design (REST/GraphQL), authentication",
-        "database_selection": "Primary database (PostgreSQL/MongoDB/MySQL), caching (Redis/Memcached), search (Elasticsearch), data warehouse",
-        "infrastructure_tools": "Containerization (Docker/Kubernetes), CI/CD (GitHub Actions/Jenkins), monitoring (Prometheus/Grafana), logging (ELK)",
-        "justification": "MUST BE A STRING - Detailed justification for each technology choice including: technical fit, performance characteristics, scalability, team expertise, community support, licensing, total cost of ownership",
-        "alternatives_considered": "MUST BE A STRING - Alternative technologies evaluated with pros/cons comparison and decision rationale",
-        "detail": "Complete detailed tech stack document in Markdown format with sections:
-                   1. Executive Summary
-                   2. Technology Stack Overview
-                   3. Frontend Technology Stack
-                      - Framework and Libraries
-                      - State Management
-                      - UI Components
-                      - Build and Development Tools
-                   4. Backend Technology Stack
-                      - Programming Language and Framework
-                      - API Design and Architecture
-                      - Authentication and Authorization
-                      - Background Job Processing
-                   5. Database and Data Layer
-                      - Primary Database Selection
-                      - Caching Strategy
-                      - Search and Analytics
-                      - Data Migration Tools
-                   6. DevOps and Infrastructure
-                      - Containerization and Orchestration
-                      - CI/CD Pipeline
-                      - Monitoring and Logging
-                      - Infrastructure as Code
-                   7. Third-Party Services and Integrations
-                   8. Technology Justification Matrix
-                   9. Alternatives Considered
-                   10. Technology Risks and Mitigation
-                   11. Team Training and Onboarding Plan"
+    "content": "Markdown document following REQUIRED structure (use \\n for newlines)",
+    "summary": "One-line tech stack summary"
     }}
+
+    ### RULES
+    - Output JSON ONLY (no markdown wrappers, no explanations)
+    - No extra keys, no missing keys
+    - Do NOT change section titles or order
+    - Escape \\n properly
+    - Be concise but complete
     """
-
     try:
-        completion = model_client.chat_completion(
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            model=MODEL
-        )
+        # Use OpenRouter (default)
+        # completion = model_client.chat_completion(
+        #     messages=[
+        #         {
+        #             "role": "user",
+        #             "content": prompt
+        #         }
+        #     ],
+        #     model=MODEL
+        # )
+        # raw_output = completion.choices[0].message.content
 
-        result_content = completion.choices[0].message.content
-        tech_data = extract_json(result_content)
+        # Use Gemini 2.5 Flash Lite
+        raw_output = model_client.gemini_completion(prompt)
 
-        tech_response = HLDTechResponse(
-            title=tech_data.get("title", "Technology Stack Selection"),
-            executive_summary=tech_data.get("executive_summary", ""),
-            frontend_technologies=tech_data.get("frontend_technologies", ""),
-            backend_technologies=tech_data.get("backend_technologies", ""),
-            database_selection=tech_data.get("database_selection", ""),
-            infrastructure_tools=tech_data.get("infrastructure_tools", ""),
-            justification=tech_data.get("justification", ""),
-            alternatives_considered=tech_data.get("alternatives_considered", ""),
-            detail=tech_data.get("detail", "")
-        )
-
-        output = HLDTechOutput(type="hld-tech", response=tech_response)
-        return {"response": output.model_dump()["response"]}
-
-    except Exception as e:
-        print(f"Error generating tech stack selection: {e}")
-        # Fallback response
+        json_data = extractor.extract_json(raw_output)
+        summary = "HLD Tech"
+        content = ""
+        if not json_data:
+            print("No JSON data found returning raw output")
+            content = json_data
+        else:
+            summary = json_data.get("summary", "HLD Tech")
+            content = json_data.get("content", "")
         return {
             "response": {
-                "title": "Technology Stack Selection",
-                "executive_summary": "Error generating tech stack selection",
-                "frontend_technologies": "Error",
-                "backend_technologies": "Error",
-                "database_selection": "Error",
-                "infrastructure_tools": "Error",
-                "justification": "Error",
-                "alternatives_considered": "Error",
-                "detail": f"Error: {str(e)}"
+                "summary": summary,
+                "content": content
             }
-        }
+        } # pyright: ignore[reportReturnType]
+    except Exception as e:
+        print(f"Error generating tech stack selection: {e}")
 
 # Build LangGraph pipeline for Tech Stack Selection
 workflow = StateGraph(HLDTechState)
