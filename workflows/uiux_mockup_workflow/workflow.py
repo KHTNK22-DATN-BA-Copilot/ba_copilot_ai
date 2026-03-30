@@ -8,6 +8,7 @@ from typing import TypedDict, Optional, List, Dict
 import json
 import logging
 from connect_model import get_model_client, MODEL
+from ..utils import extractor
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ def get_chat_history(state: UIUXMockupState) -> UIUXMockupState:
     return {"chat_context": ""}
 
 
-def generate_uiux_mockup(state: UIUXMockupState) -> UIUXMockupState:
+def generate_uiux_mockup(state: UIUXMockupState):
     """
     Generate high-fidelity UI/UX mockup with design specifications
     """
@@ -70,87 +71,73 @@ def generate_uiux_mockup(state: UIUXMockupState) -> UIUXMockupState:
         {context_str}
 
         ### ROLE
-        You are an expert Visual Designer and Frontend Engineer specializing in high-fidelity UI mockups using pure HTML and CSS.
+        Visual Designer & Frontend Engineer (HTML/CSS mockups).
 
         ### TASK
-        Create a detailed visual mockup for the following request:
-
-        {user_message}
+        Create a UI mockup for: {user_message}
 
         ### REQUIREMENTS
-        Design a modern, clean with a focus on structure, typography over colors. Ensure UI following professional design principles, best practices.
+        - Clean, modern design with strong layout and typography
+        - Include:
+        - Page structure (header, main, sections, footer)
+        - Visual hierarchy and spacing
+        - UI components (buttons, cards, forms if relevant)
+        - Consistent styling and responsive-friendly layout
+        - Use semantic HTML and clear class naming
+        - Minimal, professional color palette
 
-        Include:
-        1. Clear page structure and layout
-        2. Visual hierarchy
-        3. Consistent spacing system
-        4. Modern color palette
-        5. Typography hierarchy
-        6. UI components (buttons, cards, forms if relevant)
-        7. Responsive-friendly layout structure
-
-        ### DESIGN GUIDELINES
-        - Use semantic HTML elements (header, main, section, nav, footer).
-        - Use clean class naming.
-        - Follow modern UI design practices.
-        - Ensure good visual hierarchy.
-        - Use a minimal but professional color palette.
-        - Ensure layout clarity and readable spacing.
-
-        ### OUTPUT RULES
-        Return ONLY a valid JSON object.
-
-        Do NOT include:
-        - explanations
-        - markdown
-        - comments
-        - code blocks
-
-        The JSON must contain exactly two keys:
-        - "html"
-        - "css"
-
-        ### HTML RULES
-        - Entire HTML must be on ONE LINE.
-        - Use single quotes for HTML attributes.
-        - Do NOT include <style> tags.
-
-        ### CSS RULES
-        - Entire CSS must be on ONE LINE.
-        - Do not include comments.
-        - Only pure CSS.
-
-        ### JSON ESCAPING RULES
-        - Escape all double quotes inside JSON strings.
-        - Do not include line breaks.
-        - Ensure valid JSON syntax.
-
-        ### REQUIRED OUTPUT FORMAT
+        ### OUTPUT (STRICT JSON ONLY)
         {{
-        "html": "<!DOCTYPE html><html><head><title>Mockup</title></head><body><header class='header'><h1>Product</h1></header><main class='container'><section class='hero'><h2>Main heading</h2><p>Supporting text</p><button class='btn-primary'>Get Started</button></section></main><footer class='footer'><p>©2026</p></footer></body></html>",
-        "css": "body{{margin:0;font-family:Arial,sans-serif;background:#f8f9fb;color:#222;}} .container{{max-width:1100px;margin:0 auto;padding:40px;}} .hero{{text-align:center;padding:60px 0;}} .btn-primary{{background:#4f46e5;color:white;border:none;padding:12px 20px;border-radius:6px;cursor:pointer;}} .header{{padding:20px;border-bottom:1px solid #eee;}} .footer{{text-align:center;padding:30px;border-top:1px solid #eee;color:#777;}}"
+        "content": {{
+            "html": "<single-line HTML>",
+            "css": "<single-line CSS>"
+        }},
+        "summary": "One-line UI description"
         }}
-        """
-        
-        completion = model_client.chat_completion(
-            messages=[{"role": "user", "content": prompt}],
-            model=MODEL
-        )
-        response_text = completion.choices[0].message.content.strip()
-        # remove markdown fences if present
-        if response_text.startswith("```"):
-            response_text = response_text.split("```")[1]
-            if response_text.startswith("json"):
-                response_text = response_text[4:]
-            response_text = response_text.strip()
 
-        parsed = json.loads(response_text)
-        return {"type": "uiux_mockup", "response": {"html": parsed.get("html", ""), "css": parsed.get("css", "")}}
-        
+        ### RULES
+        - Output JSON ONLY (no markdown, no explanations)
+        - No extra keys, no missing keys
+        - HTML & CSS must be single-line strings
+        - Use single quotes for HTML attributes
+        - Do NOT include <style> tags
+        - No comments in CSS
+        - Escape quotes properly
+        - Ensure valid JSON (parsable)
+        """
+
+        # Use Open Router (default)
+        # completion = model_client.chat_completion(
+        #     messages=[
+        #         {
+        #             "role": "user",
+        #             "content": prompt
+        #         }
+        #     ],
+        #     model=MODEL
+        # )
+        # raw_output = completion.choices[0].message.content
+
+        # Use Gemini 2.5 Flash Lite
+        raw_output = model_client.gemini_completion(prompt)
+
+        json_data = extractor.extract_json(raw_output)
+        summary = "UIUX Mockup"
+        content = ""
+        if not json_data:
+            print("No JSON data found returning raw output")
+            content = json_data
+        else:
+            summary = json_data.get("summary", "UIUX Mockup")
+            content = json_data.get("content", "")
+        return {
+            "response": {
+                "summary": summary,
+                "content": content
+            }
+        } # pyright: ignore[reportReturnType]
     except json.JSONDecodeError as e:
         logger.error(f"Error generating UIUX Mockup: {e}")
-        raise e
-
 
 # Build workflow graph
 workflow = StateGraph(UIUXMockupState)
