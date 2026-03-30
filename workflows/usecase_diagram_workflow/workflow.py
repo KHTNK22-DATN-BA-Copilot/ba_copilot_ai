@@ -3,13 +3,13 @@ from langgraph.graph import StateGraph, END
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from models.diagram import DiagramOutput, DiagramResponse
+# from models.diagram import DiagramOutput, DiagramResponse
+# from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
 from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
-import re
 import logging
-# from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
+from ..utils import extractor
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ class UsecaseDiagramState(TypedDict):
     validation_result: Optional[dict]
     retry_count: int
 
-def generate_usecase_diagram_description(state: UsecaseDiagramState) -> UsecaseDiagramState:
+def generate_usecase_diagram_description(state: UsecaseDiagramState):
     """Generate use-case diagram in markdown format using OpenRouter AI"""
     model_client = get_model_client()
 
@@ -43,87 +43,73 @@ def generate_usecase_diagram_description(state: UsecaseDiagramState) -> UsecaseD
 
     prompt = f"""
     {context_str}
+
     ### ROLE
-    You are an expert UML Use Case Diagram designer. with strong skills in creating clear and comprehensive diagrams using Mermaid markdown syntax.
-    
-    ### CONTEXT
-    Create a detailed UML Use Case Diagram in Mermaid markdown format based on the requirement: {user_message}
+    Expert UML Use Case Diagram Designer (Mermaid).
 
-    The diagram should include:
-    - System boundary (the system being modeled)
-    - Actors (external entities interacting with the system):
-      * Primary actors (directly interact with the system)
-      * Secondary actors (support the system)
-      * Actor types: User, Administrator, External System, etc.
-    - Use cases (functionalities provided by the system):
-      * Use case name (verb + noun format, e.g., "Create Account", "Process Payment")
-      * Brief description of what each use case does
-    - Relationships between use cases:
-      * Include relationship (one use case includes another)
-      * Extend relationship (optional behavior)
-      * Generalization (inheritance between actors or use cases)
-    - Associations between actors and use cases (which actors interact with which use cases)
-    - Key scenarios or user flows
+    ### TASK
+    Create a UML Use Case Diagram for: {user_message}
 
-    ### INSTRUCTIONS
-    1. Read and analyze the context in {context_str} and **<CONTEXT>** section above.
-    2. Create a detailed UML Use Case Diagram in Mermaid markdown format covering all specified elements.
-    3. Ensure clarity, completeness, and correctness in the diagram.
-    
-    ### NOTE
-    1. Ensure the diagram is syntactically correct and can be rendered by Mermaid.
-    2. Follow best practices for UML use case diagram design.
-    3. IMPORTANT: Return ONLY the Mermaid markdown code block for the use case diagram, starting with ```mermaid and ending with ```.
-    Do not include any explanatory text before or after the code block.
+    ### REQUIREMENTS
+    - Use Mermaid flowchart (graph TD or TB)
+    - Include:
+    - System boundary (labeled)
+    - Actors (primary, secondary; e.g., User, Admin, External System)
+    - Use cases (verb + noun naming)
+    - Associations (actor ↔ use case)
+    - Relationships:
+        - include
+        - extend
+        - generalization
+    - Group elements clearly (e.g., system boundary via subgraph)
+    - Ensure logical structure and readability
 
-    ### EXAMPLE OUTPUT:
-    ```mermaid
-    graph TD
-        Actor1[Actor Name]
-        UseCase1((Use Case Name))
-        Actor1 --> UseCase1
-    ```
+    ### OUTPUT (STRICT JSON ONLY)
+    {{
+    "content": "Mermaid diagram starting with 'graph TD' or 'graph TB' (no backticks, use \\n for newlines)",
+    "summary": "One-line use case summary"
+    }}
+
+    ### RULES
+    - Do NOT include ``` or markdown wrappers
+    - Escape \\n properly
+    - No extra keys, no extra text
+    - Must be valid JSON (parsable)
+    - Use valid Mermaid syntax only
     """
 
     try:
-        completion = model_client.chat_completion(
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            model=MODEL
-        )
+        # completion = model_client.chat_completion(
+        #     messages=[
+        #         {
+        #             "role": "user",
+        #             "content": prompt
+        #         }
+        #     ],
+        #     model=MODEL
+        # )
+        # raw_output = completion.choices[0].message.content
 
-        markdown_diagram = completion.choices[0].message.content
+        # Use Gemini 2.5 Flash Lite
+        raw_output = model_client.gemini_completion(prompt)
 
-        # Create response with diagram type and markdown detail
-        diagram_response = DiagramResponse(
-            type="usecase_diagram",
-            detail=markdown_diagram
-        )
-        output = DiagramOutput(type="diagram", response=diagram_response)
-
-        return {"response": output.model_dump()["response"]}
-
-    except Exception as e:
-        print(f"Error generating use case diagram: {e}")
-        # Fallback response
+        json_data = extractor.extract_json(raw_output)
+        summary = "Use Case Diagram"
+        content = ""
+        if not json_data:
+            print("No JSON data found returning raw output")
+            content = json_data
+        else:
+            summary = json_data.get("summary", "Use Case Diagram")
+            content = json_data.get("content", "")
         return {
             "response": {
-                "type": "usecase_diagram",
-                "detail": f"Error generating use case diagram: {str(e)}"
+                "summary": summary,
+                "content": content
             }
-        }
-      
-# def extract_mermaid_code(markdown_text: str) -> str:
-#     """Extract mermaid code from markdown fenced code block"""
-#     pattern = r'```mermaid\s*\n(.*?)```'
-#     match = re.search(pattern, markdown_text, re.DOTALL)
-#     if match:
-#         return match.group(1).strip()
-#     return markdown_text.strip()
+        } # pyright: ignore[reportReturnType]
+    except Exception as e:
+        print(f"Error generating use case diagram: {e}")
 
 # def validate_diagram(state: UsecaseDiagramState) -> UsecaseDiagramState:
 #     """Validate the generated mermaid diagram"""
@@ -175,14 +161,6 @@ def generate_usecase_diagram_description(state: UsecaseDiagramState) -> UsecaseD
 #         )
 #         output = DiagramOutput(type="diagram", response=diagram_response)
 #         return {"response": output.model_dump()["response"]}
-
-# def extract_mermaid_code(markdown_text: str) -> str:
-#     """Extract mermaid code from markdown fenced code block"""
-#     pattern = r'```mermaid\s*\n(.*?)```'
-#     match = re.search(pattern, markdown_text, re.DOTALL)
-#     if match:
-#         return match.group(1).strip()
-#     return markdown_text.strip()
 
 # def validate_diagram(state: UsecaseDiagramState) -> UsecaseDiagramState:
 #     """Validate the generated mermaid diagram"""

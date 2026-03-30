@@ -2,12 +2,12 @@
 from langgraph.graph import StateGraph, END
 import sys
 import os
-import json
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from models.srs import SRSOutput, SRSResponse
 from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
+from ..utils import extractor
 
 class SRSState(TypedDict):
     user_message: str
@@ -17,20 +17,7 @@ class SRSState(TypedDict):
     extracted_text: Optional[str]
     chat_context: Optional[str]
 
-def extract_json(text: str) -> dict:
-    """Extract JSON from text response"""
-    try:
-        # Find JSON block
-        start = text.find('{')
-        end = text.rfind('}') + 1
-        if start != -1 and end > start:
-            return json.loads(text[start:end])
-        return {}
-    except Exception as e:
-        print(f"Error extracting JSON: {e}")
-        return {}
-
-def generate_srs(state: SRSState) -> SRSState:
+def generate_srs(state: SRSState):
     """Generate SRS document using OpenRouter AI"""
     model_client = get_model_client()
 
@@ -51,75 +38,86 @@ def generate_srs(state: SRSState) -> SRSState:
     {context_str}
 
     ### ROLE
-    You are a professional Business Analyst. With strong expertise in gathering and documenting software requirements include functional and non-functional requirements.
-    
-    ### CONTEXT
-    Create a detailed Software Requirements Specification (SRS)
-    document for the following requirement: {user_message}
+    Business Analyst (SRS, IEEE-style).
 
-    ### INSTRUCTIONS
-    1. Read and analyze the context in {context_str} and **<CONTEXT>** section above.
-    2. Create a comprehensive SRS document format covering all specified elements.
-    3. Ensure clarity, completeness, and correctness in the SRS document.
-    
-    ### NOTE
-    1. Use Markdown format for the SRS document.
-    2. Follow IEEE 830-1998 standard for SRS documentation.
-    
-    ### EXAMPLE OUTPUT
-    Return the response in JSON format:
+    ### TASK
+    Create a Software Requirements Specification (SRS) for: {user_message}
+
+    ### REQUIREMENTS
+    The "content" MUST be a Markdown document (use \\n) with EXACT structure:
+
+    # Software Requirements Specification - <Project Name>
+
+    ## 1. Introduction
+    - Purpose, scope, definitions
+
+    ## 2. Overall Description
+    - Product perspective, users, assumptions
+
+    ## 3. Functional Requirements
+    - Features, use cases, system behaviors
+
+    ## 4. Non-Functional Requirements
+    - Performance, security, scalability, usability, compliance
+
+    ## 5. System Features
+    - Detailed feature breakdown
+
+    ## 6. External Interface Requirements
+    - UI, APIs, hardware, integrations
+
+    ## 7. Other Requirements
+    - Constraints, legal, standards
+
+    - Use concise bullet points
+    - Do NOT leave any section empty
+
+    ### OUTPUT (STRICT JSON ONLY)
     {{
-        "title": "Project/feature name",
-        "functional_requirements": "Description of functional requirements (main features, use cases)",
-        "non_functional_requirements": "Description of non-functional requirements (performance, security, scalability, etc.)",
-        "detail": "Complete detailed SRS document content in Markdown format with sections:
-                   1. Introduction
-                   2. Overall Description
-                   3. Functional Requirements (detailed)
-                   4. Non-Functional Requirements (detailed)
-                   5. System Features
-                   6. External Interface Requirements
-                   7. Other Requirements"
+    "content": "Markdown document following REQUIRED structure (use \\n for newlines)",
+    "summary": "One-line SRS summary"
     }}
 
-    Return only JSON, no additional text.
+    ### RULES
+    - Output JSON ONLY (no markdown wrappers, no explanations)
+    - No extra keys, no missing keys
+    - Do NOT change section titles or order
+    - Escape \\n properly
+    - All values must be strings
     """
 
     try:
-        completion = model_client.chat_completion(
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            model=MODEL
-        )
+        # completion = model_client.chat_completion(
+        #     messages=[
+        #         {
+        #             "role": "user",
+        #             "content": prompt
+        #         }
+        #     ],
+        #     model=MODEL
+        # )
+        # raw_output = completion.choices[0].message.content
 
-        result_content = completion.choices[0].message.content
-        srs_data = extract_json(result_content)
+        # Use Gemini 2.5 Flash Lite
+        raw_output = model_client.gemini_completion(prompt)
 
-        srs_response = SRSResponse(
-            title=srs_data.get("title", "Software Requirements Specification"),
-            functional_requirements=srs_data.get("functional_requirements", ""),
-            non_functional_requirements=srs_data.get("non_functional_requirements", ""),
-            detail=srs_data.get("detail", "")
-        )
-
-        output = SRSOutput(type="srs", response=srs_response)
-        return {"response": output.model_dump()["response"]}
-
-    except Exception as e:
-        print(f"Error generating SRS: {e}")
-        # Fallback response
+        json_data = extractor.extract_json(raw_output)
+        summary = "SRS"
+        content = ""
+        if not json_data:
+            print("No JSON data found returning raw output")
+            content = json_data
+        else:
+            summary = json_data.get("summary", "SRS")
+            content = json_data.get("content", "")
         return {
             "response": {
-                "title": "Software Requirements Specification",
-                "functional_requirements": "Error generating requirements",
-                "non_functional_requirements": "Error generating requirements",
-                "detail": f"Error: {str(e)}"
+                "summary": summary,
+                "content": content
             }
-        }
+        } # pyright: ignore[reportReturnType]
+    except Exception as e:
+        print(f"Error generating SRS: {e}")
 
 # Build LangGraph pipeline for SRS
 workflow = StateGraph(SRSState)

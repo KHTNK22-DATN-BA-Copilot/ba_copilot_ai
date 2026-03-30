@@ -2,12 +2,12 @@
 from langgraph.graph import StateGraph, END
 import sys
 import os
-import json
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from models.scope_statement import ScopeStatementOutput, ScopeStatementResponse
 from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
-from connect_model import get_model_client, MODEL
+from connect_model import get_model_client
+from ..utils import extractor
 
 class ScopeStatementState(TypedDict):
     user_message: str
@@ -17,20 +17,7 @@ class ScopeStatementState(TypedDict):
     extracted_text: Optional[str]
     chat_context: Optional[str]
 
-def extract_json(text: str) -> dict:
-    """Extract JSON from text response"""
-    try:
-        # Find JSON block
-        start = text.find('{')
-        end = text.rfind('}') + 1
-        if start != -1 and end > start:
-            return json.loads(text[start:end])
-        return {}
-    except Exception as e:
-        print(f"Error extracting JSON: {e}")
-        return {}
-
-def generate_scope_statement(state: ScopeStatementState) -> ScopeStatementState:
+def generate_scope_statement(state: ScopeStatementState):
     """Generate Scope Statement document using OpenRouter AI"""
     model_client = get_model_client()
 
@@ -51,214 +38,111 @@ def generate_scope_statement(state: ScopeStatementState) -> ScopeStatementState:
     {context_str}
 
     ### ROLE
-    You are a professional Business Analyst. With strong expertise in project scope management, requirements gathering, and stakeholder communication.
-    
-    ### CONTEXT
-    Create a detailed Project Scope Statement document for the following project:
+    Business Analyst (scope definition, stakeholder alignment).
 
-    {user_message}
+    ### TASK
+    Create a Project Scope Statement for: {user_message}
 
-    ### INSTRUCTIONS
-    1. Read and analyze the context in {context_str} and **CONTEXT** section above.
-    2. Create a detailed Project Scope Statement covering all specified sections.
-    3. Ensure clarity, completeness, and correctness in the document.
-    
-    ### NOTE
-    1. Use Markdown format for the Scope Statement document.
-    2. Follow best practices for structuring Project Scope Statements.
-    
-    ### EXAMPLE OUTPUT
-    Return the response in JSON format:
+    ### REQUIREMENTS
+    The "content" MUST be a Markdown document (use \\n) with EXACT structure:
+
+    # Project Scope Statement - <Project Name>
+
+    ## 1. Document Control
+    - Version, date, approval
+
+    ## 2. Project Overview
+    ### 2.1 Purpose
+    ### 2.2 Description
+    ### 2.3 Justification
+
+    ## 3. Project Scope
+    ### 3.1 In Scope
+    ### 3.2 Out of Scope
+
+    ## 4. Deliverables
+    ### 4.1 Major Deliverables
+    - Include table: Deliverable | Description | Acceptance Criteria
+
+    ### 4.2 Milestones
+    - Include table: Milestone | Target Date | Description
+
+    ## 5. Requirements Summary
+    ### 5.1 Functional
+    ### 5.2 Non-Functional
+    ### 5.3 Technical
+
+    ## 6. Constraints
+    ## 7. Assumptions
+
+    ## 8. Dependencies
+    ### 8.1 Internal
+    ### 8.2 External
+
+    ## 9. Success Criteria
+    ### 9.1 Project Success
+    ### 9.2 Acceptance Criteria
+
+    ## 10. Stakeholders
+    - Include table: Stakeholder | Role | Responsibility
+
+    ## 11. Change Management
+    - Scope change process
+
+    ## 12. Risks and Issues
+
+    ## 13. Approval
+    - Include table: Role | Name | Signature | Date
+
+    - Use concise bullet points (except tables)
+    - Do NOT leave any section empty
+
+    ### OUTPUT (STRICT JSON ONLY)
     {{
-        "content": "Complete Project Scope Statement document in Markdown format with these sections:
-                   # Project Scope Statement
-
-                   ## Project: [Project Name]
-
-                   ### Document Control
-                   - Version
-                   - Date
-                   - Approved By
-                   - Last Updated
-
-                   ---
-
-                   ## 1. Project Overview
-
-                   ### 1.1 Project Purpose
-                   - Business need or opportunity
-                   - Project objectives
-
-                   ### 1.2 Project Description
-                   - High-level description of the project
-                   - Expected outcomes
-
-                   ### 1.3 Project Justification
-                   - Why this project is necessary
-                   - Strategic alignment
-
-                   ---
-
-                   ## 2. Project Scope
-
-                   ### 2.1 In Scope
-                   - Detailed list of what IS included in the project
-                   - Features and functionalities to be delivered
-                   - Work to be performed
-                   - Deliverables to be produced
-
-                   ### 2.2 Out of Scope
-                   - Detailed list of what IS NOT included
-                   - Features explicitly excluded
-                   - Boundaries of the project
-
-                   ---
-
-                   ## 3. Deliverables
-
-                   ### 3.1 Major Deliverables
-                   | Deliverable | Description | Acceptance Criteria |
-                   |-------------|-------------|---------------------|
-
-                   ### 3.2 Milestones
-                   | Milestone | Target Date | Description |
-                   |-----------|-------------|-------------|
-
-                   ---
-
-                   ## 4. Requirements Summary
-
-                   ### 4.1 Functional Requirements
-                   - High-level functional requirements
-
-                   ### 4.2 Non-Functional Requirements
-                   - Performance requirements
-                   - Security requirements
-                   - Scalability requirements
-                   - Compliance requirements
-
-                   ### 4.3 Technical Requirements
-                   - Technology constraints
-                   - Integration requirements
-
-                   ---
-
-                   ## 5. Constraints
-
-                   ### 5.1 Project Constraints
-                   - Time constraints
-                   - Budget constraints
-                   - Resource constraints
-                   - Technology constraints
-                   - Regulatory/compliance constraints
-
-                   ---
-
-                   ## 6. Assumptions
-
-                   ### 6.1 Project Assumptions
-                   - List of assumptions made during planning
-                   - Resource availability assumptions
-                   - Technology assumptions
-                   - Stakeholder availability assumptions
-
-                   ---
-
-                   ## 7. Dependencies
-
-                   ### 7.1 Internal Dependencies
-                   - Dependencies on other projects/initiatives
-                   - Dependencies on internal resources
-
-                   ### 7.2 External Dependencies
-                   - Third-party vendor dependencies
-                   - External system dependencies
-
-                   ---
-
-                   ## 8. Success Criteria
-
-                   ### 8.1 Project Success Criteria
-                   - Measurable criteria for project success
-                   - Quality standards
-                   - Performance benchmarks
-
-                   ### 8.2 Acceptance Criteria
-                   - Criteria for deliverable acceptance
-                   - Sign-off requirements
-
-                   ---
-
-                   ## 9. Stakeholders
-
-                   ### 9.1 Key Stakeholders
-                   | Stakeholder | Role | Responsibility |
-                   |-------------|------|----------------|
-
-                   ---
-
-                   ## 10. Change Management
-
-                   ### 10.1 Scope Change Process
-                   - How scope changes will be handled
-                   - Change request procedures
-                   - Approval authority
-
-                   ---
-
-                   ## 11. Risks and Issues
-
-                   ### 11.1 Known Risks
-                   - Initial risk identification
-                   - High-level mitigation strategies
-
-                   ### 11.2 Known Issues
-                   - Current issues affecting scope
-
-                   ---
-
-                   ## 12. Approval
-
-                   | Role | Name | Signature | Date |
-                   |------|------|-----------|------|
-                   | **Project Sponsor** | | | |
-                   | **Project Manager** | | | |
-                   | **Business Analyst** | | | |
-                   | **Key Stakeholder** | | | |"
+    "content": "Markdown document following REQUIRED structure (use \\n for newlines)",
+    "summary": "One-line scope summary"
     }}
+
+    ### RULES
+    - Output JSON ONLY (no markdown wrappers, no explanations)
+    - No extra keys, no missing keys
+    - Do NOT change section titles or order
+    - Escape \\n properly
+    - All values must be strings
     """
 
     try:
-        completion = model_client.chat_completion(
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            model=MODEL
-        )
+        # completion = model_client.chat_completion(
+        #     messages=[
+        #         {
+        #             "role": "user",
+        #             "content": prompt
+        #         }
+        #     ],
+        #     model=MODEL
+        # )
+        # raw_output = completion.choices[0].message.content
 
-        result_content = completion.choices[0].message.content
-        scope_statement_data = extract_json(str(result_content))
+        # Use Gemini 2.5 Flash Lite
+        raw_output = model_client.gemini_completion(prompt)
 
-        scope_statement_response = ScopeStatementResponse(
-            title=scope_statement_data.get("title", "Project Scope Statement"),
-            content=scope_statement_data.get("content", "")
-        )
-
-        output = ScopeStatementOutput(type="scope-statement", response=scope_statement_response)
-        return {"response": output.model_dump()["response"]}
-
-    except Exception as e:
-        print(f"Error generating Scope Statement: {e}")
-        # Fallback response
+        json_data = extractor.extract_json(raw_output)
+        summary = "Scope Statement"
+        content = ""
+        if not json_data:
+            print("No JSON data found returning raw output")
+            content = json_data
+        else:
+            summary = json_data.get("summary", "Scope Statement")
+            content = json_data.get("content", "")
         return {
             "response": {
-                "title": "Project Scope Statement",
-                "content": f"Error generating scope statement: {str(e)}"
+                "summary": summary,
+                "content": content
             }
-        }
+        } # pyright: ignore[reportReturnType]
+    except Exception as e:
+        print(f"Error generating Scope Statement: {e}")
 
 # Build LangGraph pipeline for Scope Statement
 workflow = StateGraph(ScopeStatementState)
