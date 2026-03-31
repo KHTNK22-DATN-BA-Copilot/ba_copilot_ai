@@ -84,16 +84,16 @@ def generate_cost_benefit_analysis(state: CostBenefitAnalysisState):
 
     try:
         # Use OpenRouter (default)
-        completion = model_client.chat_completion(
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            model=MODEL
-        )
-        raw_output = completion.choices[0].message.content
+        # completion = model_client.chat_completion(
+        #     messages=[
+        #         {
+        #             "role": "user",
+        #             "content": prompt
+        #         }
+        #     ],
+        #     model=MODEL
+        # )
+        # raw_output = completion.choices[0].message.content
 
         # Use Gemini 2.5 Flash Lite
         raw_output = model_client.gemini_completion(prompt)
