@@ -2,7 +2,6 @@
 from langgraph.graph import StateGraph, END
 import sys
 import os
-import json
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from models.business_case import BusinessCaseOutput, BusinessCaseResponse
 from typing import TypedDict, Optional, List
@@ -112,19 +111,6 @@ def generate_business_case(state: BusinessCaseState):
     """
 
     try:
-        # Use OpenRouter (default)
-        # completion = model_client.chat_completion(
-        #     messages=[
-        #         {
-        #             "role": "user",
-        #             "content": prompt
-        #         }
-        #     ],
-        #     model=MODEL
-        # )
-        # raw_output = completion.choices[0].message.content
-
-         # Using Gemini 2.5 Flash lite
         raw_output = model_client.gemini_completion(prompt)
         
         json_data = extractor.extract_json(raw_output)

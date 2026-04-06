@@ -79,19 +79,6 @@ def generate_lld_arch_diagram(state: LLDArchState):
         - Use valid Mermaid syntax only
         """
 
-        # Use OpenRouter (default)
-        # completion = model_client.chat_completion(
-        #     messages=[
-        #         {
-        #             "role": "user",
-        #             "content": prompt
-        #         }
-        #     ],
-        #     model=MODEL
-        # )
-        # raw_output = completion.choices[0].message.content
-
-        # Use Gemini 2.5 Flash Lite
         raw_output = model_client.gemini_completion(prompt)
 
         json_data = extractor.extract_json(raw_output)
