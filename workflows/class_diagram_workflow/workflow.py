@@ -91,11 +91,11 @@ def generate_class_diagram_description(state: ClassDiagramState):
         summary = "Class Diagram"
         content = ""
         if not json_data:
-            logger.warning("No JSON data found returning raw output")
-            content = json_data
+            print("No JSON data found! Returning raw output...")
+            content = raw_output
         else:
             summary = json_data.get("summary", "Class Diagram")
-            content = json_data.get("content", "")
+            content = json_data.get("content", "Empty json_data")
         return {
             "response": {
                 "summary": summary,

@@ -73,42 +73,44 @@ def generate_uiux_wireframe(state: UIUXWireframeState) -> UIUXWireframeState:
         {context_str}
 
         ### ROLE
-        You are an expert UX/UI Designer and Layout Architect specializing in wireframes and structured UI layouts using HTML and CSS.
+        UX/UI Wireframe Designer (HTML/CSS Layout).
 
         ### TASK
-        Create a **comprehensive UI wireframe layout** for:
+        Create a structured UI wireframe for: {user_message}
 
-        {user_message}
+        ### REQUIREMENTS
+        - Define layout structure using semantic HTML (header, nav, main, section, footer)
+        - Show layout hierarchy and content grouping
+        - Include navigation, hero, content sections, and at least 1 form
+        - Use grid/flex for layout
+        - Include responsive behavior (mobile breakpoint)
+        - Focus on structure, NOT visual styling
 
-        Focus on **page structure, layout hierarchy, navigation, and major UI sections**. This wireframe emphasizes layout architecture over styling or color details.
-
-        ### OBJECTIVES
-        - Overall page layout and section hierarchy
-        - Information architecture and visual hierarchy
-        - Navigation structure and content grouping
-        - Responsive layout (mobile, tablet, desktop)
-        - Placement of UI components (cards, forms, buttons, CTAs)
-
-        ### GUIDELINES
-        - Use semantic HTML: header, nav, main, section, article, aside, footer
-        - Use grid/flex layout with a consistent spacing system
-        - Demonstrate responsive behavior via media queries
-        - CSS should reflect layout, spacing, typography, and component structure
-        - Avoid decorative styling; focus on structure and readability
-
-        ### OUTPUT RULES
-        Return ONLY a valid JSON object with exactly two keys: `"html"` and `"css"`.
-
-        - **HTML**: single line, single quotes for attributes, no `<style>` tags
-        - **CSS**: single line, no comments, responsive and structured
-        - Escape all quotes correctly for valid JSON
-        - Do NOT include explanations, markdown, or extra text
-
-        ### REQUIRED OUTPUT FORMAT
+        ### OUTPUT (STRICT JSON ONLY)
         {{
-        "html": "<!DOCTYPE html><html><head><title>Wireframe</title></head><body><header class='header'><nav class='nav'><div class='logo'>Brand</div><ul class='nav-links'><li><a href='#'>Home</a></li><li><a href='#'>Features</a></li><li><a href='#'>Pricing</a></li><li><a href='#'>Contact</a></li></ul></nav></header><main class='container'><section class='hero'><h1>Main Heading</h1><p>Intro description</p><button class='cta'>Primary Action</button></section><section class='features'><article class='feature-card'><h3>Feature One</h3><p>Short description</p></article><article class='feature-card'><h3>Feature Two</h3><p>Short description</p></article><article class='feature-card'><h3>Feature Three</h3><p>Short description</p></article></section><section class='content'><div class='content-left'><h2>Content Area</h2><p>Supporting info</p></div><div class='content-right'><div class='card'>Secondary content</div></div></section><section class='form-section'><form class='form'><input class='input' placeholder='Email'><button class='submit'>Submit</button></form></section></main><footer class='footer'><p>Footer navigation</p></footer></body></html>",
-        "css": "body{{margin:0;font-family:Arial,sans-serif;background:#fafafa;color:#222;}} .container{{max-width:1200px;margin:0 auto;padding:40px;}} .header{{border-bottom:1px solid #ddd;padding:16px;}} .nav{{display:flex;justify-content:space-between;align-items:center;}} .nav-links{{display:flex;gap:20px;list-style:none;margin:0;padding:0;}} .nav-links a{{text-decoration:none;color:#333;}} .hero{{padding:60px 0;text-align:center;}} .cta{{margin-top:20px;padding:12px 18px;border:none;background:#333;color:white;border-radius:6px;cursor:pointer;}} .features{{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;margin-top:40px;}} .feature-card{{padding:20px;border:1px solid #ddd;border-radius:8px;background:white;}} .content{{display:grid;grid-template-columns:2fr 1fr;gap:30px;margin-top:40px;}} .card{{padding:20px;border:1px solid #ddd;border-radius:8px;background:white;}} .form-section{{margin-top:40px;text-align:center;}} .input{{padding:10px;border:1px solid #ccc;border-radius:4px;margin-right:10px;}} .submit{{padding:10px 16px;border:none;background:#111;color:white;border-radius:4px;}} .footer{{margin-top:60px;border-top:1px solid #ddd;padding:20px;text-align:center;color:#666;}} @media(max-width:768px){{.nav{{flex-direction:column;gap:10px;}} .content{{grid-template-columns:1fr;}} .hero{{padding:40px 10px;}}}}"
+        "content": {{
+            "html": "<single-line HTML>",
+            "css": "<single-line CSS>"
+        }},
+        "summary": "One-line description of layout"
         }}
+
+        ### RULES
+        - Return ONLY valid JSON
+        - No markdown, no explanations
+        - No extra or missing keys
+        - HTML & CSS MUST NOT be empty
+        - HTML & CSS must be single-line strings
+        - Use single quotes in HTML
+        - Do NOT include <style> tags
+        - No comments in CSS
+        - Include responsive layout (@media)
+        - Escape quotes properly
+        - Ensure JSON is parsable
+
+        ### FALLBACK
+        - If unsure, still generate a basic but complete wireframe
+        - NEVER return empty html or css
         """
         
         # Use Open Router (default)
@@ -128,13 +130,13 @@ def generate_uiux_wireframe(state: UIUXWireframeState) -> UIUXWireframeState:
 
         json_data = extractor.extract_json(raw_output)
         summary = "UIUX Wireframe"
-        content = ""
+        content = "No content"
         if not json_data:
-            print("No JSON data found returning raw output")
-            content = json_data
+            print("No JSON data found! Returning raw output...")
+            content = raw_output
         else:
             summary = json_data.get("summary", "UIUX Wireframe")
-            content = json_data.get("content", "")
+            content = json_data.get("content", "Empty json_data")
         return {
             "response": {
                 "summary": summary,

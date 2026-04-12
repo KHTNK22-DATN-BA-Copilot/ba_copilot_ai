@@ -97,11 +97,11 @@ def generate_hld_arch_diagram(state: HLDArchState):
         summary = "HLD architecture diagram"
         content = ""
         if not json_data:
-            print("No JSON data found returning raw output")
-            content = json_data
+            print("No JSON data found! Returning raw output...")
+            content = raw_output
         else:
             summary = json_data.get("summary", "HLD architecture diagram")
-            content = json_data.get("content", "")
+            content = json_data.get("content", "Empty json_data")
         return {
             "response": {
                 "summary": summary,

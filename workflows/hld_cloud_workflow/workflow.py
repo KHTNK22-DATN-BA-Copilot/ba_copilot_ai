@@ -114,11 +114,11 @@ def generate_hld_cloud(state: HLDCloudState):
         summary = "HLD Cloud"
         content = ""
         if not json_data:
-            print("No JSON data found returning raw output")
-            content = json_data
+            print("No JSON data found! Returning raw output...")
+            content = raw_output
         else:
             summary = json_data.get("summary", "HLD Cloud")
-            content = json_data.get("content", "")
+            content = json_data.get("content", "Empty json_data")
         return {
             "response": {
                 "summary": summary,

@@ -114,11 +114,11 @@ def generate_lld_pseudocode(state: LLDPseudoState):
         summary = "LLD Pseudo"
         content = ""
         if not json_data:
-            print("No JSON data found returning raw output")
-            content = json_data
+            print("No JSON data found! Returning raw output...")
+            content = raw_output
         else:
             summary = json_data.get("summary", "LLD Pseudo")
-            content = json_data.get("content", "")
+            content = json_data.get("content", "Empty json_data")
         return {
             "response": {
                 "summary": summary,

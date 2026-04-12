@@ -103,11 +103,11 @@ def generate_requirements_management_plan(state: RequirementsManagementPlanState
         summary = "Requirements Management Plan"
         content = ""
         if not json_data:
-            print("No JSON data found returning raw output")
-            content = json_data
+            print("No JSON data found! Returning raw output...")
+            content = raw_output
         else:
             summary = json_data.get("summary", "Requirements Management Plan")
-            content = json_data.get("content", "")
+            content = json_data.get("content", "Empty json_data")
         return {
             "response": {
                 "summary": summary,

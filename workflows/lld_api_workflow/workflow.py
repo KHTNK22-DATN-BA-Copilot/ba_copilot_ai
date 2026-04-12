@@ -140,11 +140,11 @@ def generate_lld_api_specs(state: LLDAPIState):
         summary = "LLD API"
         content = ""
         if not json_data:
-            print("No JSON data found returning raw output")
-            content = json_data
+            print("No JSON data found! Returning raw output...")
+            content = raw_output
         else:
             summary = json_data.get("summary", "LLD API")
-            content = json_data.get("content", "")
+            content = json_data.get("content", "Empty json_data")
         return {
             "response": {
                 "summary": summary,
