@@ -66,12 +66,12 @@ def generate_hld_arch_diagram(state: HLDArchState):
 
     ### OUTPUT (STRICT JSON ONLY)
     {{
-    "content": "Mermaid diagram starting with 'graph TD' or 'graph TB' (no backticks, use \\n for newlines)",
+    "content": "Mermaid diagram starting with 'graph TD' or 'graph TB' (with backticks, use \\n for newlines)",
     "summary": "One-line description of the architecture"
     }}
 
     ### RULES
-    - Do NOT include ``` or markdown wrappers
+    - Do include ``` as markdown wrappers
     - Valid Mermaid syntax only
     - No extra keys, no extra text
     - Ensure JSON is parsable (escape \\n properly)

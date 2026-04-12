@@ -64,12 +64,12 @@ def generate_product_roadmap_diagram(state: ProductRoadmapState):
 
     ### OUTPUT (STRICT JSON ONLY)
     {{
-    "content": "Mermaid Gantt chart starting with 'gantt' (no backticks, use \\n for newlines)",
+    "content": "Mermaid Gantt chart starting with 'gantt' (with backticks, use \\n for newlines)",
     "summary": "One-line roadmap summary"
     }}
 
     ### RULES
-    - Do NOT include ``` or markdown wrappers
+    - Do include ``` as markdown wrappers
     - Escape \\n properly
     - No extra keys, no extra text
     - Must be valid JSON (parsable)

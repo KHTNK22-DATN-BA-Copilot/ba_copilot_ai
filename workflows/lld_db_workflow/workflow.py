@@ -80,12 +80,12 @@ def generate_lld_db_schema(state: LLDDBState):
 
     ### OUTPUT (STRICT JSON ONLY)
     {{
-    "content": "Mermaid ERD starting with 'erDiagram' (no backticks, use \\n for newlines)",
+    "content": "Mermaid ERD starting with 'erDiagram' (with backticks, use \\n for newlines)",
     "summary": "One-line concise description of the database design"
     }}
 
     ### RULES
-    - Do NOT include ``` or markdown wrappers
+    - Do include ``` as markdown wrappers
     - Escape \\n properly
     - No extra keys, no extra text
     - Must be valid JSON (parsable)

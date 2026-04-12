@@ -60,12 +60,12 @@ def generate_class_diagram_description(state: ClassDiagramState):
 
     ### OUTPUT (STRICT JSON ONLY)
     {{
-    "content": "Mermaid class diagram starting with 'classDiagram' (no backticks, use \\n for newlines)",
+    "content": "Mermaid class diagram starting with 'classDiagram' (with backticks, use \\n for newlines)",
     "summary": "One-line concise description of the diagram"
     }}
 
     ### RULES
-    - Do NOT include ``` or markdown wrappers
+    - Do include ``` as markdown wrappers
     - Escape newlines properly (\\n)
     - No extra keys, no extra text
     - Must be valid JSON (parsable)
