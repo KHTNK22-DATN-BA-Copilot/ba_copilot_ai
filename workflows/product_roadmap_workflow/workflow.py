@@ -74,6 +74,7 @@ def generate_product_roadmap_diagram(state: ProductRoadmapState):
     - No extra keys, no extra text
     - Must be valid JSON (parsable)
     - Use valid Mermaid syntax only
+    - Exactly one task per line (never place multiple tasks on the same line)
     """
 
     try:

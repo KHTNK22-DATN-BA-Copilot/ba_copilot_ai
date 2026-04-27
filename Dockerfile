@@ -73,11 +73,8 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
 
-# Copy and set up startup script
-COPY start.sh /app/start.sh
+COPY . .
 
-# Fix Windows CRLF line endings and make executable
-RUN sed -i 's/\r$//' /app/start.sh && chmod +x /app/start.sh
+RUN chmod +x /app/start.sh
 
-# Run the startup script
-CMD ["/bin/bash", "/app/start.sh"]
+CMD ["/app/start.sh"]
