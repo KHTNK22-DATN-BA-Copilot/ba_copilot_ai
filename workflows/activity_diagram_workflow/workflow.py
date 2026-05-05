@@ -75,19 +75,6 @@ def generate_activity_diagram_description(state: ActivityDiagramState):
     """
 
     try:
-        # Using Open Router (default)
-        # completion = model_client.chat_completion(
-        #     messages=[
-        #         {
-        #             "role": "user",
-        #             "content": prompt
-        #         }
-        #     ],
-        #     model=MODEL
-        # )
-        # raw_output = completion.choices[0].message.content or ""
-
-        # Using Gemini 2.5 Flash lite
         raw_output = model_client.gemini_completion(prompt)
         
         json_data = extractor.extract_json(raw_output)
