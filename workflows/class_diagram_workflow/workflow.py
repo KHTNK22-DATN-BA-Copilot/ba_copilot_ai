@@ -9,7 +9,7 @@ from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
 import logging
 from ..utils import extractor
-from ...response import success_response, error_response
+from response import success_response, error_response
 # from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
 
 logger = logging.getLogger(__name__)
