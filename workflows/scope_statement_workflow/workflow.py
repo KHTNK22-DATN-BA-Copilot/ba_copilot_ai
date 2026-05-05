@@ -8,6 +8,7 @@ from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client
 from ..utils import extractor
+from ..response import success_response, error_response
 
 class ScopeStatementState(TypedDict):
     user_message: str
@@ -124,13 +125,13 @@ def generate_scope_statement(state: ScopeStatementState):
             summary = json_data.get("summary", "Scope Statement")
             content = json_data.get("content", "Empty json_data")
         return {
-            "response": {
-                "summary": summary,
-                "content": content
-            }
+            "response": success_response(summary, content)
         } # pyright: ignore[reportReturnType]
     except Exception as e:
         print(f"Error generating Scope Statement: {e}")
+        return {
+            "response": error_response("Scope Statement", f"Error generating Scope Statement: {e}")
+        } # pyright: ignore[reportReturnType]
 
 # Build LangGraph pipeline for Scope Statement
 workflow = StateGraph(ScopeStatementState)

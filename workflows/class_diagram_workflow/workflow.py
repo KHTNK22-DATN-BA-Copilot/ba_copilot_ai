@@ -9,6 +9,7 @@ from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
 import logging
 from ..utils import extractor
+from ..response import success_response, error_response
 # from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
 
 logger = logging.getLogger(__name__)
@@ -84,14 +85,14 @@ def generate_class_diagram_description(state: ClassDiagramState):
             summary = json_data.get("summary", "Class Diagram")
             content = json_data.get("content", "Empty json_data")
         return {
-            "response": {
-                "summary": summary,
-                "content": content
-            }
+            "response": success_response(summary, content)
         } # pyright: ignore[reportReturnType]
 
     except Exception as e:
         print(f"Error generating class diagram: {e}")
+        return {
+            "response": error_response("Class Diagram", f"Error generating class diagram: {e}")
+        } # pyright: ignore[reportReturnType]
      
 # def extract_mermaid_code(markdown_text: str) -> str:
 #     """Extract mermaid code from markdown fenced code block"""

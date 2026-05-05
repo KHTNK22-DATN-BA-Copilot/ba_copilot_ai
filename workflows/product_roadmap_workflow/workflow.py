@@ -10,6 +10,7 @@ from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
 # from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
 from ..utils import extractor
+from ..response import success_response, error_response
 
 logger = logging.getLogger(__name__)
 
@@ -90,13 +91,13 @@ def generate_product_roadmap_diagram(state: ProductRoadmapState):
             summary = json_data.get("summary", "Product Roadmap")
             content = json_data.get("content", "Empty json_data")
         return {
-            "response": {
-                "summary": summary,
-                "content": content
-            }
+            "response": success_response(summary, content)
         } # pyright: ignore[reportReturnType]
     except Exception as e:
         logger.exception(f"Error generating product roadmap: {e}")
+        return {
+            "response": error_response("Product Roadmap", f"Error generating product roadmap: {e}")
+        } # pyright: ignore[reportReturnType]
 
 # def validate_diagram(state: ProductRoadmapState) -> ProductRoadmapState:
 #     """Validate the generated mermaid diagram"""

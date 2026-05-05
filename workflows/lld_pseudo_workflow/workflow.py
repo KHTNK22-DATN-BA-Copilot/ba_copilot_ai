@@ -12,6 +12,7 @@ from connect_model import get_model_client, MODEL
 from models.lld_pseudo import LLDPseudoResponse, LLDPseudoOutput
 import re
 from ..utils import extractor
+from ..response import success_response, error_response
 
 logger = logging.getLogger(__name__)
 
@@ -108,14 +109,14 @@ def generate_lld_pseudocode(state: LLDPseudoState):
             summary = json_data.get("summary", "LLD Pseudo")
             content = json_data.get("content", "Empty json_data")
         return {
-            "response": {
-                "summary": summary,
-                "content": content
-            }
+            "response": success_response(summary, content)
         } # pyright: ignore[reportReturnType]
 
     except Exception as e:
         logger.error(f"Error generating pseudocode: {e}")
+        return {
+            "response": error_response("LLD Pseudo", f"Error generating pseudocode: {e}")
+        } # pyright: ignore[reportReturnType]
 
 # Build LangGraph pipeline for LLD Pseudocode
 workflow = StateGraph(LLDPseudoState)

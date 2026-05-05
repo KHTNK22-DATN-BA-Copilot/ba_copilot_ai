@@ -12,6 +12,7 @@ from connect_model import get_model_client, MODEL
 # from models.lld_api import LLDAPIResponse, LLDAPIOutput
 import re
 from ..utils import extractor
+from ..response import success_response, error_response
 
 logger = logging.getLogger(__name__)
 
@@ -133,14 +134,14 @@ def generate_lld_api_specs(state: LLDAPIState):
             summary = json_data.get("summary", "LLD API")
             content = json_data.get("content", "Empty json_data")
         return {
-            "response": {
-                "summary": summary,
-                "content": content
-            }
+            "response": success_response(summary, content)
         } # pyright: ignore[reportReturnType]
     except Exception as e:
         print(f"Error generating Low-level-design API Specs: {e}")
         # Fallback response
+        return {
+            "response": error_response("LLD API", f"Error generating Low-level-design API Specs: {e}")
+        } # pyright: ignore[reportReturnType]
 
 # Build LangGraph pipeline for LLD API Specifications
 workflow = StateGraph(LLDAPIState)

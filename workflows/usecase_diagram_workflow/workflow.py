@@ -10,6 +10,7 @@ from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
 import logging
 from ..utils import extractor
+from ..response import success_response, error_response
 
 logger = logging.getLogger(__name__)
 
@@ -91,13 +92,13 @@ def generate_usecase_diagram_description(state: UsecaseDiagramState):
             summary = json_data.get("summary", "Use Case Diagram")
             content = json_data.get("content", "Empty json_data")
         return {
-            "response": {
-                "summary": summary,
-                "content": content
-            }
+            "response": success_response(summary, content)
         } # pyright: ignore[reportReturnType]
     except Exception as e:
         print(f"Error generating use case diagram: {e}")
+        return {
+            "response": error_response("Use Case Diagram", f"Error generating use case diagram: {e}")
+        } # pyright: ignore[reportReturnType]
 
 # def validate_diagram(state: UsecaseDiagramState) -> UsecaseDiagramState:
 #     """Validate the generated mermaid diagram"""

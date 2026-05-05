@@ -7,6 +7,7 @@ from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
 from ..utils import extractor
+from ..response import success_response, error_response
 class RequirementsManagementPlanState(TypedDict):
     user_message: str
     response: dict
@@ -97,13 +98,16 @@ def generate_requirements_management_plan(state: RequirementsManagementPlanState
             summary = json_data.get("summary", "Requirements Management Plan")
             content = json_data.get("content", "Empty json_data")
         return {
-            "response": {
-                "summary": summary,
-                "content": content
-            }
+            "response": success_response(summary, content)
         } # pyright: ignore[reportReturnType]
     except Exception as e:
         print(f"Error generating Requirements Management Plan: {e}")
+        return {
+            "response": error_response(
+                "Requirements Management Plan",
+                f"Error generating Requirements Management Plan: {e}",
+            )
+        } # pyright: ignore[reportReturnType]
 
 # Build LangGraph pipeline for Requirements Management Plan
 workflow = StateGraph(RequirementsManagementPlanState)

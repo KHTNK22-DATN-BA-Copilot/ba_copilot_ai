@@ -10,6 +10,7 @@ from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
 import logging
 from ..utils import extractor
+from ..response import success_response, error_response
 
 logger = logging.getLogger(__name__)
 
@@ -90,13 +91,16 @@ def generate_hld_arch_diagram(state: HLDArchState):
             summary = json_data.get("summary", "HLD architecture diagram")
             content = json_data.get("content", "Empty json_data")
         return {
-            "response": {
-                "summary": summary,
-                "content": content
-            }
+            "response": success_response(summary, content)
         } # pyright: ignore[reportReturnType]
     except Exception as e:
         logger.error(f"Error generating HLD architecture diagram: {e}")
+        return {
+            "response": error_response(
+                "HLD architecture diagram",
+                f"Error generating HLD architecture diagram: {e}",
+            )
+        } # pyright: ignore[reportReturnType]
 
 # Build LangGraph pipeline for HLD Architecture
 workflow = StateGraph(HLDArchState)

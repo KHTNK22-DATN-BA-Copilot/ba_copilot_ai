@@ -11,6 +11,7 @@ from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
 # from models.lld_db import LLDDBResponse, LLDDBOutput
 from ..utils import extractor
+from ..response import success_response, error_response
 
 logger = logging.getLogger(__name__)
 
@@ -105,13 +106,13 @@ def generate_lld_db_schema(state: LLDDBState):
             summary = json_data.get("summary", "LLD DB")
             content = json_data.get("content", "Empty json_data")
         return {
-            "response": {
-                "summary": summary,
-                "content": content
-            }
+            "response": success_response(summary, content)
         } # pyright: ignore[reportReturnType]
     except Exception as e:
         logger.exception(f"Error generating LLD DB: {e}")
+        return {
+            "response": error_response("LLD DB", f"Error generating LLD DB: {e}")
+        } # pyright: ignore[reportReturnType]
     
 # Build LangGraph pipeline for LLD Database Schema
 workflow = StateGraph(LLDDBState)

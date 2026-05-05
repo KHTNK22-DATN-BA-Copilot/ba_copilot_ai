@@ -10,6 +10,7 @@ from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
 from ..utils import extractor
+from ..response import success_response, error_response
 
 # from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
 
@@ -87,13 +88,13 @@ def generate_activity_diagram_description(state: ActivityDiagramState):
             summary = json_data.get("summary", "Activity Diagram")
             content = json_data.get("content", "Empty json_data")
         return {
-            "response": {
-                "summary": summary,
-                "content": content
-            }
+            "response": success_response(summary, content)
         } # pyright: ignore[reportReturnType]
     except Exception as e:
         logger.exception(f"Error generating product roadmap: {e}")
+        return {
+            "response": error_response("Activity Diagram", f"Error generating product roadmap: {e}")
+        } # pyright: ignore[reportReturnType]
 
 # def validate_diagram(state: ActivityDiagramState) -> ActivityDiagramState:
 #     """Validate the generated mermaid diagram"""
