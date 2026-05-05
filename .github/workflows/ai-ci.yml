@@ -56,7 +56,7 @@ jobs:
         run: |
           docker compose pull ai
           docker compose up -d --force-recreate ai
-        working-directory: /home/bacopilot/bacopilot
+        working-directory: /home/bacopilotteam/bacopilot
 
       - name: Cleanup old images
         run: docker image prune -f
