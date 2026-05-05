@@ -2,37 +2,74 @@
 """
 Centralized AI Model Connection Module
 
-This module provides a unified interface for connecting to AI models via OpenRouter.
-All workflow files should import from this module to maintain consistency and reusability.
+This module provides a unified interface for connecting to AI models.
+All workflow files import from here, so request-scoped BYOK can be applied globally.
 """
 
 import os
+from contextvars import ContextVar, Token
+from types import SimpleNamespace
 from typing import Optional, Dict, List, Any
-from openai import OpenAI
 from dotenv import load_dotenv
-import google.generativeai as genai
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+
+from factory import create_chat_model
 
 # Load environment variables
 load_dotenv()
 
 # Load API configuration from environment
-OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")  
-OPENROUTER_API_KEY = os.getenv("OPEN_ROUTER_API_KEY", "")
-OPENROUTER_REFERER = os.getenv("OPENROUTER_REFERER", "http://localhost:8000")
-OPENROUTER_TITLE = os.getenv("OPENROUTER_TITLE", "BA-Copilot")
-MODEL = os.getenv("MODEL", "tngtech/deepseek-r1t2-chimera:free")
+MODEL = os.getenv("MODEL", "gemini-2.5-flash-lite")
 MAX_CONTEXT_TOKENS = int(os.getenv("MAX_CONTEXT_TOKENS", "4096"))
-GOOGLE_AI_API_KEY = os.getenv("GOOGLE_AI_API_KEY", "")
+
+# Request-scoped model settings (BYOK + provider/model selection).
+_request_model_config: ContextVar[Dict[str, str]] = ContextVar("request_model_config", default={})
+
+
+def _clean(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+    normalized = value.strip()
+    return normalized if normalized else None
+
+
+def set_request_model_config(
+    provider: Optional[str] = None,
+    model_name: Optional[str] = None,
+    api_key: Optional[str] = None,
+) -> Token:
+    cfg: Dict[str, str] = {}
+    cleaned_provider = _clean(provider)
+    cleaned_model_name = _clean(model_name)
+    cleaned_api_key = _clean(api_key)
+
+    if cleaned_provider:
+        cfg["provider"] = cleaned_provider
+    if cleaned_model_name:
+        cfg["model_name"] = cleaned_model_name
+    if cleaned_api_key:
+        cfg["api_key"] = cleaned_api_key
+
+    return _request_model_config.set(cfg)
+
+
+def reset_request_model_config(token: Token) -> None:
+    _request_model_config.reset(token)
+
+
+def get_request_model_config() -> Dict[str, str]:
+    return dict(_request_model_config.get())
+
+
 class ModelClient:
     """
-    Singleton-like model client for managing OpenRouter AI connections.
+    Singleton-like model client for managing AI model calls.
 
-    This class provides a centralized way to create and manage AI model connections,
-    ensuring consistent configuration across all workflows.
+    The instance itself is shared, but model/key selection stays request-scoped via
+    ContextVar, so concurrent requests do not leak credentials.
     """
 
     _instance: Optional["ModelClient"] = None
-    _client: Optional[OpenAI] = None
 
     def __new__(cls) -> "ModelClient":
         if cls._instance is None:
@@ -40,35 +77,87 @@ class ModelClient:
         return cls._instance
 
     def __init__(self):
-        if self._client is None:
-            self._client = self._create_client()
+        pass
 
-    def _create_client(self) -> OpenAI:
-        """Create and return an OpenAI client configured for OpenRouter."""
-        if not OPENROUTER_API_KEY:
-            raise ValueError(
-                "OPEN_ROUTER_API_KEY environment variable is not set. "
-                "Please set it in your .env file."
-            )
+    def _resolve_config(
+        self,
+        default_provider: str,
+        default_model: str,
+        explicit_model: Optional[str] = None,
+    ) -> Dict[str, str]:
+        cfg = get_request_model_config()
 
-        return OpenAI(
-            base_url=OPENROUTER_BASE_URL,
-            api_key=OPENROUTER_API_KEY,
+        provider = _clean(cfg.get("provider")) or default_provider
+        model_name = _clean(cfg.get("model_name")) or _clean(explicit_model) or default_model
+        api_key = _clean(cfg.get("api_key"))
+
+        return {
+            "provider": provider,
+            "model_name": model_name,
+            "api_key": api_key or "",
+        }
+
+    @staticmethod
+    def _to_langchain_messages(messages: List[Dict[str, str]]) -> List[Any]:
+        converted: List[Any] = []
+        for message in messages:
+            role = (message.get("role") or "").strip().lower()
+            content = message.get("content", "")
+
+            if role == "system":
+                converted.append(SystemMessage(content=content))
+            elif role == "assistant":
+                converted.append(AIMessage(content=content))
+            else:
+                converted.append(HumanMessage(content=content))
+
+        return converted
+
+    @staticmethod
+    def _extract_text(response: Any) -> str:
+        content = getattr(response, "content", "")
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            chunks: List[str] = []
+            for item in content:
+                if isinstance(item, str):
+                    chunks.append(item)
+                elif isinstance(item, dict):
+                    text = item.get("text")
+                    if isinstance(text, str):
+                        chunks.append(text)
+            return "\n".join(chunk for chunk in chunks if chunk)
+        return str(content) if content is not None else ""
+
+    @staticmethod
+    def _to_openai_compatible_response(text: str) -> Any:
+        return SimpleNamespace(
+            choices=[
+                SimpleNamespace(
+                    message=SimpleNamespace(content=text)
+                )
+            ]
         )
 
-    @property
-    def client(self) -> OpenAI:
-        """Get the OpenAI client instance."""
-        if self._client is None:
-            self._client = self._create_client()
-        return self._client
-
-    def get_extra_headers(self) -> Dict[str, str]:
-        """Get the extra headers required for OpenRouter API calls."""
-        return {
-            "HTTP-Referer": OPENROUTER_REFERER,
-            "X-Title": OPENROUTER_TITLE,
-        }
+    def _build_llm(
+        self,
+        provider: str,
+        model_name: str,
+        api_key: Optional[str],
+        **kwargs: Any,
+    ) -> Any:
+        """Build LangChain chat model using centralized factory.
+        
+        Delegates to factory.create_chat_model() which handles all provider-specific
+        configuration including OpenRouter headers from environment variables.
+        """
+        return create_chat_model(
+            provider=provider,
+            model_name=model_name,
+            api_key=api_key,
+            **kwargs,
+        )
 
     def chat_completion(
         self,
@@ -87,27 +176,35 @@ class ModelClient:
         Returns:
             The completion response from the API.
         """
-        return self.client.chat.completions.create(
-            extra_headers=self.get_extra_headers(),
-            model=model,
-            messages=messages,
-            **kwargs
+        resolved = self._resolve_config(
+            default_provider="google",
+            default_model=model,
+            explicit_model=model,
         )
-    
-    def _create_gemini_client(self):
-        if not GOOGLE_AI_API_KEY:
-            raise ValueError("GOOGLE_AI_API_KEY not set")
-        
-        genai.configure(api_key=GOOGLE_AI_API_KEY)
-        return genai
-    
+        llm = self._build_llm(
+            provider=resolved["provider"],
+            model_name=resolved["model_name"],
+            api_key=resolved.get("api_key"),
+            **kwargs,
+        )
+        lc_messages = self._to_langchain_messages(messages)
+        response = llm.invoke(lc_messages)
+        text = self._extract_text(response)
+        return self._to_openai_compatible_response(text)
+
     def gemini_completion(self, prompt: str, model: str = "gemini-2.5-flash-lite") -> str:
-        genai_client = self._create_gemini_client()
-        
-        model_instance = genai_client.GenerativeModel(model)
-        response = model_instance.generate_content(prompt)
-        
-        return response.text
+        resolved = self._resolve_config(
+            default_provider="google",
+            default_model=model,
+            explicit_model=model,
+        )
+        llm = self._build_llm(
+            provider=resolved["provider"],
+            model_name=resolved["model_name"],
+            api_key=resolved.get("api_key"),
+        )
+        response = llm.invoke(prompt)
+        return self._extract_text(response)
 
 
 # Global instance for easy access
@@ -190,4 +287,11 @@ def is_configured() -> bool:
     Returns:
         True if the API key is set, False otherwise.
     """
-    return bool(OPENROUTER_API_KEY)
+    return bool(
+        _clean(os.getenv("GOOGLE_GEMINI_API_KEY"))
+        or _clean(os.getenv("GOOGLE_AI_API_KEY"))
+        or _clean(os.getenv("OPEN_ROUTER_API_KEY"))
+        or _clean(os.getenv("OPENROUTER_API_KEY"))
+        or _clean(os.getenv("OPENAI_API_KEY"))
+        or _clean(os.getenv("ANTHROPIC_API_KEY"))
+    )

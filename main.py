@@ -1,9 +1,15 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import Any, List, Optional
+import hmac
 import os
 from dotenv import load_dotenv
+from connect_model import (
+    set_request_model_config,
+    reset_request_model_config,
+    get_request_model_config,
+)
 
 # Import workflow graphs for AI-powered generation
 from workflows import (
@@ -124,6 +130,57 @@ class AIRequest(BaseModel):
             }
         }
 
+
+def _build_langgraph_config_from_request() -> dict:
+    """Build request-scoped LangGraph configurable payload."""
+    return {"configurable": get_request_model_config()}
+
+
+def _invoke_graph(graph: Any, state: dict) -> dict:
+    """Invoke LangGraph with request-scoped configurable settings for all endpoints."""
+    request_cfg = get_request_model_config()
+    # Keep secrets out of workflow state. Provider/model/api_key are passed only via configurable.
+    return graph.invoke(dict(state), config={"configurable": request_cfg})
+
+
+def _has_model_headers(request: Request) -> bool:
+    return any(
+        request.headers.get(header)
+        for header in ("X-AI-Provider", "X-AI-Model", "X-AI-API-Key")
+    )
+
+
+def _validate_internal_model_header_access(request: Request) -> None:
+    """Allow BYOK/model headers only for trusted backend calls when token is configured."""
+    expected_token = (os.getenv("AI_INTERNAL_AUTH_TOKEN") or "").strip()
+    if not expected_token:
+        return
+
+    provided_token = (request.headers.get("X-AI-Service-Token") or "").strip()
+    if not provided_token or not hmac.compare_digest(provided_token, expected_token):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: invalid or missing X-AI-Service-Token for model configuration headers.",
+        )
+
+
+@app.middleware("http")
+async def attach_model_config(request: Request, call_next):
+    """Attach per-request model configuration from headers without touching global state."""
+    if _has_model_headers(request):
+        _validate_internal_model_header_access(request)
+
+    token = set_request_model_config(
+        provider=request.headers.get("X-AI-Provider"),
+        model_name=request.headers.get("X-AI-Model"),
+        api_key=request.headers.get("X-AI-API-Key"),
+    )
+
+    try:
+        return await call_next(request)
+    finally:
+        reset_request_model_config(token)
+
 @app.get("/")
 async def root():
     """Root endpoint"""
@@ -176,7 +233,7 @@ async def generate_srs(req: AIRequest):
         }
 
         # Invoke SRS workflow
-        result = srs_graph.invoke(state)
+        result = _invoke_graph(srs_graph, state)
         return {"type": "srs", "response": result["response"]}
 
     except Exception as e:
@@ -217,7 +274,7 @@ async def generate_class_diagram(req: AIRequest):
         }
 
         # Invoke Class Diagram workflow
-        result = class_diagram_graph.invoke(state)
+        result = _invoke_graph(class_diagram_graph, state)
         return {"type": "diagram", "response": result["response"]}
 
     except Exception as e:
@@ -258,7 +315,7 @@ async def generate_usecase_diagram(req: AIRequest):
         }
 
         # Invoke Use Case Diagram workflow
-        result = usecase_diagram_graph.invoke(state)
+        result = _invoke_graph(usecase_diagram_graph, state)
         return {"type": "diagram", "response": result["response"]}
 
     except Exception as e:
@@ -299,7 +356,7 @@ async def generate_activity_diagram(req: AIRequest):
         }
 
         # Invoke Activity Diagram workflow
-        result = activity_diagram_graph.invoke(state)
+        result = _invoke_graph(activity_diagram_graph, state)
         return {"type": "diagram", "response": result["response"]}
 
     except Exception as e:
@@ -375,7 +432,7 @@ async def generate_stakeholder_register(req: AIRequest):
             "storage_paths": req.storage_paths or []
         }
 
-        result = stakeholder_register_graph.invoke(state)
+        result = _invoke_graph(stakeholder_register_graph, state)
         return {"type": "stakeholder-register", "response": result["response"]}
 
     except Exception as e:
@@ -415,7 +472,7 @@ async def generate_high_level_requirements(req: AIRequest):
             "storage_paths": req.storage_paths or []
         }
 
-        result = high_level_requirements_graph.invoke(state)
+        result = _invoke_graph(high_level_requirements_graph, state)
         return {"type": "high-level-requirements", "response": result["response"]}
 
     except Exception as e:
@@ -455,7 +512,7 @@ async def generate_requirements_management_plan(req: AIRequest):
             "storage_paths": req.storage_paths or []
         }
 
-        result = requirements_management_plan_graph.invoke(state)
+        result = _invoke_graph(requirements_management_plan_graph, state)
         return {"type": "requirements-management-plan", "response": result["response"]}
 
     except Exception as e:
@@ -495,7 +552,7 @@ async def generate_business_case(req: AIRequest):
             "storage_paths": req.storage_paths or []
         }
 
-        result = business_case_graph.invoke(state)
+        result = _invoke_graph(business_case_graph, state)
         return {"type": "business-case", "response": result["response"]}
 
     except Exception as e:
@@ -535,7 +592,7 @@ async def generate_scope_statement(req: AIRequest):
             "storage_paths": req.storage_paths or []
         }
 
-        result = scope_statement_graph.invoke(state)
+        result = _invoke_graph(scope_statement_graph, state)
         return {"type": "scope-statement", "response": result["response"]}
 
     except Exception as e:
@@ -575,7 +632,7 @@ async def generate_product_roadmap(req: AIRequest):
             "storage_paths": req.storage_paths or []
         }
 
-        result = product_roadmap_graph.invoke(state)
+        result = _invoke_graph(product_roadmap_graph, state)
         return {"type": "diagram", "response": result["response"]}
 
     except Exception as e:
@@ -621,7 +678,7 @@ async def generate_feasibility_study(req: AIRequest):
             "storage_paths": req.storage_paths or []
         }
 
-        result = feasibility_study_graph.invoke(state)
+        result = _invoke_graph(feasibility_study_graph, state)
         return {"type": "feasibility-study", "response": result["response"]}
 
     except Exception as e:
@@ -667,7 +724,7 @@ async def generate_cost_benefit_analysis(req: AIRequest):
             "storage_paths": req.storage_paths or []
         }
 
-        result = cost_benefit_analysis_graph.invoke(state)
+        result = _invoke_graph(cost_benefit_analysis_graph, state)
         return {"type": "cost-benefit-analysis", "response": result["response"]}
 
     except Exception as e:
@@ -712,7 +769,7 @@ async def generate_risk_register(req: AIRequest):
             "storage_paths": req.storage_paths or []
         }
 
-        result = risk_register_graph.invoke(state)
+        result = _invoke_graph(risk_register_graph, state)
         return {"type": "risk-register", "response": result["response"]}
 
     except Exception as e:
@@ -757,7 +814,7 @@ async def generate_compliance(req: AIRequest):
             "storage_paths": req.storage_paths or []
         }
 
-        result = compliance_graph.invoke(state)
+        result = _invoke_graph(compliance_graph, state)
         return {"type": "compliance", "response": result["response"]}
 
     except Exception as e:
@@ -801,7 +858,7 @@ async def generate_hld_arch(req: AIRequest):
             "storage_paths": req.storage_paths or []
         }
 
-        result = hld_arch_graph.invoke(state)
+        result = _invoke_graph(hld_arch_graph, state)
         return {"type": "hld-arch", "response": result["response"]}
 
     except Exception as e:
@@ -848,7 +905,7 @@ async def generate_hld_cloud(req: AIRequest):
             "storage_paths": req.storage_paths or []
         }
 
-        result = hld_cloud_graph.invoke(state)
+        result = _invoke_graph(hld_cloud_graph, state)
         return {"type": "hld-cloud", "response": result["response"]}
 
     except Exception as e:
@@ -895,7 +952,7 @@ async def generate_hld_tech(req: AIRequest):
             "storage_paths": req.storage_paths or []
         }
 
-        result = hld_tech_graph.invoke(state)
+        result = _invoke_graph(hld_tech_graph, state)
         return {"type": "hld-tech", "response": result["response"]}
 
     except Exception as e:
@@ -939,7 +996,7 @@ async def generate_lld_arch(req: AIRequest):
             "storage_paths": req.storage_paths or []
         }
 
-        result = lld_arch_graph.invoke(state)
+        result = _invoke_graph(lld_arch_graph, state)
         return {"type": "lld-arch", "response": result["response"]}
 
     except Exception as e:
@@ -979,7 +1036,7 @@ async def generate_lld_db(req: AIRequest):
             "storage_paths": req.storage_paths or []
         }
 
-        result = lld_db_graph.invoke(state)
+        result = _invoke_graph(lld_db_graph, state)
         return {"type": "lld-db", "response": result["response"]}
 
     except Exception as e:
@@ -1026,7 +1083,7 @@ async def generate_lld_api(req: AIRequest):
             "storage_paths": req.storage_paths or []
         }
 
-        result = lld_api_graph.invoke(state)
+        result = _invoke_graph(lld_api_graph, state)
         return {"type": "lld-api", "response": result["response"]}
 
     except Exception as e:
@@ -1072,7 +1129,7 @@ async def generate_lld_pseudo(req: AIRequest):
             "storage_paths": req.storage_paths or []
         }
 
-        result = lld_pseudo_graph.invoke(state)
+        result = _invoke_graph(lld_pseudo_graph, state)
         return {"type": "lld-pseudo", "response": result["response"]}
 
     except Exception as e:
@@ -1105,7 +1162,7 @@ async def generate_uiux_wireframe(req: AIRequest):
             "storage_paths": req.storage_paths or []
         }
 
-        result = uiux_wireframe_graph.invoke(state)
+        result = _invoke_graph(uiux_wireframe_graph, state)
         return {"type": "uiux-wireframe", "response": result["response"]}
 
     except Exception as e:
@@ -1134,7 +1191,7 @@ async def generate_uiux_mockup(req: AIRequest):
             "storage_paths": req.storage_paths or []
         }
 
-        result = uiux_mockup_graph.invoke(state)
+        result = _invoke_graph(uiux_mockup_graph, state)
         return {"type": "uiux-mockup", "response": result["response"]}
 
     except Exception as e:
@@ -1163,7 +1220,7 @@ async def generate_uiux_prototype(req: AIRequest):
             "storage_paths": req.storage_paths or []
         }
 
-        result = uiux_prototype_graph.invoke(state)
+        result = _invoke_graph(uiux_prototype_graph, state)
         return {"type": "uiux-prototype", "response": result["response"]}
 
     except Exception as e:
@@ -1210,7 +1267,7 @@ async def generate_rtm(req: AIRequest):
             "storage_paths": req.storage_paths or []
         }
 
-        result = rtm_graph.invoke(state)
+        result = _invoke_graph(rtm_graph, state)
         return {"type": "rtm", "response": result["response"]}
 
     except Exception as e:
@@ -1270,7 +1327,7 @@ async def extract_metadata(req: MetadataExtractionRequest):
         }
         
         # Invoke metadata extraction workflow
-        result = metadata_extraction_graph.invoke(state)
+        result = _invoke_graph(metadata_extraction_graph, state)
         
         # Extract response from workflow result
         response_data = result.get("response", {})
@@ -1314,3 +1371,4 @@ async def get_document_types():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+

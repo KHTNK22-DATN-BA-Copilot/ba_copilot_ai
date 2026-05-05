@@ -10,9 +10,14 @@ AI Service cho BA Copilot, cung cấp các chức năng:
 - **FastAPI**: Web framework
 - **LangGraph**: Workflow orchestration
 - **LangChain**: LLM integration
-- **Google Gemini**: AI model
+- **Multi-Provider AI**: Google Gemini (default), OpenAI, Anthropic, OpenRouter
 - **Docker**: Containerization
 - **PostgreSQL**: Database
+
+## Documentation
+
+- **[AI Provider Factory Guide](docs/AI_PROVIDER_FACTORY.md)** - Complete guide for multi-provider support and BYOK
+- **[API Specifications](AI_API_SPECS.md)** - Detailed API endpoint documentation
 
 ## Setup
 
@@ -32,10 +37,25 @@ cp .env.example .env
 
 Chỉnh sửa `.env`:
 ```env
-GOOGLE_API_KEY=your_actual_google_api_key_here
+# Google Gemini (Default Provider)
+GOOGLE_GEMINI_API_KEY=your_actual_google_api_key_here
+
+# Optional: Other Providers
+OPENAI_API_KEY=your_openai_key_here
+ANTHROPIC_API_KEY=your_anthropic_key_here
+OPEN_ROUTER_API_KEY=your_openrouter_key_here
+
+# Security (required for BYOK)
+AI_INTERNAL_AUTH_TOKEN=your_secret_token_for_byok
 ```
 
-Lấy Google API Key tại: https://makersuite.google.com/app/apikey
+**API Keys:**
+- Google Gemini: https://makersuite.google.com/app/apikey
+- OpenAI: https://platform.openai.com/api-keys
+- Anthropic: https://console.anthropic.com/settings/keys
+- OpenRouter: https://openrouter.ai/keys
+
+**Note:** See [AI Provider Factory documentation](docs/AI_PROVIDER_FACTORY.md) for detailed provider configuration.
 
 ### 3. Chạy bằng Docker
 
@@ -88,6 +108,11 @@ Content-Type: application/json
 ### API Documentation
 - Swagger UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
+- **AI Provider Guide**: See [docs/AI_PROVIDER_FACTORY.md](docs/AI_PROVIDER_FACTORY.md) for:
+  - Multi-provider configuration
+  - Bring Your Own Key (BYOK) usage
+  - Security model
+  - Adding new providers
 
 ## Response Formats
 

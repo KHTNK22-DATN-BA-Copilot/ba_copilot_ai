@@ -2,13 +2,13 @@
 from langgraph.graph import StateGraph, END
 import sys
 import os
-import json
+# import json
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from models.cost_benefit_analysis import CostBenefitAnalysisOutput, CostBenefitAnalysisResponse
+# from models.cost_benefit_analysis import CostBenefitAnalysisOutput, CostBenefitAnalysisResponse
 from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
-
+from ..utils import extractor
 class CostBenefitAnalysisState(TypedDict):
     user_message: str
     response: dict
@@ -17,20 +17,7 @@ class CostBenefitAnalysisState(TypedDict):
     extracted_text: Optional[str]
     chat_context: Optional[str]
 
-def extract_json(text: str) -> dict:
-    """Extract JSON from text response"""
-    try:
-        # Find JSON block
-        start = text.find('{')
-        end = text.rfind('}') + 1
-        if start != -1 and end > start:
-            return json.loads(text[start:end])
-        return {}
-    except Exception as e:
-        print(f"Error extracting JSON: {e}")
-        return {}
-
-def generate_cost_benefit_analysis(state: CostBenefitAnalysisState) -> CostBenefitAnalysisState:
+def generate_cost_benefit_analysis(state: CostBenefitAnalysisState):
     """Generate Cost-Benefit Analysis document using OpenRouter AI"""
     model_client = get_model_client()
 
@@ -51,93 +38,69 @@ def generate_cost_benefit_analysis(state: CostBenefitAnalysisState) -> CostBenef
     {context_str}
 
     ### ROLE
-    You are a professional Business Analyst. With strong expertise in financial analysis, project evaluation, and cost-benefit assessment.
-    
-    ### CONTEXT
-    Create a detailed Cost-Benefit Analysis document for the following requirement: {user_message}
+    Professional Business Analyst (Cost-Benefit Analysis).
 
-    Provide comprehensive financial analysis including:
-    1. Cost Analysis - All project costs (development, implementation, operational, maintenance)
-    2. Benefit Analysis - All expected benefits (tangible and intangible)
-    3. ROI Calculation - Return on Investment with formulas and projections
-    4. NPV Analysis - Net Present Value calculation with discount rates
-    5. Payback Period - Time required to recover the investment
+    ### TASK
+    Create a Cost-Benefit Analysis for: {user_message}
 
-    ### INSTRUCTIONS
-    1. Read and analyze the context in {context_str} and **<CONTEXT** section above.
-    2. Create a comprehensive Cost-Benefit Analysis document covering all specified sections.
-    3. Ensure clarity, completeness, and correctness in the document.
-    
-    ### NOTE
-    1. Use Markdown format for the Cost-Benefit Analysis document.
-    2. Follow best practices for structuring financial analysis documentation.
-    
-    ### EXAMPLE OUTPUT
-    Return the response in JSON format:
+    ### REQUIREMENTS
+    Analyze:
+    - Cost breakdown (development, operational, maintenance)
+    - Benefits (tangible and intangible, quantified if possible)
+    - ROI (with formula and projection)
+    - NPV (with discount rate assumption)
+    - Payback period (break-even point)
+    - Key financial assumptions
+
+    ### OUTPUT (STRICT JSON ONLY)
     {{
-        "title": "Cost-Benefit Analysis - [Project Name]",
-        "executive_summary": "Brief overview of financial analysis and recommendations",
-        "cost_analysis": "Detailed breakdown of all costs (initial, ongoing, hidden costs)",
-        "benefit_analysis": "Comprehensive analysis of all benefits with quantification where possible",
-        "roi_calculation": "ROI calculation with methodology and multi-year projections",
-        "npv_analysis": "Net Present Value calculation with discount rate assumptions",
-        "payback_period": "Payback period calculation and break-even analysis",
-        "detail": "Complete detailed cost-benefit analysis in Markdown format with sections:
-                   1. Executive Summary
-                   2. Project Overview
-                   3. Cost Analysis (detailed breakdown)
-                   4. Benefit Analysis (quantified where possible)
-                   5. ROI Calculation and Projections
-                   6. NPV Analysis
-                   7. Payback Period and Break-Even Analysis
-                   8. Sensitivity Analysis
-                   9. Recommendations and Conclusion"
+    "summary": "One-line financial conclusion (e.g., high ROI, viable investment, not financially justified)",
+    "content": "Markdown cost-benefit analysis with sections below"
     }}
+
+    ### REQUIRED STRUCTURE (Markdown)
+    # Cost-Benefit Analysis
+    ## Executive Summary
+    ## Project Overview
+    ## Cost Analysis
+    ## Benefit Analysis
+    ## ROI Calculation
+    ## NPV Analysis
+    ## Payback Period
+    ## Assumptions
+    ## Sensitivity Analysis
+    ## Recommendations
+
+    ### RULES
+    - Return ONLY valid JSON (no markdown wrapper, no extra text)
+    - ALL values must be strings
+    - Escape \\n properly
+    - Do NOT return empty fields
+    - Use realistic numbers or reasonable estimates
+    - If data is missing, make assumptions and state them
+    - Keep content concise but complete
     """
 
     try:
-        completion = model_client.chat_completion(
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            model=MODEL
-        )
+        raw_output = model_client.gemini_completion(prompt)
 
-        result_content = completion.choices[0].message.content
-        analysis_data = extract_json(result_content)
-
-        analysis_response = CostBenefitAnalysisResponse(
-            title=analysis_data.get("title", "Cost-Benefit Analysis"),
-            executive_summary=analysis_data.get("executive_summary", ""),
-            cost_analysis=analysis_data.get("cost_analysis", ""),
-            benefit_analysis=analysis_data.get("benefit_analysis", ""),
-            roi_calculation=analysis_data.get("roi_calculation", ""),
-            npv_analysis=analysis_data.get("npv_analysis", ""),
-            payback_period=analysis_data.get("payback_period", ""),
-            detail=analysis_data.get("detail", "")
-        )
-
-        output = CostBenefitAnalysisOutput(type="cost-benefit-analysis", response=analysis_response)
-        return {"response": output.model_dump()["response"]}
-
-    except Exception as e:
-        print(f"Error generating cost-benefit analysis: {e}")
-        # Fallback response
+        json_data = extractor.extract_json(raw_output)
+        summary = "Cost Benefit Analysis"
+        content = ""
+        if not json_data:
+            print("No JSON data found! Returning raw output...")
+            content = raw_output
+        else:
+            summary = json_data.get("summary", "Cost Benefit Analysis")
+            content = json_data.get("content", "Empty json_data")
         return {
             "response": {
-                "title": "Cost-Benefit Analysis",
-                "executive_summary": "Error generating cost-benefit analysis",
-                "cost_analysis": "Error",
-                "benefit_analysis": "Error",
-                "roi_calculation": "Error",
-                "npv_analysis": "Error",
-                "payback_period": "Error",
-                "detail": f"Error: {str(e)}"
+                "summary": summary,
+                "content": content
             }
-        }
+        } # pyright: ignore[reportReturnType]
+    except Exception as e:
+        print(f"Error generating cost-benefit analysis: {e}")
 
 # Build LangGraph pipeline for Cost-Benefit Analysis
 workflow = StateGraph(CostBenefitAnalysisState)
