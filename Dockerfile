@@ -73,8 +73,6 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
 
-COPY . .
-
 RUN chmod +x /app/start.sh
 
 CMD ["/app/start.sh"]
