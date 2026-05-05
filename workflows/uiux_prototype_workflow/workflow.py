@@ -9,7 +9,7 @@ import json
 import logging
 from connect_model import get_model_client, MODEL
 from ..utils import extractor
-from ..response import success_response, error_response
+from ...response import success_response, error_response
 
 logger = logging.getLogger(__name__)
 

@@ -31,7 +31,7 @@ from models.metadata_extraction import (
     PHASE_7_TESTING_QA,
     ADDITIONAL_DOCUMENT_TYPES,
 )
-from ..response import success_response
+from ...response import success_response
 
 
 # ============================================================================
