@@ -31,7 +31,6 @@ from models.metadata_extraction import (
     PHASE_7_TESTING_QA,
     ADDITIONAL_DOCUMENT_TYPES,
 )
-from response import success_response
 
 
 # ============================================================================
@@ -338,14 +337,11 @@ def aggregate_results(state: MetadataExtractionState) -> MetadataExtractionState
                 "line_end": -1
             })
     
-    state["response"] = success_response(
-        "Metadata extraction",
-        {
-            "document_id": state["document_id"],
-            "type": "metadata_extraction",
-            "response": response_items,
-        },
-    )
+    state["response"] = {
+        "document_id": state["document_id"],
+        "type": "metadata_extraction",
+        "response": response_items,
+    }
     
     return state
 
