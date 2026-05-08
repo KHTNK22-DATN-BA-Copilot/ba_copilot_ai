@@ -73,11 +73,15 @@ def generate_lld_arch_diagram(state: LLDArchState):
         }}
 
         ### RULES
-        - Do include ``` as markdown wrappers
-        - Escape newlines properly (\\n)
-        - No extra keys, no extra text
-        - Must be valid JSON (parsable)
-        - Use valid Mermaid syntax only
+        - ALWAYS include triple backticks (` ``` `) around the Mermaid diagram
+        - ALWAYS start the Mermaid content with `graph TD` or `graph TB`
+        - The `content` field MUST contain a complete Mermaid markdown block
+        - Use escaped newlines (`\\n`) inside JSON strings
+        - Return VALID parsable JSON only
+        - Do NOT return markdown outside the JSON object
+        - Do NOT add explanations, comments, or extra text
+        - Do NOT add extra JSON keys
+        - Ensure Mermaid syntax is valid and renderable
         """
 
         raw_output = model_client.gemini_completion(prompt)
