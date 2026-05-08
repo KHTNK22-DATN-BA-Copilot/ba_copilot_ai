@@ -9,6 +9,7 @@ import json
 import logging
 from connect_model import get_model_client, MODEL
 from ..utils import extractor
+from response import success_response, error_response
 
 logger = logging.getLogger(__name__)
 
@@ -125,15 +126,14 @@ def generate_uiux_wireframe(state: UIUXWireframeState) -> UIUXWireframeState:
             summary = json_data.get("summary", "UIUX Wireframe")
             content = json_data.get("content", "Empty json_data")
         return {
-            "response": {
-                "summary": summary,
-                "content": content
-            }
+            "response": success_response(summary, content)
         } # pyright: ignore[reportReturnType]
         
     except json.JSONDecodeError as e:
         logger.error(f"Error generating UIUX Wireframe: {e}")
-        raise e
+        return {
+            "response": error_response("UIUX Wireframe", f"Error generating UIUX Wireframe: {e}")
+        } # pyright: ignore[reportReturnType]
 
 # Build workflow graph
 workflow = StateGraph(UIUXWireframeState)

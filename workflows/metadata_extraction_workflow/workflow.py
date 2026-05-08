@@ -340,7 +340,7 @@ def aggregate_results(state: MetadataExtractionState) -> MetadataExtractionState
     state["response"] = {
         "document_id": state["document_id"],
         "type": "metadata_extraction",
-        "response": response_items
+        "response": response_items,
     }
     
     return state
