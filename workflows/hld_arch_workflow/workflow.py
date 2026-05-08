@@ -10,6 +10,7 @@ from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
 import logging
 from ..utils import extractor
+from response import success_response, error_response
 
 logger = logging.getLogger(__name__)
 
@@ -60,21 +61,29 @@ def generate_hld_arch_diagram(state: HLDArchState):
     - Security boundaries (auth, gateway, firewall)
 
     Use:
-    - Mermaid flowchart (graph TD/TB)
-    - Subgraphs for layers
-    - Clear labels and connections
+    - Mermaid flowchart (`graph TD` or `graph TB`)
+    - Subgraphs for architectural layers
+    - Clear labels and directional connections
+    - Consistent node naming
+    - Logical grouping of related services
+    - Readable and valid Mermaid structure
 
     ### OUTPUT (STRICT JSON ONLY)
     {{
-    "content": "Mermaid diagram starting with 'graph TD' or 'graph TB' (with backticks, use \\n for newlines)",
-    "summary": "One-line description of the architecture"
+      "content": "```mermaid\\ngraph TD\\n...\\n```",
+      "summary": "One-line description of the architecture"
     }}
 
     ### RULES
-    - Do include ``` as markdown wrappers
-    - Valid Mermaid syntax only
-    - No extra keys, no extra text
-    - Ensure JSON is parsable (escape \\n properly)
+    - ALWAYS include triple backticks (` ``` `) around the Mermaid diagram
+    - ALWAYS start the Mermaid content with `graph TD` or `graph TB`
+    - The `content` field MUST contain a complete Mermaid markdown block
+    - Use escaped newlines (`\\n`) inside JSON strings
+    - Return VALID parsable JSON only
+    - Do NOT return markdown outside the JSON object
+    - Do NOT add explanations, comments, or extra text
+    - Do NOT add extra JSON keys
+    - Ensure Mermaid syntax is valid and renderable
     """
 
     try:
@@ -90,13 +99,16 @@ def generate_hld_arch_diagram(state: HLDArchState):
             summary = json_data.get("summary", "HLD architecture diagram")
             content = json_data.get("content", "Empty json_data")
         return {
-            "response": {
-                "summary": summary,
-                "content": content
-            }
+            "response": success_response(summary, content)
         } # pyright: ignore[reportReturnType]
     except Exception as e:
         logger.error(f"Error generating HLD architecture diagram: {e}")
+        return {
+            "response": error_response(
+                "HLD architecture diagram",
+                f"Error generating HLD architecture diagram: {e}",
+            )
+        } # pyright: ignore[reportReturnType]
 
 # Build LangGraph pipeline for HLD Architecture
 workflow = StateGraph(HLDArchState)

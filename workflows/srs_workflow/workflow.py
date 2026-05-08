@@ -8,6 +8,7 @@ from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
 from ..utils import extractor
+from response import success_response, error_response
 
 class SRSState(TypedDict):
     user_message: str
@@ -99,13 +100,13 @@ def generate_srs(state: SRSState):
             summary = json_data.get("summary", "SRS")
             content = json_data.get("content", "Empty json_data")
         return {
-            "response": {
-                "summary": summary,
-                "content": content
-            }
+            "response": success_response(summary, content)
         } # pyright: ignore[reportReturnType]
     except Exception as e:
         print(f"Error generating SRS: {e}")
+        return {
+            "response": error_response("SRS", f"Error generating SRS: {e}")
+        } # pyright: ignore[reportReturnType]
 
 # Build LangGraph pipeline for SRS
 workflow = StateGraph(SRSState)

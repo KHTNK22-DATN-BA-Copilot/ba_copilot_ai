@@ -11,6 +11,7 @@ from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
 from models.lld_arch import LLDArchResponse, LLDArchOutput
 from ..utils import extractor
+from response import success_response, error_response
 
 logger = logging.getLogger(__name__)
 
@@ -72,11 +73,15 @@ def generate_lld_arch_diagram(state: LLDArchState):
         }}
 
         ### RULES
-        - Do include ``` as markdown wrappers
-        - Escape newlines properly (\\n)
-        - No extra keys, no extra text
-        - Must be valid JSON (parsable)
-        - Use valid Mermaid syntax only
+        - ALWAYS include triple backticks (` ``` `) around the Mermaid diagram
+        - ALWAYS start the Mermaid content with `graph TD` or `graph TB`
+        - The `content` field MUST contain a complete Mermaid markdown block
+        - Use escaped newlines (`\\n`) inside JSON strings
+        - Return VALID parsable JSON only
+        - Do NOT return markdown outside the JSON object
+        - Do NOT add explanations, comments, or extra text
+        - Do NOT add extra JSON keys
+        - Ensure Mermaid syntax is valid and renderable
         """
 
         raw_output = model_client.gemini_completion(prompt)
@@ -91,14 +96,17 @@ def generate_lld_arch_diagram(state: LLDArchState):
             summary = json_data.get("summary", "LLD Architecture")
             content = json_data.get("content", "Empty json_data")
         return {
-            "response": {
-                "summary": summary,
-                "content": content
-            }
+            "response": success_response(summary, content)
         } # pyright: ignore[reportReturnType]
 
     except Exception as e:
         logger.error(f"Error generating LLD architecture diagram: {e}")
+        return {
+            "response": error_response(
+                "LLD Architecture",
+                f"Error generating LLD architecture diagram: {e}",
+            )
+        } # pyright: ignore[reportReturnType]
         
 # Build LangGraph pipeline for LLD Architecture
 workflow = StateGraph(LLDArchState)

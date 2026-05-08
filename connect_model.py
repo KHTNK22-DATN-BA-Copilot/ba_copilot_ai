@@ -20,7 +20,7 @@ load_dotenv()
 
 # Load API configuration from environment
 MODEL = os.getenv("MODEL", "gemini-2.5-flash-lite")
-MAX_CONTEXT_TOKENS = int(os.getenv("MAX_CONTEXT_TOKENS", "4096"))
+MAX_CONTEXT_TOKENS = int(os.getenv("MAX_CONTEXT_TOKENS", "100000"))
 
 # Request-scoped model settings (BYOK + provider/model selection).
 _request_model_config: ContextVar[Dict[str, str]] = ContextVar("request_model_config", default={})

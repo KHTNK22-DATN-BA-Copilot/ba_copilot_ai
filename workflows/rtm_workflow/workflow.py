@@ -8,6 +8,7 @@ from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, MODEL
 from ..utils import extractor
+from response import success_response, error_response
 
 class RTMState(TypedDict):
     user_message: str
@@ -125,13 +126,13 @@ def generate_rtm(state: RTMState):
             summary = json_data.get("summary", "RTM")
             content = json_data.get("content", "Empty json_data")
         return {
-            "response": {
-                "summary": summary,
-                "content": content
-            }
+            "response": success_response(summary, content)
         } # pyright: ignore[reportReturnType]
     except Exception as e:
         print(f"Error generating RTM: {e}")
+        return {
+            "response": error_response("RTM", f"Error generating RTM: {e}")
+        } # pyright: ignore[reportReturnType]
 
 # Build LangGraph pipeline for RTM
 workflow = StateGraph(RTMState)

@@ -9,6 +9,7 @@ import json
 import logging
 from connect_model import get_model_client, MODEL
 from ..utils import extractor
+from response import success_response, error_response
 
 logger = logging.getLogger(__name__)
 
@@ -118,13 +119,13 @@ def generate_uiux_mockup(state: UIUXMockupState):
             summary = json_data.get("summary", "UIUX Mockup")
             content = json_data.get("content", "Empty json_data")
         return {
-            "response": {
-                "summary": summary,
-                "content": content
-            }
+            "response": success_response(summary, content)
         } # pyright: ignore[reportReturnType]
     except json.JSONDecodeError as e:
         logger.error(f"Error generating UIUX Mockup: {e}")
+        return {
+            "response": error_response("UIUX Mockup", f"Error generating UIUX Mockup: {e}")
+        } # pyright: ignore[reportReturnType]
 
 # Build workflow graph
 workflow = StateGraph(UIUXMockupState)
