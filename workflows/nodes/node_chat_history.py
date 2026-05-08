@@ -17,7 +17,7 @@ BACKEND_API_URL = os.getenv("BACKEND_API_URL", "http://localhost:8010")
 class ChatMessage(TypedDict):
     role: str
     message: str
-    created_at: str
+    create_at: str
 
 
 async def fetch_chat_history(content_id: str) -> List[ChatMessage]:
@@ -38,7 +38,7 @@ async def fetch_chat_history(content_id: str) -> List[ChatMessage]:
             response.raise_for_status()
             data = response.json()
             print(f"Fetched chat history: {data}")
-            return data.get("history", [])
+            return data.get("Sessions", [])
     except Exception as e:
         print(f"Error fetching chat history: {e}")
         return []
@@ -109,7 +109,7 @@ def format_chat_context(history: List[ChatMessage], max_tokens: int = MAX_CONTEX
 
     # Format full history
     formatted = "\n".join([
-        f"{msg['role']} ({msg['created_at']}): {msg['message']}"
+        f"{msg['role']} ({msg['create_at']}): {msg['message']}"
         for msg in history
     ])
 
@@ -124,7 +124,7 @@ def format_chat_context(history: List[ChatMessage], max_tokens: int = MAX_CONTEX
     return f"Previous conversation:\n{formatted}"
 
 
-def get_chat_history(state: Dict[str, Any], model: str = MODEL) -> Dict[str, Any]:
+async def get_chat_history(state: Dict[str, Any], model: str = MODEL) -> Dict[str, Any]:
     """
     Node function to fetch and process chat history
 
@@ -144,11 +144,12 @@ def get_chat_history(state: Dict[str, Any], model: str = MODEL) -> Dict[str, Any
 
     # Try to fetch chat history from backend
     try:
-        import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        history = loop.run_until_complete(fetch_chat_history(content_id))
-        loop.close()
+        # import asyncio
+        # loop = asyncio.new_event_loop()
+        # asyncio.set_event_loop(loop)
+        # history = loop.run_until_complete(fetch_chat_history(content_id))
+        # loop.close()
+        history = await fetch_chat_history(content_id)
 
         # Reserve 50% of tokens for chat context
         max_context_tokens = MAX_CONTEXT_TOKENS // 2

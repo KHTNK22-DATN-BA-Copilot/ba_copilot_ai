@@ -78,7 +78,7 @@ async def list_file_from_supabase(storage_paths: List[str]) -> List[Dict[str, st
     return file_contents
 
 
-def get_content_from_storage(storage_paths: List[str]) -> str:
+async def get_content_from_storage(storage_paths: List[str]) -> str:
     """
     Download files from Supabase Storage and combine text content.
 
@@ -99,7 +99,7 @@ def get_content_from_storage(storage_paths: List[str]) -> str:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
-    file_contents = loop.run_until_complete(list_file_from_supabase(storage_paths))
+    file_contents = await list_file_from_supabase(storage_paths)
 
     # Combine all file contents
     extracted_texts = []
@@ -116,7 +116,7 @@ def get_content_from_storage(storage_paths: List[str]) -> str:
     return combined_text
 
 
-def get_content_file(state: Dict[str, Any]) -> Dict[str, Any]:
+async def get_content_file(state: Dict[str, Any]) -> Dict[str, Any]:
     """
     Node function to fetch and process files from Supabase Storage.
     This function replaces process_ocr for Supabase-based file retrieval.
@@ -136,7 +136,7 @@ def get_content_file(state: Dict[str, Any]) -> Dict[str, Any]:
 
     try:
         # Get content from Supabase storage
-        extracted_text = get_content_from_storage(storage_paths)
+        extracted_text =await get_content_from_storage(storage_paths)
         state["extracted_text"] = extracted_text
 
     except Exception as e:
