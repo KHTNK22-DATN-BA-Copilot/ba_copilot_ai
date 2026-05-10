@@ -7,7 +7,7 @@ from langgraph.graph import StateGraph, END
 from typing import TypedDict, Optional, List, Dict
 import json
 import logging
-from connect_model import get_model_client, MODEL
+from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
 from ..utils import extractor
 from response import success_response, error_response
 
@@ -50,12 +50,18 @@ def get_chat_history(state: UIUXWireframeState) -> UIUXWireframeState:
     return {"chat_context": ""}
 
 
-def generate_uiux_wireframe(state: UIUXWireframeState) -> UIUXWireframeState:
+def generate_uiux_wireframe(state: UIUXWireframeState, config: Optional[dict] = None) -> UIUXWireframeState:
     """
     Generate UI/UX wireframe with layout and component specifications
     """
+    model_client = get_model_client()
+    cfg = (config or {}).get("configurable", {})
+    token = set_request_model_config(
+        provider=cfg.get("provider"),
+        model_name=cfg.get("model_name"),
+        api_key=cfg.get("api_key"),
+    )
     try:
-        model_client = get_model_client()
         
         user_message = state.get('message', '')
         extracted_text = state.get('extracted_text', '')
@@ -114,7 +120,11 @@ def generate_uiux_wireframe(state: UIUXWireframeState) -> UIUXWireframeState:
         - NEVER return empty html or css
         """
         
-        raw_output = model_client.gemini_completion(prompt)
+        response = model_client.chat_completion(
+            messages=[{"role": "user", "content": prompt}],
+            model=cfg.get("model_name") or MODEL,
+        )
+        raw_output = response.choices[0].message.content or ""
 
         json_data = extractor.extract_json(raw_output)
         summary = "UIUX Wireframe"
@@ -134,6 +144,8 @@ def generate_uiux_wireframe(state: UIUXWireframeState) -> UIUXWireframeState:
         return {
             "response": error_response("UIUX Wireframe", f"Error generating UIUX Wireframe: {e}")
         } # pyright: ignore[reportReturnType]
+    finally:
+        reset_request_model_config(token)
 
 # Build workflow graph
 workflow = StateGraph(UIUXWireframeState)
