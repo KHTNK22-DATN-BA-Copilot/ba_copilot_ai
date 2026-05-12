@@ -73,6 +73,7 @@ def generate_activity_diagram_description(state: ActivityDiagramState):
     - Escape newlines properly (\\n)
     - No extra keys
     - No extra text before/after JSON
+    - Root must always have "content" and "summary" as specified - no nesting
     """
 
     try:

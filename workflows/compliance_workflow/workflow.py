@@ -81,6 +81,7 @@ def generate_compliance(state: ComplianceState):
     - Use clear, structured Markdown
     - Keep content concise but complete
     - Ensure JSON is parsable (escape \\n properly)
+    - Root must always have "content" and "summary" as specified - no nesting
     """
 
     try:

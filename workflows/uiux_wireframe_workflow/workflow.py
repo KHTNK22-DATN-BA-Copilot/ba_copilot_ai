@@ -107,7 +107,7 @@ def generate_uiux_wireframe(state: UIUXWireframeState) -> UIUXWireframeState:
         - No comments in CSS
         - Include responsive layout (@media)
         - Escape quotes properly
-        - Ensure JSON is parsable
+        - Ensure JSON is parsable, root must always have "content" and "summary" as specified - no nesting
 
         ### FALLBACK
         - If unsure, still generate a basic but complete wireframe

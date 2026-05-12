@@ -109,6 +109,7 @@ def generate_business_case(state: BusinessCaseState):
     - Markdown must be well-structured
     - Include tables where specified
     - Keep content concise but complete
+    - Root must always have "content" and "summary" as specified - no nesting
     """
 
     try:

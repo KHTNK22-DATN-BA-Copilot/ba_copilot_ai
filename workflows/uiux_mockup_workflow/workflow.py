@@ -87,7 +87,7 @@ def generate_uiux_mockup(state: UIUXMockupState):
         - Use semantic HTML and clear class naming
         - Minimal, professional color palette
 
-        ### OUTPUT (STRICT JSON ONLY)
+        ### OUTPUT
         {{
         "content": {{
             "html": "<single-line HTML>",
@@ -98,7 +98,7 @@ def generate_uiux_mockup(state: UIUXMockupState):
 
         ### RULES
         - Output JSON ONLY (no markdown, no explanations)
-        - No extra keys, no missing keys
+        - No extra keys, no missing keys, root must always have "content" and "summary" as specified - no nesting
         - HTML & CSS must be single-line strings
         - Use single quotes for HTML attributes
         - Do NOT include <style> tags

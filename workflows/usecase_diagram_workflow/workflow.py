@@ -76,7 +76,7 @@ def generate_usecase_diagram_description(state: UsecaseDiagramState):
     - Escape \\n properly
     - No extra keys, no extra text
     - Must be valid JSON (parsable)
-    - Use valid Mermaid syntax only
+    - Use valid Mermaid syntax only, root must always have "content" and "summary" as specified - no nesting
     """
 
     try:

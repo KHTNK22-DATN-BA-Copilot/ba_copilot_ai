@@ -92,7 +92,7 @@ def generate_hld_cloud(state: HLDCloudState):
     - No extra keys, no missing keys
     - Do NOT change section titles or order
     - Escape \\n properly
-    - Be concise but complete
+    - Be concise but complete, root must always have "content" and "summary" as specified - no nesting
     """
 
     try:

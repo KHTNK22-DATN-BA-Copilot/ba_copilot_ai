@@ -82,8 +82,7 @@ def generate_hld_arch_diagram(state: HLDArchState):
     - Return VALID parsable JSON only
     - Do NOT return markdown outside the JSON object
     - Do NOT add explanations, comments, or extra text
-    - Do NOT add extra JSON keys
-    - Ensure Mermaid syntax is valid and renderable
+    - Ensure Mermaid syntax is valid and renderable, root must always have "content" and "summary" as specified - no nesting
     """
 
     try:

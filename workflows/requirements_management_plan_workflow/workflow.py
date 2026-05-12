@@ -82,7 +82,7 @@ def generate_requirements_management_plan(state: RequirementsManagementPlanState
     - No extra keys, no missing keys
     - Do NOT change section titles or order
     - Escape \\n properly
-    - All values must be strings
+    - All values must be strings, root must always have "content" and "summary" as specified - no nesting
     """
 
     try:

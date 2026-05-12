@@ -68,7 +68,7 @@ def generate_class_diagram_description(state: ClassDiagramState):
     ### RULES
     - Do include ``` as markdown wrappers
     - Escape newlines properly (\\n)
-    - No extra keys, no extra text
+    - No extra keys, no extra text, root must always have "content" and "summary" as specified - no nesting
     - Must be valid JSON (parsable)
     """
 

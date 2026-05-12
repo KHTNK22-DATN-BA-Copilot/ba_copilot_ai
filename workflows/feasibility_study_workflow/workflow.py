@@ -74,8 +74,7 @@ def generate_feasibility_study(state: FeasibilityStudyState):
     - Return ONLY valid JSON (no markdown wrapper, no extra text)
     - Use clear, structured Markdown
     - Keep content concise but complete
-    - Include key assumptions where relevant
-    - Ensure JSON is parsable (escape \\n properly)
+    - Ensure JSON is parsable (escape \\n properly), root must always have "content" and "summary" as specified - no nesting
     """
 
     try:

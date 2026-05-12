@@ -106,7 +106,7 @@ def generate_uiux_prototype(state: UIUXPrototypeState):
         - No comments in CSS
         - Include responsive + interaction states
         - Escape quotes properly
-        - Ensure valid JSON (parsable)
+        - Ensure valid JSON (parsable), root must always have "content" and "summary" as specified - no nesting
         """
         
         raw_output = model_client.gemini_completion(prompt)

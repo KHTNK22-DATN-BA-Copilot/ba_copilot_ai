@@ -78,8 +78,7 @@ def generate_cost_benefit_analysis(state: CostBenefitAnalysisState):
     - Escape \\n properly
     - Do NOT return empty fields
     - Use realistic numbers or reasonable estimates
-    - If data is missing, make assumptions and state them
-    - Keep content concise but complete
+    - Keep content concise but complete, root must always have "content" and "summary" as specified - no nesting
     """
 
     try:

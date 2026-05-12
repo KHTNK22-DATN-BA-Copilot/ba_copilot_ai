@@ -81,7 +81,7 @@ def generate_lld_arch_diagram(state: LLDArchState):
         - Do NOT return markdown outside the JSON object
         - Do NOT add explanations, comments, or extra text
         - Do NOT add extra JSON keys
-        - Ensure Mermaid syntax is valid and renderable
+        - Ensure Mermaid syntax is valid and renderable, root must always have "content" and "summary" as specified - no nesting
         """
 
         raw_output = model_client.gemini_completion(prompt)
