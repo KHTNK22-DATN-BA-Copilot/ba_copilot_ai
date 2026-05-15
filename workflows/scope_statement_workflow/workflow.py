@@ -6,7 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from models.scope_statement import ScopeStatementOutput, ScopeStatementResponse
 from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
-from connect_model import get_model_client
+from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
 from ..utils import extractor
 from response import success_response, error_response
 
@@ -18,9 +18,15 @@ class ScopeStatementState(TypedDict):
     extracted_text: Optional[str]
     chat_context: Optional[str]
 
-def generate_scope_statement(state: ScopeStatementState):
+def generate_scope_statement(state: ScopeStatementState, config: Optional[dict] = None):
     """Generate Scope Statement document using OpenRouter AI"""
     model_client = get_model_client()
+    cfg = (config or {}).get("configurable", {})
+    token = set_request_model_config(
+        provider=cfg.get("provider"),
+        model_name=cfg.get("model_name"),
+        api_key=cfg.get("api_key"),
+    )
 
     # Build comprehensive prompt with context
     user_message = state['user_message']
@@ -113,7 +119,11 @@ def generate_scope_statement(state: ScopeStatementState):
     """
 
     try:
-        raw_output = model_client.gemini_completion(prompt)
+        response = model_client.chat_completion(
+            messages=[{"role": "user", "content": prompt}],
+            model=cfg.get("model_name") or MODEL,
+        )
+        raw_output = response.choices[0].message.content or ""
 
         json_data = extractor.extract_json(raw_output)
         summary = "Scope Statement"
@@ -132,6 +142,8 @@ def generate_scope_statement(state: ScopeStatementState):
         return {
             "response": error_response("Scope Statement", f"Error generating Scope Statement: {e}")
         } # pyright: ignore[reportReturnType]
+    finally:
+        reset_request_model_config(token)
 
 # Build LangGraph pipeline for Scope Statement
 workflow = StateGraph(ScopeStatementState)

@@ -8,7 +8,7 @@ from typing import TypedDict, Optional, List
 import json
 import logging
 from workflows.nodes import get_chat_history, get_content_file
-from connect_model import get_model_client, MODEL
+from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
 from models.lld_pseudo import LLDPseudoResponse, LLDPseudoOutput
 import re
 from ..utils import extractor
@@ -25,13 +25,19 @@ class LLDPseudoState(TypedDict):
     extracted_text: Optional[str]
     chat_context: Optional[str]
 
-def generate_lld_pseudocode(state: LLDPseudoState):
+def generate_lld_pseudocode(state: LLDPseudoState, config: Optional[dict] = None):
     """
     Generate algorithm pseudocode document using LLM.
     Creates detailed pseudocode with complexity analysis and implementation notes.
     """
+    model_client = get_model_client()
+    cfg = (config or {}).get("configurable", {})
+    token = set_request_model_config(
+        provider=cfg.get("provider"),
+        model_name=cfg.get("model_name"),
+        api_key=cfg.get("api_key"),
+    )
     try:
-        model_client = get_model_client()
         
         # Extract context
         user_message = state.get('user_message', '')
@@ -97,7 +103,11 @@ def generate_lld_pseudocode(state: LLDPseudoState):
         - All values must be strings
         """
 
-        raw_output = model_client.gemini_completion(prompt)
+        response = model_client.chat_completion(
+            messages=[{"role": "user", "content": prompt}],
+            model=cfg.get("model_name") or MODEL,
+        )
+        raw_output = response.choices[0].message.content or ""
 
         json_data = extractor.extract_json(raw_output)
         summary = "LLD Pseudo"
@@ -117,6 +127,8 @@ def generate_lld_pseudocode(state: LLDPseudoState):
         return {
             "response": error_response("LLD Pseudo", f"Error generating pseudocode: {e}")
         } # pyright: ignore[reportReturnType]
+    finally:
+        reset_request_model_config(token)
 
 # Build LangGraph pipeline for LLD Pseudocode
 workflow = StateGraph(LLDPseudoState)

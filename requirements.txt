@@ -16,6 +16,7 @@ langgraph-checkpoint==2.0.12
 
 # OpenAI (for OpenRouter)
 openai==1.58.1
+tiktoken==0.8.0
 
 # Database
 sqlalchemy==2.0.36

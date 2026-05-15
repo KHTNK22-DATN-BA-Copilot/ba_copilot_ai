@@ -8,7 +8,7 @@ from typing import TypedDict, Optional, List
 import json
 import logging
 from workflows.nodes import get_chat_history, get_content_file
-from connect_model import get_model_client, MODEL
+from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
 from models.lld_arch import LLDArchResponse, LLDArchOutput
 from ..utils import extractor
 from response import success_response, error_response
@@ -24,13 +24,19 @@ class LLDArchState(TypedDict):
     extracted_text: Optional[str]
     chat_context: Optional[str]
 
-def generate_lld_arch_diagram(state: LLDArchState):
+def generate_lld_arch_diagram(state: LLDArchState, config: Optional[dict] = None):
     """
     Generate detailed low-level architecture diagram using LLM.
     Creates component diagrams, deployment diagrams, or detailed system architecture.
     """
+    model_client = get_model_client()
+    cfg = (config or {}).get("configurable", {})
+    token = set_request_model_config(
+        provider=cfg.get("provider"),
+        model_name=cfg.get("model_name"),
+        api_key=cfg.get("api_key"),
+    )
     try:
-        model_client = get_model_client()
         
         # Extract context
         user_message = state.get('user_message', '')
@@ -84,7 +90,11 @@ def generate_lld_arch_diagram(state: LLDArchState):
         - Ensure Mermaid syntax is valid and renderable
         """
 
-        raw_output = model_client.gemini_completion(prompt)
+        response = model_client.chat_completion(
+            messages=[{"role": "user", "content": prompt}],
+            model=cfg.get("model_name") or MODEL,
+        )
+        raw_output = response.choices[0].message.content or ""
 
         json_data = extractor.extract_json(raw_output)
         summary = "LLD Architecture"
@@ -107,6 +117,8 @@ def generate_lld_arch_diagram(state: LLDArchState):
                 f"Error generating LLD architecture diagram: {e}",
             )
         } # pyright: ignore[reportReturnType]
+    finally:
+        reset_request_model_config(token)
         
 # Build LangGraph pipeline for LLD Architecture
 workflow = StateGraph(LLDArchState)

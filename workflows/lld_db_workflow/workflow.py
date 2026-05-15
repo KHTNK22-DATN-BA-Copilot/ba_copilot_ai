@@ -8,7 +8,7 @@ from typing import TypedDict, Optional, List
 import logging
 import re
 from workflows.nodes import get_chat_history, get_content_file
-from connect_model import get_model_client, MODEL
+from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
 # from models.lld_db import LLDDBResponse, LLDDBOutput
 from ..utils import extractor
 from response import success_response, error_response
@@ -28,12 +28,18 @@ def extract_mermaid(text: str) -> str:
     match = re.search(r"```mermaid\s*(.*?)```", text, re.DOTALL)
     return match.group(0) if match else ""
 
-def generate_lld_db_schema(state: LLDDBState):
+def generate_lld_db_schema(state: LLDDBState, config: Optional[dict] = None):
     """
     Generate database ERD schema using LLM.
     Creates Entity-Relationship Diagrams with tables, columns, relationships.
     """
     model_client = get_model_client()
+    cfg = (config or {}).get("configurable", {})
+    token = set_request_model_config(
+        provider=cfg.get("provider"),
+        model_name=cfg.get("model_name"),
+        api_key=cfg.get("api_key"),
+    )
 
     # Build comprehensive prompt with context
     user_message = state.get('user_message', '')
@@ -94,7 +100,11 @@ def generate_lld_db_schema(state: LLDDBState):
     """
 
     try:
-        raw_output = model_client.gemini_completion(prompt)
+        response = model_client.chat_completion(
+            messages=[{"role": "user", "content": prompt}],
+            model=cfg.get("model_name") or MODEL,
+        )
+        raw_output = response.choices[0].message.content or ""
 
         json_data = extractor.extract_json(raw_output)
         summary = "LLD DB"
@@ -113,6 +123,8 @@ def generate_lld_db_schema(state: LLDDBState):
         return {
             "response": error_response("LLD DB", f"Error generating LLD DB: {e}")
         } # pyright: ignore[reportReturnType]
+    finally:
+        reset_request_model_config(token)
     
 # Build LangGraph pipeline for LLD Database Schema
 workflow = StateGraph(LLDDBState)
