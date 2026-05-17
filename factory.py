@@ -18,14 +18,13 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 
-DEFAULT_PROVIDER = "google"
+DEFAULT_PROVIDER = "openrouter"
 DEFAULT_MODEL_BY_PROVIDER = {
     "google": "gemini-2.5-flash-lite",
     "openai": "gpt-4o-mini",
-    "anthropic": "claude-3.5-sonnet-latest",
-    "openrouter": "anthropic/claude-3.5-sonnet",
+    "anthropic": "claude-haiku-4.5",
+    "openrouter": "anthropic/claude-haiku-4.5",
 }
-
 
 def _clean(value: Optional[str]) -> Optional[str]:
     if value is None:

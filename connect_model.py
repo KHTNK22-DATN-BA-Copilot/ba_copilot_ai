@@ -18,7 +18,7 @@ from factory import create_chat_model
 load_dotenv()
 
 # Load API configuration from environment
-MODEL = os.getenv("MODEL", "gemini-2.5-flash-lite")
+MODEL = os.getenv("MODEL", "anthropic/claude-haiku-4.5")
 MAX_CONTEXT_TOKENS = int(os.getenv("MAX_CONTEXT_TOKENS", "100000"))
 
 # Request-scoped model settings (BYOK + provider/model selection).
@@ -175,7 +175,7 @@ class ModelClient:
             The completion response from the API.
         """
         resolved = self._resolve_config(
-            default_provider="google",
+            default_provider="openrouter",
             default_model=model
         )
         llm = self._build_llm(
@@ -188,20 +188,6 @@ class ModelClient:
         response = llm.invoke(lc_messages)
         text = self._extract_text(response)
         return self._to_openai_compatible_response(text)
-
-    # def gemini_completion(self, prompt: str, model: str = "gemini-2.5-flash-lite") -> str:
-    #     resolved = self._resolve_config(
-    #         default_provider="google",
-    #         default_model=model,
-    #         explicit_model=model,
-    #     )
-    #     llm = self._build_llm(
-    #         provider=resolved["provider"],
-    #         model_name=resolved["model_name"],
-    #         api_key=resolved.get("api_key"),
-    #     )
-    #     response = llm.invoke(prompt)
-    #     return self._extract_text(response)
 
 
 # Global instance for easy access
@@ -219,33 +205,6 @@ def get_model_client() -> ModelClient:
     if _model_client is None:
         _model_client = ModelClient()
     return _model_client
-
-
-# def create_chat_completion(
-#     prompt: str,
-#     model: str = MODEL,
-#     system_message: Optional[str] = None
-# ) -> str:
-#     """
-#     Convenience function to create a chat completion with a single prompt.
-
-#     Args:
-#         prompt: The user prompt/message.
-#         model: The model to use. Defaults to DEFAULT_MODEL.
-#         system_message: Optional system message to prepend.
-
-#     Returns:
-#         The content of the completion response.
-#     """
-#     client = get_model_client()
-
-#     messages: List[Dict[str, str]] = []
-#     if system_message:
-#         messages.append({"role": "system", "content": system_message})
-#     messages.append({"role": "user", "content": prompt})
-
-#     completion = client.chat_completion(messages=messages, model=model)
-#     return completion.choices[0].message.content or ""
 
 
 def get_token_limit(model: str = MODEL) -> int:
@@ -274,19 +233,3 @@ def estimate_tokens(text: str) -> int:
         Estimated token count.
     """
     return len(text) // 4
-
-
-# def is_configured() -> bool:
-#     """
-#     Check if the model client 
-#     is properly configured.
-
-#     Returns:
-#         True if the API key is set, False otherwise.
-#     """
-#     return bool(_clean(os.getenv("GOOGLE_AI_API_KEY"))
-#         or _clean(os.getenv("OPEN_ROUTER_API_KEY"))
-#         or _clean(os.getenv("OPENROUTER_API_KEY"))
-#         or _clean(os.getenv("OPENAI_API_KEY"))
-#         or _clean(os.getenv("ANTHROPIC_API_KEY"))
-#     )
