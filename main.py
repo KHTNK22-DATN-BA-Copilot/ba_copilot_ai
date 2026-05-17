@@ -10,6 +10,8 @@ from connect_model import (
     reset_request_model_config,
     get_request_model_config,
 )
+from response import success_response, error_response
+from services.rag.indexer import index_rag_content
 
 # Import workflow graphs for AI-powered generation
 from workflows import (
@@ -17,7 +19,6 @@ from workflows import (
     class_diagram_graph,
     usecase_diagram_graph,
     activity_diagram_graph,
-    # wireframe_graph,  # DEPRECATED - Use uiux_wireframe_graph instead
     stakeholder_register_graph,
     high_level_requirements_graph,
     requirements_management_plan_graph,
@@ -131,9 +132,13 @@ class AIRequest(BaseModel):
         }
 
 
-def _build_langgraph_config_from_request() -> dict:
-    """Build request-scoped LangGraph configurable payload."""
-    return {"configurable": get_request_model_config()}
+class RagIndexRequest(BaseModel):
+    file_id: Optional[str] = None
+    storage_path: Optional[str] = None
+    storage_md_path: Optional[str] = None
+    content: str
+    project_id: Optional[int] = None
+    created_by: Optional[int] = None
 
 
 async def _invoke_graph(graph: Any, state: dict) -> dict:
@@ -143,32 +148,9 @@ async def _invoke_graph(graph: Any, state: dict) -> dict:
     return await graph.ainvoke(dict(state), config={"configurable": request_cfg})
 
 
-def _has_model_headers(request: Request) -> bool:
-    return any(
-        request.headers.get(header)
-        for header in ("X-AI-Provider", "X-AI-Model", "X-AI-API-Key")
-    )
-
-
-def _validate_internal_model_header_access(request: Request) -> None:
-    """Allow BYOK/model headers only for trusted backend calls when token is configured."""
-    expected_token = (os.getenv("AI_INTERNAL_AUTH_TOKEN") or "").strip()
-    if not expected_token:
-        return
-
-    provided_token = (request.headers.get("X-AI-Service-Token") or "").strip()
-    if not provided_token or not hmac.compare_digest(provided_token, expected_token):
-        raise HTTPException(
-            status_code=403,
-            detail="Forbidden: invalid or missing X-AI-Service-Token for model configuration headers.",
-        )
-
-
 @app.middleware("http")
 async def attach_model_config(request: Request, call_next):
     """Attach per-request model configuration from headers without touching global state."""
-    if _has_model_headers(request):
-        _validate_internal_model_header_access(request)
 
     token = set_request_model_config(
         provider=request.headers.get("X-AI-Provider"),
@@ -198,6 +180,35 @@ async def health_check():
         "status": "healthy",
         "openrouter_api_configured": bool(openrouter_api_key)
     }
+
+
+@app.post("/api/v1/rag/index")
+async def index_rag(req: RagIndexRequest):
+    try:
+        if not req.content:
+            return {"response": error_response("RAG Index", "Empty content for indexing")}
+
+        result = index_rag_content(
+            content=req.content,
+            storage_path=req.storage_path,
+            storage_md_path=req.storage_md_path,
+            file_id=req.file_id,
+            project_id=req.project_id,
+            created_by=req.created_by,
+        )
+
+        return {
+            "response": success_response(
+                "RAG Index",
+                {
+                    "chunks": result.get("chunks", 0),
+                    "storage_path": req.storage_path,
+                    "storage_md_path": req.storage_md_path,
+                },
+            )
+        }
+    except Exception as e:
+        return {"response": error_response("RAG Index", f"Indexing failed: {e}")}
 
 @app.post("/api/v1/srs/generate")
 async def generate_srs(req: AIRequest):
