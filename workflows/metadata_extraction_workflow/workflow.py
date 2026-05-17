@@ -178,22 +178,27 @@ def call_llm_for_phase(content: str, doc_types: List[str], total_lines: int) -> 
     prompt = build_phase_prompt(content, doc_types, total_lines)
     
     try:
-        completion = model_client.chat_completion(
-            messages=[
-                {"role": "system", "content": "You are a precise document analyzer. Return only valid JSON."},
-                {"role": "user", "content": prompt}
-            ],
-            model=MODEL
-        )
+        # using openrouter
+        # completion = model_client.chat_completion(
+        #     messages=[
+        #         {"role": "system", "content": "You are a precise document analyzer. Return only valid JSON."},
+        #         {"role": "user", "content": prompt}
+        #     ],
+        #     model=MODEL
+        # )
         
-        response_text = completion.choices[0].message.content or ""
-        results = extract_json_arr_from_response(response_text)
+        # response_text = completion.choices[0].message.content or ""
+        # results = extract_json_arr_from_response(response_text)
         
         # NOTE: Missing types will be filled in by aggregate_results node
         # Each phase only returns what LLM actually detected
+
+        # using gemini-2.5-flash-lite
+        raw_output = model_client.gemini_completion(prompt)
+        results = extract_json_arr_from_response(raw_output)
         return results
     except Exception as e:
-        print(f"Error calling LLM: {e}")
+        print(f"Error calling LLM for {doc_types}: {e}")
         # Return not-found for all types on error
         # because it just means we fail to extract metadata, the backend should interpret and instruct further
         return [{"type": dt, "line_start": -1, "line_end": -1} for dt in doc_types]
@@ -421,4 +426,5 @@ def extract_metadata(document_id: str, content: str, filename: Optional[str] = N
     }
     
     result = metadata_extraction_graph.invoke(state)
+    print("\nThe metadata got: " + result.get("response", "Empty dict"))
     return result.get("response", {})

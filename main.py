@@ -1331,8 +1331,9 @@ async def extract_metadata(req: MetadataExtractionRequest):
         
         # Extract response from workflow result
         response_data = result.get("response", {})
-        
-        return MetadataExtractionResponse(**response_data)
+        res = MetadataExtractionResponse(**response_data)
+        print("Final res: ", res)
+        return res
         
     except Exception as e:
         logger.error(f"Error extracting metadata: {str(e)}")

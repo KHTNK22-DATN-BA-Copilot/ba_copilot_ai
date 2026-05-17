@@ -18,7 +18,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 
-DEFAULT_PROVIDER = "google"
+DEFAULT_PROVIDER = "google"  #TODO: make the DEFAULT_PROVIDER fetched from .env
 DEFAULT_MODEL_BY_PROVIDER = {
     "google": "gemini-2.5-flash-lite",
     "openai": "gpt-4o-mini",
