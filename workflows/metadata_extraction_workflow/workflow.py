@@ -19,7 +19,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
 from models.metadata_extraction import (
     MetadataExtractionResponse,
-    DocumentTypeMetadata,
+    # DocumentTypeMetadata,
     ALL_DOCUMENT_TYPES,
     DOCUMENT_TYPE_DESCRIPTIONS,
     PHASE_1_PROJECT_INITIATION,
@@ -60,7 +60,7 @@ class MetadataExtractionState(TypedDict):
 # Helper Functions
 # ============================================================================
 
-def extract_json_arr_from_response(text: str) -> List[Dict]:
+def extract_json_arr_from_response(text: str) -> Dict:
     """
     Extract JSON array from LLM response text.
     
@@ -97,88 +97,292 @@ def extract_json_arr_from_response(text: str) -> List[Dict]:
             # If it's a wrapper object with "results" key
             if "results" in result:
                 return result["results"]
-            return [result]
+            return dict(result[0])
             
-        return []
+        return {}
     except json.JSONDecodeError as e:
         print(f"Error parsing JSON: {e}")
-        return []
+        return {}
     except Exception as e:
         print(f"Error extracting JSON: {e}")
-        return []
+        return {}
 
 
-def build_phase_prompt(content: str, doc_types: List[str], total_lines: int) -> str:
-    """
-    Build a prompt for detecting specific document types in content.
+# def build_phase_prompt(content: str, doc_types: List[str], total_lines: int) -> str:
+#     """
+#     Build a prompt for detecting specific document types in content.
     
-    Args:
-        content: The markdown content to analyze
-        doc_types: List of document type IDs to detect
-        total_lines: Total number of lines in the content
+#     Args:
+#         content: The markdown content to analyze
+#         doc_types: List of document type IDs to detect
+#         total_lines: Total number of lines in the content
         
-    Returns:
-        Formatted prompt string
+#     Returns:
+#         Formatted prompt string
+#     """
+#     type_descriptions = "\n".join([
+#         f"- {dt}: {DOCUMENT_TYPE_DESCRIPTIONS.get(dt, dt)}"
+#         for dt in doc_types
+#     ])
+    
+#     # Truncate content if too long (keep first and last parts)
+#     max_content_length = 150000
+#     if len(content) > max_content_length:
+#         half = max_content_length // 2
+#         content = content[:half] + "\n\n[... content truncated ...]\n\n" + content[-half:]
+    
+#     prompt = f"""You are an expert document analyst. Analyze the following markdown content and determine if any of these BA (Business Analysis) document types are present.
+
+# DOCUMENT TYPES TO DETECT:
+# {type_descriptions}
+
+# IMPORTANT RULES:
+# 1. For each document type, if found, provide the line_start (1-indexed) and line_end (1-indexed) where that section exists
+# 2. If a document type is NOT found, use line_start: -1 and line_end: -1
+# 3. The document has {total_lines} total lines
+# 4. Look for section headers, content patterns, and document structure to identify document types
+# 5. A document type is considered present if there's a substantial section (not just a brief mention)
+
+# CONTENT TO ANALYZE:
+# ```markdown
+# {content}
+# ```
+
+# Return ONLY a JSON array with this exact format (no other text):
+# [
+#   {{"type": "document-type-id", "line_start": <number>, "line_end": <number>}},
+#   ...
+# ]
+
+# Include ALL document types listed above in your response, even if not found (use -1 values for those not found).
+# """
+#     return prompt
+
+
+# def call_llm_for_phase(content: str, doc_types: List[str], total_lines: int) -> List[Dict]:
+#     """
+#     Call LLM to detect document types for a specific phase.
+    
+#     Args:
+#         content: The markdown content
+#         doc_types: Document types to detect
+#         total_lines: Total lines in content
+        
+#     Returns:
+#         List of detection results
+#     """
+#     if not doc_types:
+#         return []
+    
+#     model_client = get_model_client()
+#     prompt = build_phase_prompt(content, doc_types, total_lines)
+    
+#     try:
+#         # using openrouter
+#         # completion = model_client.chat_completion(
+#         #     messages=[
+#         #         {"role": "system", "content": "You are a precise document analyzer. Return only valid JSON."},
+#         #         {"role": "user", "content": prompt}
+#         #     ],
+#         #     model=MODEL
+#         # )
+        
+#         # response_text = completion.choices[0].message.content or ""
+#         # results = extract_json_arr_from_response(response_text)
+        
+#         # NOTE: Missing types will be filled in by aggregate_results node
+#         # Each phase only returns what LLM actually detected
+
+#         # using gemini-2.5-flash-lite
+#         raw_output = model_client.gemini_completion(prompt)
+#         results = extract_json_arr_from_response(raw_output)
+#         return results
+#     except Exception as e:
+#         print(f"Error calling LLM for {doc_types}: {e}")
+#         # Return not-found for all types on error
+#         # because it just means we fail to extract metadata, the backend should interpret and instruct further
+#         return [{"type": dt, "line_start": -1, "line_end": -1} for dt in doc_types]
+
+
+# ============================================================================
+# Workflow Nodes
+# ============================================================================
+
+# def initialize_state(state: MetadataExtractionState) -> MetadataExtractionState:
+#     """Initialize state with line count."""
+#     content = state.get("content", "")
+#     lines = content.split('\n')
+#     state["total_lines"] = len(lines)
+#     return state
+
+# def detect_phase1_documents(state: MetadataExtractionState) -> MetadataExtractionState:
+#     """Detect Phase 1: Project Initiation documents."""
+#     results = call_llm_for_phase(
+#         state["content"],
+#         PHASE_1_PROJECT_INITIATION,
+#         state["total_lines"]
+#     )
+#     state["phase1_results"] = results
+#     return state
+
+# def detect_phase2_documents(state: MetadataExtractionState) -> MetadataExtractionState:
+#     """Detect Phase 2: Business Planning documents."""
+#     results = call_llm_for_phase(
+#         state["content"],
+#         PHASE_2_BUSINESS_PLANNING,
+#         state["total_lines"]
+#     )
+#     state["phase2_results"] = results
+#     return state
+
+# def detect_phase3_documents(state: MetadataExtractionState) -> MetadataExtractionState:
+#     """Detect Phase 3: Feasibility & Risk Analysis documents."""
+#     results = call_llm_for_phase(
+#         state["content"],
+#         PHASE_3_FEASIBILITY_RISK,
+#         state["total_lines"]
+#     )
+#     state["phase3_results"] = results
+#     return state
+
+# def detect_phase4_documents(state: MetadataExtractionState) -> MetadataExtractionState:
+#     """Detect Phase 4: High-Level Design documents."""
+#     results = call_llm_for_phase(
+#         state["content"],
+#         PHASE_4_HIGH_LEVEL_DESIGN,
+#         state["total_lines"]
+#     )
+#     state["phase4_results"] = results
+#     return state
+
+# def detect_phase5_documents(state: MetadataExtractionState) -> MetadataExtractionState:
+#     """Detect Phase 5: Low-Level Design documents."""
+#     results = call_llm_for_phase(
+#         state["content"],
+#         PHASE_5_LOW_LEVEL_DESIGN,
+#         state["total_lines"]
+#     )
+#     state["phase5_results"] = results
+#     return state
+
+# def detect_phase6_documents(state: MetadataExtractionState) -> MetadataExtractionState:
+#     """Detect Phase 6: UI/UX Design documents."""
+#     results = call_llm_for_phase(
+#         state["content"],
+#         PHASE_6_UIUX_DESIGN,
+#         state["total_lines"]
+#     )
+#     state["phase6_results"] = results
+#     return state
+
+# def detect_phase7_documents(state: MetadataExtractionState) -> MetadataExtractionState:
+#     """Detect Phase 7: Testing & QA documents."""
+#     results = call_llm_for_phase(
+#         state["content"],
+#         PHASE_7_TESTING_QA,
+#         state["total_lines"]
+#     )
+#     state["phase7_results"] = results
+#     return state
+
+# def detect_additional_documents(state: MetadataExtractionState) -> MetadataExtractionState:
+#     """Detect additional document types (SRS, Diagrams)."""
+#     results = call_llm_for_phase(
+#         state["content"],
+#         ADDITIONAL_DOCUMENT_TYPES,
+#         state["total_lines"]
+#     )
+#     state["additional_results"] = results
+#     return state
+
+# def aggregate_results(state: MetadataExtractionState) -> MetadataExtractionState:
+#     """Aggregate all phase results into final response."""
+#     all_results = []
+    
+#     # Collect results from all phases
+#     for phase_key in [
+#         "phase1_results", "phase2_results", "phase3_results",
+#         "phase4_results", "phase5_results", "phase6_results",
+#         "phase7_results", "additional_results"
+#     ]:
+#         phase_results = state.get(phase_key, [])
+#         if phase_results:
+#             all_results.extend(phase_results)
+    
+#     # Build response object
+#     response_items = []
+#     seen_types = set()
+    
+#     for result in all_results:
+#         doc_type = result.get("type", "")
+#         if doc_type and doc_type not in seen_types:
+#             seen_types.add(doc_type)
+#             response_items.append({
+#                 "type": doc_type,
+#                 "line_start": result.get("line_start", -1),
+#                 "line_end": result.get("line_end", -1)
+#             })
+    
+#     # Ensure all document types are present
+#     for dt in ALL_DOCUMENT_TYPES:
+#         if dt not in seen_types:
+#             response_items.append({
+#                 "type": dt,
+#                 "line_start": -1,
+#                 "line_end": -1
+#             })
+    
+#     state["response"] = {
+#         "document_id": state["document_id"],
+#         "type": "metadata_extraction",
+#         "response": response_items,
+#     }
+    
+#     return state
+
+def build_classification_prompt(content: str) -> str:
+    """
+    Build a prompt for classifying content into exactly one document type.
     """
     type_descriptions = "\n".join([
-        f"- {dt}: {DOCUMENT_TYPE_DESCRIPTIONS.get(dt, dt)}"
-        for dt in doc_types
+        f"- {dt}: {desc}"
+        for dt, desc in DOCUMENT_TYPE_DESCRIPTIONS.items()
     ])
     
     # Truncate content if too long (keep first and last parts)
-    max_content_length = 150000
+    max_content_length = int(os.getenv("MAX_CONTEXT_TOKENS", "150000"))
     if len(content) > max_content_length:
         half = max_content_length // 2
         content = content[:half] + "\n\n[... content truncated ...]\n\n" + content[-half:]
     
-    prompt = f"""You are an expert document analyst. Analyze the following markdown content and determine if any of these BA (Business Analysis) document types are present.
+    prompt = f"""You are an expert document analyst. Analyze the following markdown content and classify it into EXACTLY ONE of the predefined Business Analysis (BA) document types.
 
-DOCUMENT TYPES TO DETECT:
-{type_descriptions}
+    AVAILABLE DOCUMENT TYPES:
+    {type_descriptions}
 
-IMPORTANT RULES:
-1. For each document type, if found, provide the line_start (1-indexed) and line_end (1-indexed) where that section exists
-2. If a document type is NOT found, use line_start: -1 and line_end: -1
-3. The document has {total_lines} total lines
-4. Look for section headers, content patterns, and document structure to identify document types
-5. A document type is considered present if there's a substantial section (not just a brief mention)
+    IMPORTANT RULES:
+    1. Determine the SINGLE most likely document type that fits the primary purpose of the content.
+    2. If the document does not align with any of the specific types listed, use "other".
 
-CONTENT TO ANALYZE:
-```markdown
-{content}
-```
+    CONTENT TO ANALYZE:
+    ```markdown
+    {content}
+    ```
 
-Return ONLY a JSON array with this exact format (no other text):
-[
-  {{"type": "document-type-id", "line_start": <number>, "line_end": <number>}},
-  ...
-]
+    RETURN ONLY a JSON object with this exact format (no markdown code blocks, no other text):
 
-Include ALL document types listed above in your response, even if not found (use -1 values for those not found).
-"""
+    [
+        {{"type": "document_type_id"}}
+    ]
+    """
     return prompt
 
-
-def call_llm_for_phase(
-    content: str,
-    doc_types: List[str],
-    total_lines: int,
-    config: Optional[dict] = None,
-) -> List[Dict]:
+def call_llm_for_classification(content: str, config: Optional[dict]) -> str:
     """
-    Call LLM to detect document types for a specific phase.
-    
-    Args:
-        content: The markdown content
-        doc_types: Document types to detect
-        total_lines: Total lines in content
-        
-    Returns:
-        List of detection results
+    Call LLM to classify the document into exactly one type.
+    Returns the string representing the document type.
     """
-    if not doc_types:
-        return []
-    
+    print("start call_llm_for_classification")
     model_client = get_model_client()
     cfg = (config or {}).get("configurable", {})
     token = set_request_model_config(
@@ -186,191 +390,50 @@ def call_llm_for_phase(
         model_name=cfg.get("model_name"),
         api_key=cfg.get("api_key"),
     )
-    prompt = build_phase_prompt(content, doc_types, total_lines)
-    
+    prompt = build_classification_prompt(content)
     try:
-        completion = model_client.chat_completion(
-            messages=[
-                {"role": "system", "content": "You are a precise document analyzer. Return only valid JSON."},
-                {"role": "user", "content": prompt}
-            ],
-            model=cfg.get("model_name") or MODEL
+        response = model_client.chat_completion(
+            messages=[{"role": "user", "content": prompt}],
+            model=cfg.get("model_name") or MODEL,
         )
+        raw_output = response.choices[0].message.content or ""
         
-        response_text = completion.choices[0].message.content or ""
-        results = extract_json_arr_from_response(response_text)
+        # Parse the JSON response
+        result = extract_json_arr_from_response(raw_output)
+        print("The result in call_llm_for_classification is ", result)
+        detected_type = result[0].get("type", "other")
         
-        # NOTE: Missing types will be filled in by aggregate_results node
-        # Each phase only returns what LLM actually detected
-
-        # using gemini-2.5-flash-lite
-        # raw_output = model_client.gemini_completion(prompt)
-        # results = extract_json_arr_from_response(raw_output)
+        # Validate against our known types to prevent LLM hallucinations
+        if detected_type not in ALL_DOCUMENT_TYPES:
+            print(f"""
+                  [WARNING]: LLM hallucinated some types other than provided types, and not 'other'.
+                  \nThe type is {detected_type}
+                  \nSet back to 'other'...
+                  """)
+            detected_type = "other"
+        # print("done call_llm_for_classification, detected_type is ", detected_type)    
+        return detected_type
         
-        return results
     except Exception as e:
-        print(f"Error calling LLM for {doc_types}: {e}")
-        # Return not-found for all types on error
-        # because it just means we fail to extract metadata, the backend should interpret and instruct further
-        return [{"type": dt, "line_start": -1, "line_end": -1} for dt in doc_types]
+        print(f"Error calling LLM for classification: {e}")
+        # Default to 'other' on failure so the backend can still gracefully handle it
+        return "other"
     finally:
         reset_request_model_config(token)
-
-
-# ============================================================================
-# Workflow Nodes
-# ============================================================================
-
-def initialize_state(state: MetadataExtractionState) -> MetadataExtractionState:
-    """Initialize state with line count."""
-    content = state.get("content", "")
-    lines = content.split('\n')
-    state["total_lines"] = len(lines)
-    return state
-
-# NOTE: CURRENTLY, ALL PHASES' CONTENT IS JUST THE INITIAL CONTENT (NO CONTENT-CHAINING, NO INTERDEPENDENCE BETWEEN DOCS YET)
-# TODO IMPLEMENT DEPENDENCIES BETWEEN PHASES, HANDLE LOGIC
-def detect_phase1_documents(state: MetadataExtractionState, config: Optional[dict] = None) -> MetadataExtractionState:
-    """Detect Phase 1: Project Initiation documents."""
-    results = call_llm_for_phase(
-        state["content"],
-        PHASE_1_PROJECT_INITIATION,
-        state["total_lines"],
-        config=config,
-    )
-    state["phase1_results"] = results
-    return state
-
-
-def detect_phase2_documents(state: MetadataExtractionState, config: Optional[dict] = None) -> MetadataExtractionState:
-    """Detect Phase 2: Business Planning documents."""
-    results = call_llm_for_phase(
-        state["content"],
-        PHASE_2_BUSINESS_PLANNING,
-        state["total_lines"],
-        config=config,
-    )
-    state["phase2_results"] = results
-    return state
-
-
-def detect_phase3_documents(state: MetadataExtractionState, config: Optional[dict] = None) -> MetadataExtractionState:
-    """Detect Phase 3: Feasibility & Risk Analysis documents."""
-    results = call_llm_for_phase(
-        state["content"],
-        PHASE_3_FEASIBILITY_RISK,
-        state["total_lines"],
-        config=config,
-    )
-    state["phase3_results"] = results
-    return state
-
-
-def detect_phase4_documents(state: MetadataExtractionState, config: Optional[dict] = None) -> MetadataExtractionState:
-    """Detect Phase 4: High-Level Design documents."""
-    results = call_llm_for_phase(
-        state["content"],
-        PHASE_4_HIGH_LEVEL_DESIGN,
-        state["total_lines"],
-        config=config,
-    )
-    state["phase4_results"] = results
-    return state
-
-
-def detect_phase5_documents(state: MetadataExtractionState, config: Optional[dict] = None) -> MetadataExtractionState:
-    """Detect Phase 5: Low-Level Design documents."""
-    results = call_llm_for_phase(
-        state["content"],
-        PHASE_5_LOW_LEVEL_DESIGN,
-        state["total_lines"],
-        config=config,
-    )
-    state["phase5_results"] = results
-    return state
-
-
-def detect_phase6_documents(state: MetadataExtractionState, config: Optional[dict] = None) -> MetadataExtractionState:
-    """Detect Phase 6: UI/UX Design documents."""
-    results = call_llm_for_phase(
-        state["content"],
-        PHASE_6_UIUX_DESIGN,
-        state["total_lines"],
-        config=config,
-    )
-    state["phase6_results"] = results
-    return state
-
-
-def detect_phase7_documents(state: MetadataExtractionState, config: Optional[dict] = None) -> MetadataExtractionState:
-    """Detect Phase 7: Testing & QA documents."""
-    results = call_llm_for_phase(
-        state["content"],
-        PHASE_7_TESTING_QA,
-        state["total_lines"],
-        config=config,
-    )
-    state["phase7_results"] = results
-    return state
-
-
-def detect_additional_documents(state: MetadataExtractionState, config: Optional[dict] = None) -> MetadataExtractionState:
-    """Detect additional document types (SRS, Diagrams)."""
-    results = call_llm_for_phase(
-        state["content"],
-        ADDITIONAL_DOCUMENT_TYPES,
-        state["total_lines"],
-        config=config,
-    )
-    state["additional_results"] = results
-    return state
-
-
-def aggregate_results(state: MetadataExtractionState) -> MetadataExtractionState:
-    """Aggregate all phase results into final response."""
-    all_results = []
     
-    # Collect results from all phases
-    for phase_key in [
-        "phase1_results", "phase2_results", "phase3_results",
-        "phase4_results", "phase5_results", "phase6_results",
-        "phase7_results", "additional_results"
-    ]:
-        phase_results = state.get(phase_key, [])
-        if phase_results:
-            all_results.extend(phase_results)
-    
-    # Build response object
-    response_items = []
-    seen_types = set()
-    
-    for result in all_results:
-        doc_type = result.get("type", "")
-        if doc_type and doc_type not in seen_types:
-            seen_types.add(doc_type)
-            response_items.append({
-                "type": doc_type,
-                "line_start": result.get("line_start", -1),
-                "line_end": result.get("line_end", -1)
-            })
-    
-    # Ensure all document types are present
-    for dt in ALL_DOCUMENT_TYPES:
-        if dt not in seen_types:
-            response_items.append({
-                "type": dt,
-                "line_start": -1,
-                "line_end": -1
-            })
-    
+def classify_document_node(state: MetadataExtractionState) -> MetadataExtractionState:
+    print("start classify_document_node")
+    # print("The content is: ", state.get("content", "ohno-ZERO content")) OKE
+    config = {} # currently use the default model
+    result_type = call_llm_for_classification(state.get("content", ""), config)
     state["response"] = {
         "document_id": state["document_id"],
         "type": "metadata_extraction",
-        "response": response_items,
+        "response": result_type
     }
-    
+    print("done classify_document_node")
+    print("result: ", state["response"])
     return state
-
 
 # ============================================================================
 # Build Workflow Graph
@@ -381,31 +444,31 @@ def build_metadata_extraction_workflow() -> StateGraph:
     workflow = StateGraph(MetadataExtractionState)
     
     # Add nodes
-    workflow.add_node("initialize", initialize_state)
-    workflow.add_node("detect_phase1", detect_phase1_documents)
-    workflow.add_node("detect_phase2", detect_phase2_documents)
-    workflow.add_node("detect_phase3", detect_phase3_documents)
-    workflow.add_node("detect_phase4", detect_phase4_documents)
-    workflow.add_node("detect_phase5", detect_phase5_documents)
-    workflow.add_node("detect_phase6", detect_phase6_documents)
-    workflow.add_node("detect_phase7", detect_phase7_documents)
-    workflow.add_node("detect_additional", detect_additional_documents)
-    workflow.add_node("aggregate", aggregate_results)
+    # workflow.add_node("initialize", initialize_state)
+    # workflow.add_node("detect_phase1", detect_phase1_documents)
+    # workflow.add_node("detect_phase2", detect_phase2_documents)
+    # workflow.add_node("detect_phase3", detect_phase3_documents)
+    # workflow.add_node("detect_phase4", detect_phase4_documents)
+    # workflow.add_node("detect_phase5", detect_phase5_documents)
+    # workflow.add_node("detect_phase6", detect_phase6_documents)
+    # workflow.add_node("detect_phase7", detect_phase7_documents)
+    # workflow.add_node("detect_additional", detect_additional_documents)
+    workflow.add_node("classify_document_node", classify_document_node)
     
     # Set entry point
-    workflow.set_entry_point("initialize")
+    workflow.set_entry_point("classify_document_node")
     
     # Define edges (sequential processing through phases)
-    workflow.add_edge("initialize", "detect_phase1")
-    workflow.add_edge("detect_phase1", "detect_phase2")
-    workflow.add_edge("detect_phase2", "detect_phase3")
-    workflow.add_edge("detect_phase3", "detect_phase4")
-    workflow.add_edge("detect_phase4", "detect_phase5")
-    workflow.add_edge("detect_phase5", "detect_phase6")
-    workflow.add_edge("detect_phase6", "detect_phase7")
-    workflow.add_edge("detect_phase7", "detect_additional")
-    workflow.add_edge("detect_additional", "aggregate")
-    workflow.add_edge("aggregate", END)
+    # workflow.add_edge("initialize", "detect_phase1")
+    # workflow.add_edge("detect_phase1", "detect_phase2")
+    # workflow.add_edge("detect_phase2", "detect_phase3")
+    # workflow.add_edge("detect_phase3", "detect_phase4")
+    # workflow.add_edge("detect_phase4", "detect_phase5")
+    # workflow.add_edge("detect_phase5", "detect_phase6")
+    # workflow.add_edge("detect_phase6", "detect_phase7")
+    # workflow.add_edge("detect_phase7", "detect_additional")
+    # workflow.add_edge("detect_additional", "aggregate")
+    workflow.add_edge("classify_document_node", END)
     
     return workflow
 

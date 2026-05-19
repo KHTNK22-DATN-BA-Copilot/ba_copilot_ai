@@ -110,7 +110,7 @@ def create_chat_model(
 
     if resolved_provider == "anthropic":
         return ChatAnthropic(
-            model=resolved_model_name,
+            model_name=resolved_model_name,
             api_key=resolved_api_key,
             **kwargs,
         )

@@ -127,11 +127,7 @@ DOCUMENT_TYPE_DESCRIPTIONS = {
     "rtm": "Requirements Traceability Matrix linking requirements to test cases",
     
     # Additional
-    "srs": "Software Requirements Specification - comprehensive functional and non-functional requirements",
-    "class-diagram": "UML class diagram showing system classes and relationships",
-    "usecase-diagram": "UML use case diagram showing actors and system interactions",
-    "activity-diagram": "UML activity diagram showing workflow or process flow",
-    "wireframe": "UI wireframe or layout design",
+    "other": "A type different from all other explicit BA document types"
 }
 
 
@@ -139,18 +135,18 @@ DOCUMENT_TYPE_DESCRIPTIONS = {
 # Pydantic Models
 # ============================================================================
 
-class DocumentTypeMetadata(BaseModel):
-    """
-    Metadata for a single document type detection result.
+# class DocumentTypeMetadata(BaseModel):
+#     """
+#     Metadata for a single document type detection result.
     
-    Attributes:
-        type: The document type identifier (e.g., 'business-case')
-        line_start: Starting line number (1-indexed), -1 if not found
-        line_end: Ending line number (1-indexed), -1 if not found
-    """
-    type: str = Field(..., description="Document type identifier")
-    line_start: int = Field(..., description="Starting line number (1-indexed), -1 if not found")
-    line_end: int = Field(..., description="Ending line number (1-indexed), -1 if not found")
+#     Attributes:
+#         type: The document type identifier (e.g., 'business-case')
+#         line_start: Starting line number (1-indexed), -1 if not found
+#         line_end: Ending line number (1-indexed), -1 if not found
+#     """
+#     type: str = Field(..., description="Document type identifier")
+#     line_start: int = Field(..., description="Starting line number (1-indexed), -1 if not found")
+#     line_end: int = Field(..., description="Ending line number (1-indexed), -1 if not found")
 
 
 class MetadataExtractionRequest(BaseModel):
@@ -178,67 +174,64 @@ class MetadataExtractionResponse(BaseModel):
     """
     document_id: str = Field(..., description="UUID of the document")
     type: str = Field(default="metadata_extraction", description="Response type")
-    response: List[DocumentTypeMetadata] = Field(
-        ..., 
-        description="List of document type detection results"
-    )
+    response: str = Field(default="other", description="Document type detection result, is a str")
 
 
 # ============================================================================
 # Helper Functions
 # ============================================================================
 
-def create_empty_metadata_response(document_id: str) -> MetadataExtractionResponse:
-    """
-    Create a metadata response with all document types marked as not found.
+# def create_empty_metadata_response(document_id: str) -> MetadataExtractionResponse:
+#     """
+#     Create a metadata response with all document types marked as not found.
     
-    Args:
-        document_id: The document UUID
+#     Args:
+#         document_id: The document UUID
         
-    Returns:
-        MetadataExtractionResponse with all types having -1 line ranges
-    """
-    return MetadataExtractionResponse(
-        document_id=document_id,
-        type="metadata_extraction",
-        response=[
-            DocumentTypeMetadata(type=dt, line_start=-1, line_end=-1)
-            for dt in ALL_DOCUMENT_TYPES
-        ]
-    )
+#     Returns:
+#         MetadataExtractionResponse with all types having -1 line ranges
+#     """
+#     return MetadataExtractionResponse(
+#         document_id=document_id,
+#         type="metadata_extraction",
+#         response=[
+#             DocumentTypeMetadata(type=dt, line_start=-1, line_end=-1)
+#             for dt in ALL_DOCUMENT_TYPES
+#         ]
+#     )
 
 
-def create_single_type_metadata(
-    document_id: str,
-    doc_type: str,
-    line_start: int,
-    line_end: int
-) -> MetadataExtractionResponse:
-    """
-    Create a metadata response with one document type detected.
+# def create_single_type_metadata(
+#     document_id: str,
+#     doc_type: str,
+#     line_start: int,
+#     line_end: int
+# ) -> MetadataExtractionResponse:
+#     """
+#     Create a metadata response with one document type detected.
     
-    Args:
-        document_id: The document UUID
-        doc_type: The detected document type
-        line_start: Starting line number
-        line_end: Ending line number
+#     Args:
+#         document_id: The document UUID
+#         doc_type: The detected document type
+#         line_start: Starting line number
+#         line_end: Ending line number
         
-    Returns:
-        MetadataExtractionResponse with specified type detected, others as -1
-    """
-    response_items = []
-    for dt in ALL_DOCUMENT_TYPES:
-        if dt == doc_type:
-            response_items.append(
-                DocumentTypeMetadata(type=dt, line_start=line_start, line_end=line_end)
-            )
-        else:
-            response_items.append(
-                DocumentTypeMetadata(type=dt, line_start=-1, line_end=-1)
-            )
+#     Returns:
+#         MetadataExtractionResponse with specified type detected, others as -1
+#     """
+#     response_items = []
+#     for dt in ALL_DOCUMENT_TYPES:
+#         if dt == doc_type:
+#             response_items.append(
+#                 DocumentTypeMetadata(type=dt, line_start=line_start, line_end=line_end)
+#             )
+#         else:
+#             response_items.append(
+#                 DocumentTypeMetadata(type=dt, line_start=-1, line_end=-1)
+#             )
     
-    return MetadataExtractionResponse(
-        document_id=document_id,
-        type="metadata_extraction",
-        response=response_items
-    )
+#     return MetadataExtractionResponse(
+#         document_id=document_id,
+#         type="metadata_extraction",
+#         response=response_items
+#     )
