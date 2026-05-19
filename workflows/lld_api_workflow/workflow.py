@@ -8,7 +8,7 @@ from typing import TypedDict, Optional, List
 import json
 import logging
 from workflows.nodes import get_chat_history, get_content_file
-from connect_model import get_model_client, MODEL
+from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
 # from models.lld_api import LLDAPIResponse, LLDAPIOutput
 import re
 from ..utils import extractor
@@ -43,12 +43,18 @@ def extract_json(text: str) -> dict:
         print(f"[extract_json RAW]\n{text}")
         return {}
 
-def generate_lld_api_specs(state: LLDAPIState):
+def generate_lld_api_specs(state: LLDAPIState, config: Optional[dict] = None):
     """
     Generate detailed API specifications document using LLM.
     Creates comprehensive API documentation with endpoints, models, authentication.
     """
     model_client = get_model_client()
+    cfg = (config or {}).get("configurable", {})
+    token = set_request_model_config(
+        provider=cfg.get("provider"),
+        model_name=cfg.get("model_name"),
+        api_key=cfg.get("api_key"),
+    )
     
     # Extract context
     user_message = state.get('user_message', '')
@@ -122,7 +128,11 @@ def generate_lld_api_specs(state: LLDAPIState):
     - All values must be strings, root must always have "content" and "summary" as specified - no nesting
     """
     try:
-        raw_output = model_client.gemini_completion(prompt)
+        response = model_client.chat_completion(
+            messages=[{"role": "user", "content": prompt}],
+            model=cfg.get("model_name") or MODEL,
+        )
+        raw_output = response.choices[0].message.content or ""
 
         json_data = extractor.extract_json(raw_output)
         summary = "LLD API"
@@ -142,6 +152,8 @@ def generate_lld_api_specs(state: LLDAPIState):
         return {
             "response": error_response("LLD API", f"Error generating Low-level-design API Specs: {e}")
         } # pyright: ignore[reportReturnType]
+    finally:
+        reset_request_model_config(token)
 
 # Build LangGraph pipeline for LLD API Specifications
 workflow = StateGraph(LLDAPIState)

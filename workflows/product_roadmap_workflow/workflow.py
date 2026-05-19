@@ -7,7 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 # from models.product_roadmap import ProductRoadmapOutput, ProductRoadmapResponse
 from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
-from connect_model import get_model_client, MODEL
+from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
 # from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
 from ..utils import extractor
 from response import success_response, error_response
@@ -25,9 +25,15 @@ class ProductRoadmapState(TypedDict):
     validation_result: Optional[dict]
     retry_count: int
 
-def generate_product_roadmap_diagram(state: ProductRoadmapState):
+def generate_product_roadmap_diagram(state: ProductRoadmapState, config: Optional[dict] = None):
     """Generate product roadmap Gantt diagram using OpenRouter AI"""
     model_client = get_model_client()
+    cfg = (config or {}).get("configurable", {})
+    token = set_request_model_config(
+        provider=cfg.get("provider"),
+        model_name=cfg.get("model_name"),
+        api_key=cfg.get("api_key"),
+    )
 
     # Build comprehensive prompt with context
     user_message = state.get('user_message', '')
@@ -79,7 +85,11 @@ def generate_product_roadmap_diagram(state: ProductRoadmapState):
     """
 
     try:
-        raw_output = model_client.gemini_completion(prompt)
+        response = model_client.chat_completion(
+            messages=[{"role": "user", "content": prompt}],
+            model=cfg.get("model_name") or MODEL,
+        )
+        raw_output = response.choices[0].message.content or ""
 
         json_data = extractor.extract_json(raw_output)
         summary = "Product Roadmap"
@@ -98,6 +108,8 @@ def generate_product_roadmap_diagram(state: ProductRoadmapState):
         return {
             "response": error_response("Product Roadmap", f"Error generating product roadmap: {e}")
         } # pyright: ignore[reportReturnType]
+    finally:
+        reset_request_model_config(token)
 
 # def validate_diagram(state: ProductRoadmapState) -> ProductRoadmapState:
 #     """Validate the generated mermaid diagram"""

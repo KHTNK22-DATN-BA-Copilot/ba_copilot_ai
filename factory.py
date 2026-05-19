@@ -18,15 +18,13 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 
-DEFAULT_PROVIDER = "google"  #TODO: make the DEFAULT_PROVIDER fetched from .env
+DEFAULT_PROVIDER = "openrouter"
 DEFAULT_MODEL_BY_PROVIDER = {
     "google": "gemini-2.5-flash-lite",
     "openai": "gpt-4o-mini",
-    "anthropic": "claude-3-5-sonnet-latest",
-    "openrouter": "anthropic/claude-3.5-sonnet",
-    
+    "anthropic": "claude-haiku-4.5",
+    "openrouter": "anthropic/claude-haiku-4.5",
 }
-
 
 def _clean(value: Optional[str]) -> Optional[str]:
     if value is None:
@@ -42,10 +40,10 @@ def _resolve_api_key(provider: str, user_api_key: Optional[str]) -> str:
 
     if provider == "google":
         # Support both names for compatibility with existing environments.
-        key = _clean(os.getenv("GOOGLE_GEMINI_API_KEY")) or _clean(os.getenv("GOOGLE_AI_API_KEY"))
+        key = _clean(os.getenv("GOOGLE_AI_API_KEY"))
         if key:
             return key
-        raise ValueError("Missing API key for Google provider. Set GOOGLE_GEMINI_API_KEY or GOOGLE_AI_API_KEY.")
+        raise ValueError("Missing API key for Google provider. Set GOOGLE_AI_API_KEY.")
 
     if provider == "openai":
         key = _clean(os.getenv("OPENAI_API_KEY"))
@@ -60,10 +58,7 @@ def _resolve_api_key(provider: str, user_api_key: Optional[str]) -> str:
         raise ValueError("Missing API key for Anthropic provider. Set ANTHROPIC_API_KEY.")
 
     if provider == "openrouter":
-        key = (
-            _clean(os.getenv("OPEN_ROUTER_API_KEY"))
-            or _clean(os.getenv("OPENROUTER_API_KEY"))
-        )
+        key = _clean(os.getenv("OPEN_ROUTER_API_KEY"))
         if key:
             return key
         raise ValueError("Missing API key for OpenRouter provider. Set OPEN_ROUTER_API_KEY or OPENROUTER_API_KEY.")
@@ -88,8 +83,7 @@ def create_chat_model(
     Returns:
         A configured LangChain chat model instance.
     """
-    resolved_provider = _clean(provider) or DEFAULT_PROVIDER
-    resolved_provider = resolved_provider.lower()
+    resolved_provider = provider.lower() if provider else DEFAULT_PROVIDER.lower()
 
     if resolved_provider not in DEFAULT_MODEL_BY_PROVIDER:
         raise ValueError(
@@ -97,7 +91,7 @@ def create_chat_model(
             f"Supported providers: {', '.join(DEFAULT_MODEL_BY_PROVIDER.keys())}."
         )
 
-    resolved_model_name = _clean(model_name) or DEFAULT_MODEL_BY_PROVIDER[resolved_provider]
+    resolved_model_name = model_name or DEFAULT_MODEL_BY_PROVIDER[resolved_provider]
     resolved_api_key = _resolve_api_key(resolved_provider, api_key)
 
     if resolved_provider == "google":
@@ -121,9 +115,9 @@ def create_chat_model(
             **kwargs,
         )
 
-    openrouter_base_url = _clean(os.getenv("OPENROUTER_BASE_URL")) or "https://openrouter.ai/api/v1"
-    referer = _clean(os.getenv("OPENROUTER_REFERER"))
-    title = _clean(os.getenv("OPENROUTER_TITLE"))
+    openrouter_base_url = os.getenv("OPENROUTER_BASE_URL") or "https://openrouter.ai/api/v1"
+    referer = os.getenv("OPENROUTER_REFERER")
+    title = os.getenv("OPENROUTER_TITLE")
 
     default_headers = dict(kwargs.pop("default_headers", {}) or {})
     if referer:
@@ -136,26 +130,5 @@ def create_chat_model(
         api_key=resolved_api_key,
         base_url=openrouter_base_url,
         default_headers=default_headers or None,
-        **kwargs,
-    )
-
-
-def create_chat_model_from_config(configurable: Optional[Dict[str, Any]] = None, **kwargs: Any) -> BaseChatModel:
-    """Create model from LangGraph configurable settings.
-
-    Expected configurable keys:
-      - provider
-      - model_name
-      - api_key
-    """
-    cfg = configurable or {}
-    provider = cfg.get("provider")
-    model_name = cfg.get("model_name")
-    api_key = cfg.get("api_key")
-
-    return create_chat_model(
-        provider=provider,
-        model_name=model_name,
-        api_key=api_key,
         **kwargs,
     )

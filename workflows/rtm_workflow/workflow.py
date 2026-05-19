@@ -6,7 +6,7 @@ import json
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
-from connect_model import get_model_client, MODEL
+from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
 from ..utils import extractor
 from response import success_response, error_response
 
@@ -32,9 +32,15 @@ def extract_json(text: str) -> dict:
         return {}
 
 
-def generate_rtm(state: RTMState):
+def generate_rtm(state: RTMState, config: Optional[dict] = None):
     """Generate Requirements Traceability Matrix document using OpenRouter AI"""
     model_client = get_model_client()
+    cfg = (config or {}).get("configurable", {})
+    token = set_request_model_config(
+        provider=cfg.get("provider"),
+        model_name=cfg.get("model_name"),
+        api_key=cfg.get("api_key"),
+    )
 
     # Build comprehensive prompt with context
     user_message = state['user_message']
@@ -114,7 +120,11 @@ def generate_rtm(state: RTMState):
     """
 
     try:
-        raw_output = model_client.gemini_completion(prompt)
+        response = model_client.chat_completion(
+            messages=[{"role": "user", "content": prompt}],
+            model=cfg.get("model_name") or MODEL,
+        )
+        raw_output = response.choices[0].message.content or ""
 
         json_data = extractor.extract_json(raw_output)
         summary = "RTM"
@@ -133,6 +143,8 @@ def generate_rtm(state: RTMState):
         return {
             "response": error_response("RTM", f"Error generating RTM: {e}")
         } # pyright: ignore[reportReturnType]
+    finally:
+        reset_request_model_config(token)
 
 # Build LangGraph pipeline for RTM
 workflow = StateGraph(RTMState)

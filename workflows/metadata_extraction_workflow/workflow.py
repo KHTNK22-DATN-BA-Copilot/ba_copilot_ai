@@ -16,7 +16,7 @@ from typing import TypedDict, Optional, List, Dict, Any
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from connect_model import get_model_client, MODEL
+from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
 from models.metadata_extraction import (
     MetadataExtractionResponse,
     DocumentTypeMetadata,
@@ -159,7 +159,12 @@ Include ALL document types listed above in your response, even if not found (use
     return prompt
 
 
-def call_llm_for_phase(content: str, doc_types: List[str], total_lines: int) -> List[Dict]:
+def call_llm_for_phase(
+    content: str,
+    doc_types: List[str],
+    total_lines: int,
+    config: Optional[dict] = None,
+) -> List[Dict]:
     """
     Call LLM to detect document types for a specific phase.
     
@@ -175,33 +180,41 @@ def call_llm_for_phase(content: str, doc_types: List[str], total_lines: int) -> 
         return []
     
     model_client = get_model_client()
+    cfg = (config or {}).get("configurable", {})
+    token = set_request_model_config(
+        provider=cfg.get("provider"),
+        model_name=cfg.get("model_name"),
+        api_key=cfg.get("api_key"),
+    )
     prompt = build_phase_prompt(content, doc_types, total_lines)
     
     try:
-        # using openrouter
-        # completion = model_client.chat_completion(
-        #     messages=[
-        #         {"role": "system", "content": "You are a precise document analyzer. Return only valid JSON."},
-        #         {"role": "user", "content": prompt}
-        #     ],
-        #     model=MODEL
-        # )
+        completion = model_client.chat_completion(
+            messages=[
+                {"role": "system", "content": "You are a precise document analyzer. Return only valid JSON."},
+                {"role": "user", "content": prompt}
+            ],
+            model=cfg.get("model_name") or MODEL
+        )
         
-        # response_text = completion.choices[0].message.content or ""
-        # results = extract_json_arr_from_response(response_text)
+        response_text = completion.choices[0].message.content or ""
+        results = extract_json_arr_from_response(response_text)
         
         # NOTE: Missing types will be filled in by aggregate_results node
         # Each phase only returns what LLM actually detected
 
         # using gemini-2.5-flash-lite
-        raw_output = model_client.gemini_completion(prompt)
-        results = extract_json_arr_from_response(raw_output)
+        # raw_output = model_client.gemini_completion(prompt)
+        # results = extract_json_arr_from_response(raw_output)
+        
         return results
     except Exception as e:
         print(f"Error calling LLM for {doc_types}: {e}")
         # Return not-found for all types on error
         # because it just means we fail to extract metadata, the backend should interpret and instruct further
         return [{"type": dt, "line_start": -1, "line_end": -1} for dt in doc_types]
+    finally:
+        reset_request_model_config(token)
 
 
 # ============================================================================
@@ -217,89 +230,97 @@ def initialize_state(state: MetadataExtractionState) -> MetadataExtractionState:
 
 # NOTE: CURRENTLY, ALL PHASES' CONTENT IS JUST THE INITIAL CONTENT (NO CONTENT-CHAINING, NO INTERDEPENDENCE BETWEEN DOCS YET)
 # TODO IMPLEMENT DEPENDENCIES BETWEEN PHASES, HANDLE LOGIC
-def detect_phase1_documents(state: MetadataExtractionState) -> MetadataExtractionState:
+def detect_phase1_documents(state: MetadataExtractionState, config: Optional[dict] = None) -> MetadataExtractionState:
     """Detect Phase 1: Project Initiation documents."""
     results = call_llm_for_phase(
         state["content"],
         PHASE_1_PROJECT_INITIATION,
-        state["total_lines"]
+        state["total_lines"],
+        config=config,
     )
     state["phase1_results"] = results
     return state
 
 
-def detect_phase2_documents(state: MetadataExtractionState) -> MetadataExtractionState:
+def detect_phase2_documents(state: MetadataExtractionState, config: Optional[dict] = None) -> MetadataExtractionState:
     """Detect Phase 2: Business Planning documents."""
     results = call_llm_for_phase(
         state["content"],
         PHASE_2_BUSINESS_PLANNING,
-        state["total_lines"]
+        state["total_lines"],
+        config=config,
     )
     state["phase2_results"] = results
     return state
 
 
-def detect_phase3_documents(state: MetadataExtractionState) -> MetadataExtractionState:
+def detect_phase3_documents(state: MetadataExtractionState, config: Optional[dict] = None) -> MetadataExtractionState:
     """Detect Phase 3: Feasibility & Risk Analysis documents."""
     results = call_llm_for_phase(
         state["content"],
         PHASE_3_FEASIBILITY_RISK,
-        state["total_lines"]
+        state["total_lines"],
+        config=config,
     )
     state["phase3_results"] = results
     return state
 
 
-def detect_phase4_documents(state: MetadataExtractionState) -> MetadataExtractionState:
+def detect_phase4_documents(state: MetadataExtractionState, config: Optional[dict] = None) -> MetadataExtractionState:
     """Detect Phase 4: High-Level Design documents."""
     results = call_llm_for_phase(
         state["content"],
         PHASE_4_HIGH_LEVEL_DESIGN,
-        state["total_lines"]
+        state["total_lines"],
+        config=config,
     )
     state["phase4_results"] = results
     return state
 
 
-def detect_phase5_documents(state: MetadataExtractionState) -> MetadataExtractionState:
+def detect_phase5_documents(state: MetadataExtractionState, config: Optional[dict] = None) -> MetadataExtractionState:
     """Detect Phase 5: Low-Level Design documents."""
     results = call_llm_for_phase(
         state["content"],
         PHASE_5_LOW_LEVEL_DESIGN,
-        state["total_lines"]
+        state["total_lines"],
+        config=config,
     )
     state["phase5_results"] = results
     return state
 
 
-def detect_phase6_documents(state: MetadataExtractionState) -> MetadataExtractionState:
+def detect_phase6_documents(state: MetadataExtractionState, config: Optional[dict] = None) -> MetadataExtractionState:
     """Detect Phase 6: UI/UX Design documents."""
     results = call_llm_for_phase(
         state["content"],
         PHASE_6_UIUX_DESIGN,
-        state["total_lines"]
+        state["total_lines"],
+        config=config,
     )
     state["phase6_results"] = results
     return state
 
 
-def detect_phase7_documents(state: MetadataExtractionState) -> MetadataExtractionState:
+def detect_phase7_documents(state: MetadataExtractionState, config: Optional[dict] = None) -> MetadataExtractionState:
     """Detect Phase 7: Testing & QA documents."""
     results = call_llm_for_phase(
         state["content"],
         PHASE_7_TESTING_QA,
-        state["total_lines"]
+        state["total_lines"],
+        config=config,
     )
     state["phase7_results"] = results
     return state
 
 
-def detect_additional_documents(state: MetadataExtractionState) -> MetadataExtractionState:
+def detect_additional_documents(state: MetadataExtractionState, config: Optional[dict] = None) -> MetadataExtractionState:
     """Detect additional document types (SRS, Diagrams)."""
     results = call_llm_for_phase(
         state["content"],
         ADDITIONAL_DOCUMENT_TYPES,
-        state["total_lines"]
+        state["total_lines"],
+        config=config,
     )
     state["additional_results"] = results
     return state
