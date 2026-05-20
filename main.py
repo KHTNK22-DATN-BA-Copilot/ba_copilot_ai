@@ -11,7 +11,6 @@ from connect_model import (
     get_request_model_config,
 )
 from response import success_response, error_response
-from services.rag.indexer import index_rag_content
 
 # Import workflow graphs for AI-powered generation
 from workflows import (
@@ -132,15 +131,6 @@ class AIRequest(BaseModel):
         }
 
 
-class RagIndexRequest(BaseModel):
-    file_id: Optional[str] = None
-    storage_path: Optional[str] = None
-    storage_md_path: Optional[str] = None
-    content: str
-    project_id: Optional[int] = None
-    created_by: Optional[int] = None
-
-
 async def _invoke_graph(graph: Any, state: dict) -> dict:
     """Invoke LangGraph with request-scoped configurable settings for all endpoints."""
     request_cfg = get_request_model_config()
@@ -181,34 +171,6 @@ async def health_check():
         "openrouter_api_configured": bool(openrouter_api_key)
     }
 
-
-@app.post("/api/v1/rag/index")
-async def index_rag(req: RagIndexRequest):
-    try:
-        if not req.content:
-            return {"response": error_response("RAG Index", "Empty content for indexing")}
-
-        result = index_rag_content(
-            content=req.content,
-            storage_path=req.storage_path,
-            storage_md_path=req.storage_md_path,
-            file_id=req.file_id,
-            project_id=req.project_id,
-            created_by=req.created_by,
-        )
-
-        return {
-            "response": success_response(
-                "RAG Index",
-                {
-                    "chunks": result.get("chunks", 0),
-                    "storage_path": req.storage_path,
-                    "storage_md_path": req.storage_md_path,
-                },
-            )
-        }
-    except Exception as e:
-        return {"response": error_response("RAG Index", f"Indexing failed: {e}")}
 
 @app.post("/api/v1/srs/generate")
 async def generate_srs(req: AIRequest):
