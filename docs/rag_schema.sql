@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS rag_chunks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     file_id UUID NOT NULL,
     project_id INTEGER NOT NULL,
-    storage_key TEXT NOT NULL,
+    document_type TEXT NOT NULL,
     chunk_index INTEGER NOT NULL,
     content TEXT NOT NULL,
     token_count INTEGER,
