@@ -9,7 +9,7 @@ from typing import TypedDict, Optional, List
 from workflows.nodes import get_chat_history, get_content_file
 from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
 import logging
-from ..utils import extractor
+from utils import extractor
 from response import success_response, error_response
 
 logger = logging.getLogger(__name__)

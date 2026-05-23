@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 from connect_model import get_request_model_config
 from .embeddings import embed_texts
 from .supabase_client import get_supabase_client
-from .tokenizer import estimate_tokens
+from utils.tokenizer import estimate_tokens
 
 MODEL_CONTEXT_LIMITS = {
     "gpt-4o-mini": 128000,

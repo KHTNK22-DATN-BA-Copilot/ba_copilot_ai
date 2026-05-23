@@ -8,7 +8,7 @@ from typing import TypedDict, Optional, List, Dict
 import json
 import logging
 from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
-from ..utils import extractor
+from utils import extractor
 from response import success_response, error_response
 
 logger = logging.getLogger(__name__)
