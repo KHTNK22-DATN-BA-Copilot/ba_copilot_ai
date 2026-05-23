@@ -45,9 +45,9 @@ BEGIN
     RETURN QUERY
     SELECT
         rag_chunks.id,
-                rag_chunks.file_id,
+        rag_chunks.file_id,
         rag_chunks.project_id,
-            rag_chunks.document_type,
+        rag_chunks.document_type,
         rag_chunks.chunk_index,
         rag_chunks.content,
         rag_chunks.token_count,
