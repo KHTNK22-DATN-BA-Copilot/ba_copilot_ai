@@ -24,7 +24,7 @@ class UIUXMockupState(TypedDict):
     chat_context: Optional[str]
 
 
-def get_content_file(state: UIUXMockupState) -> UIUXMockupState:
+def get_context_node(state: UIUXMockupState) -> UIUXMockupState:
     """Extract content from uploaded files"""
     storage_paths = state.get('storage_paths')
     
@@ -143,13 +143,13 @@ def generate_uiux_mockup(state: UIUXMockupState, config: Optional[dict] = None):
 workflow = StateGraph(UIUXMockupState)
 
 # Add nodes
-workflow.add_node("get_content_file", get_content_file)
+workflow.add_node("get_context_node", get_context_node)
 workflow.add_node("get_chat_history", get_chat_history)
 workflow.add_node("generate_uiux_mockup", generate_uiux_mockup)
 
 # Define edges
-workflow.set_entry_point("get_content_file")
-workflow.add_edge("get_content_file", "get_chat_history")
+workflow.set_entry_point("get_context_node")
+workflow.add_edge("get_context_node", "get_chat_history")
 workflow.add_edge("get_chat_history", "generate_uiux_mockup")
 workflow.add_edge("generate_uiux_mockup", END)
 

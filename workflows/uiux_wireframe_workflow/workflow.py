@@ -24,7 +24,7 @@ class UIUXWireframeState(TypedDict):
     chat_context: Optional[str]
 
 
-def get_content_file(state: UIUXWireframeState) -> UIUXWireframeState:
+def get_context_node(state: UIUXWireframeState) -> UIUXWireframeState:
     """Extract content from uploaded files"""
     storage_paths = state.get('storage_paths')
     
@@ -151,13 +151,13 @@ def generate_uiux_wireframe(state: UIUXWireframeState, config: Optional[dict] = 
 workflow = StateGraph(UIUXWireframeState)
 
 # Add nodes
-workflow.add_node("get_content_file", get_content_file)
+workflow.add_node("get_context_node", get_context_node)
 workflow.add_node("get_chat_history", get_chat_history)
 workflow.add_node("generate_uiux_wireframe", generate_uiux_wireframe)
 
 # Define edges
-workflow.set_entry_point("get_content_file")
-workflow.add_edge("get_content_file", "get_chat_history")
+workflow.set_entry_point("get_context_node")
+workflow.add_edge("get_context_node", "get_chat_history")
 workflow.add_edge("get_chat_history", "generate_uiux_wireframe")
 workflow.add_edge("generate_uiux_wireframe", END)
 
