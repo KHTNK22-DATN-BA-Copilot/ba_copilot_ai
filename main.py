@@ -88,10 +88,10 @@ logger = logging.getLogger(__name__)
 #             break
 #         logger.info(f"⏳ Waiting for validator to be ready... ({i+1}/{max_retries})")
 #         await asyncio.sleep(1)
-    
+
 #     if not validator_ready:
 #         logger.warning("⚠️ Validator not ready, diagram validation may fail")
-    
+
 #     # Close the health check validator instance
 #     await validator.close()
 
@@ -120,6 +120,7 @@ class AIRequest(BaseModel):
     message: str
     content_id: Optional[str] = None
     storage_paths: Optional[List[str]] = None
+    document_format: Optional[str] = None
 
     class Config:
         json_schema_extra = {
@@ -429,7 +430,8 @@ async def generate_stakeholder_register(req: AIRequest):
         state = {
             "user_message": req.message,
             "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
+            "storage_paths": req.storage_paths or [],
+            "document_format": req.document_format or "",
         }
 
         result = await _invoke_graph(stakeholder_register_graph, state)
@@ -1371,4 +1373,3 @@ async def get_document_types():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
