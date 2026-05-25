@@ -66,11 +66,12 @@ PHASE_7_TESTING_QA = [
 
 # Additional Document Types (SRS, Diagrams)
 ADDITIONAL_DOCUMENT_TYPES = [
-    "srs",
-    "class-diagram",
-    "usecase-diagram",
-    "activity-diagram",
-    "wireframe",
+    "other",
+    # "srs",
+    # "class-diagram",
+    # "usecase-diagram",
+    # "activity-diagram",
+    # "wireframe",
 ]
 
 # Complete list of all document types (26 total)

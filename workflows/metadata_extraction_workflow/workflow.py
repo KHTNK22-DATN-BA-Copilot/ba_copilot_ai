@@ -18,18 +18,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
 from models.metadata_extraction import (
-    MetadataExtractionResponse,
+    # MetadataExtractionResponse,
     # DocumentTypeMetadata,
     ALL_DOCUMENT_TYPES,
     DOCUMENT_TYPE_DESCRIPTIONS,
-    PHASE_1_PROJECT_INITIATION,
-    PHASE_2_BUSINESS_PLANNING,
-    PHASE_3_FEASIBILITY_RISK,
-    PHASE_4_HIGH_LEVEL_DESIGN,
-    PHASE_5_LOW_LEVEL_DESIGN,
-    PHASE_6_UIUX_DESIGN,
-    PHASE_7_TESTING_QA,
-    ADDITIONAL_DOCUMENT_TYPES,
 )
 
 
