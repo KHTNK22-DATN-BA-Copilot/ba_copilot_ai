@@ -230,7 +230,8 @@ async def generate_srs(req: AIRequest):
         state = {
             "user_message": req.message,
             "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
+            "storage_paths": req.storage_paths or [],
+            "document_format": req.document_format or "",
         }
 
         # Invoke SRS workflow
@@ -471,7 +472,8 @@ async def generate_high_level_requirements(req: AIRequest):
         state = {
             "user_message": req.message,
             "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
+            "storage_paths": req.storage_paths or [],
+            "document_format": req.document_format or "",
         }
 
         result = await _invoke_graph(high_level_requirements_graph, state)
@@ -511,7 +513,8 @@ async def generate_requirements_management_plan(req: AIRequest):
         state = {
             "user_message": req.message,
             "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
+            "storage_paths": req.storage_paths or [],
+            "document_format": req.document_format or "",
         }
 
         result = await _invoke_graph(requirements_management_plan_graph, state)
@@ -551,7 +554,8 @@ async def generate_business_case(req: AIRequest):
         state = {
             "user_message": req.message,
             "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
+            "storage_paths": req.storage_paths or [],
+            "document_format": req.document_format or "",
         }
 
         result = await _invoke_graph(business_case_graph, state)
@@ -591,7 +595,8 @@ async def generate_scope_statement(req: AIRequest):
         state = {
             "user_message": req.message,
             "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
+            "storage_paths": req.storage_paths or [],
+            "document_format": req.document_format or "",
         }
 
         result = await _invoke_graph(scope_statement_graph, state)
@@ -677,7 +682,8 @@ async def generate_feasibility_study(req: AIRequest):
         state = {
             "user_message": req.message,
             "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
+            "storage_paths": req.storage_paths or [],
+            "document_format": req.document_format or "",
         }
 
         result = await _invoke_graph(feasibility_study_graph, state)
@@ -723,7 +729,8 @@ async def generate_cost_benefit_analysis(req: AIRequest):
         state = {
             "user_message": req.message,
             "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
+            "storage_paths": req.storage_paths or [],
+            "document_format": req.document_format or "",
         }
 
         result = await _invoke_graph(cost_benefit_analysis_graph, state)
@@ -768,7 +775,8 @@ async def generate_risk_register(req: AIRequest):
         state = {
             "user_message": req.message,
             "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
+            "storage_paths": req.storage_paths or [],
+            "document_format": req.document_format or "",
         }
 
         result = await _invoke_graph(risk_register_graph, state)
@@ -813,7 +821,8 @@ async def generate_compliance(req: AIRequest):
         state = {
             "user_message": req.message,
             "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
+            "storage_paths": req.storage_paths or [],
+            "document_format": req.document_format or "",
         }
 
         result = await _invoke_graph(compliance_graph, state)
@@ -951,7 +960,8 @@ async def generate_hld_tech(req: AIRequest):
         state = {
             "user_message": req.message,
             "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
+            "storage_paths": req.storage_paths or [],
+            "document_format": req.document_format or "",
         }
 
         result = await _invoke_graph(hld_tech_graph, state)
@@ -1082,7 +1092,8 @@ async def generate_lld_api(req: AIRequest):
         state = {
             "user_message": req.message,
             "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
+            "storage_paths": req.storage_paths or [],
+            "document_format": req.document_format or "",
         }
 
         result = await _invoke_graph(lld_api_graph, state)
@@ -1128,7 +1139,8 @@ async def generate_lld_pseudo(req: AIRequest):
         state = {
             "user_message": req.message,
             "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
+            "storage_paths": req.storage_paths or [],
+            "document_format": req.document_format or "",
         }
 
         result = await _invoke_graph(lld_pseudo_graph, state)
@@ -1266,7 +1278,8 @@ async def generate_rtm(req: AIRequest):
         state = {
             "user_message": req.message,
             "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
+            "storage_paths": req.storage_paths or [],
+            "document_format": req.document_format or "",
         }
 
         result = await _invoke_graph(rtm_graph, state)

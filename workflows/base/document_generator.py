@@ -82,7 +82,7 @@ def generate_document(
         return {
             "response": error_response(
                 default_summary,
-                f"Error generating document: {str(e)}",
+                f"Error generating document {default_summary}: {str(e)}",
             )
         }
 
