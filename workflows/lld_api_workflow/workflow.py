@@ -4,26 +4,17 @@ Generates detailed API endpoint specifications in OpenAPI/Swagger format.
 """
 
 from langgraph.graph import StateGraph, END
-from typing import TypedDict, Optional, List
+from typing import Optional, List
 import json
 import logging
 from workflows.nodes import get_chat_history, get_context_node
 from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
-# from models.lld_api import LLDAPIResponse, LLDAPIOutput
 import re
 from utils import extractor
 from response import success_response, error_response
+from models import LLDAPIState
 
 logger = logging.getLogger(__name__)
-
-class LLDAPIState(TypedDict):
-    """State for LLD API Specifications workflow"""
-    user_message: str
-    response: dict
-    content_id: Optional[str]
-    storage_paths: Optional[List[str]]
-    extracted_text: Optional[str]
-    chat_context: Optional[str]
 
 def extract_json(text: str) -> dict:
     try:
@@ -56,21 +47,11 @@ def generate_lld_api_specs(state: LLDAPIState, config: Optional[dict] = None):
         api_key=cfg.get("api_key"),
     )
     
-    # Extract context
+    # Build system prompt
     user_message = state.get('user_message', '')
     extracted_text = state.get('extracted_text', '')
-    chat_context = state.get('chat_context', '')
-    
-    # Build context string
-    context_str = ""
-    if chat_context:
-        context_str += f"Context from previous conversation:\n{chat_context}\n\n"
-    if extracted_text:
-        context_str += f"Extracted content from uploaded files:\n{extracted_text}\n\n"
-
+    chat_context = state.get('chat_context') or []
     prompt = f"""
-    {context_str}
-
     ### ROLE
     API Architect (REST, OpenAPI-style).
 
@@ -127,9 +108,17 @@ def generate_lld_api_specs(state: LLDAPIState, config: Optional[dict] = None):
     - Escape \\n properly
     - All values must be strings
     """
+    messages: List[dict] = [
+        {"role": "system", "content": prompt},
+        *chat_context,
+    ]
+    if extracted_text:
+        messages.append({"role": "assistant", "content": extracted_text})
+    messages.append({"role": "user", "content": user_message})
+
     try:
         response = model_client.chat_completion(
-            messages=[{"role": "user", "content": prompt}],
+            messages=messages,
             model=cfg.get("model_name") or MODEL,
         )
         raw_output = response.choices[0].message.content or ""

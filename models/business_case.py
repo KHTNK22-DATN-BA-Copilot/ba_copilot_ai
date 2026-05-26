@@ -1,10 +1,12 @@
-# models/business_case.py
-from pydantic import BaseModel
+from typing import List, Optional, TypedDict
 
-class BusinessCaseResponse(BaseModel):
-    title: str
-    content: str  # Complete markdown content with all sections
+from .chat_context_message import ChatContextMessage
 
-class BusinessCaseOutput(BaseModel):
-    type: str = "business-case"
-    response: BusinessCaseResponse
+
+class BusinessCaseState(TypedDict):
+    user_message: str
+    response: dict
+    content_id: Optional[str]
+    storage_paths: Optional[List]
+    extracted_text: Optional[str]
+    chat_context: Optional[List[ChatContextMessage]]

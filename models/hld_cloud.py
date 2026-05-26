@@ -1,19 +1,12 @@
-# models/hld_cloud.py
-from pydantic import BaseModel
+from typing import List, Optional, TypedDict
 
-class HLDCloudResponse(BaseModel):
-    """Response model for Cloud Infrastructure Setup document"""
-    title: str
-    executive_summary: str
-    cloud_provider_selection: str
-    infrastructure_components: str
-    deployment_architecture: str
-    scalability_strategy: str
-    security_considerations: str
-    cost_estimation: str
-    detail: str
+from .chat_context_message import ChatContextMessage
 
-class HLDCloudOutput(BaseModel):
-    """Output wrapper for Cloud Infrastructure Setup"""
-    type: str = "hld-cloud"
-    response: HLDCloudResponse
+
+class HLDCloudState(TypedDict):
+    user_message: str
+    response: dict
+    content_id: Optional[str]
+    storage_paths: Optional[List]
+    extracted_text: Optional[str]
+    chat_context: Optional[List[ChatContextMessage]]

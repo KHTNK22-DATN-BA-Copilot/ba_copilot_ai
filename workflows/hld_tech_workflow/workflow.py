@@ -4,20 +4,12 @@ import sys
 import os
 import json
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from models.hld_tech import HLDTechOutput, HLDTechResponse
-from typing import TypedDict, Optional, List
+from typing import Optional, List
+from models import HLDTechState
 from workflows.nodes import get_chat_history, get_context_node
 from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
 from utils import extractor
 from response import success_response, error_response
-
-class HLDTechState(TypedDict):
-    user_message: str
-    response: dict
-    content_id: Optional[str]
-    storage_paths: Optional[List]
-    extracted_text: Optional[str]
-    chat_context: Optional[str]
 
 def generate_hld_tech(state: HLDTechState, config: Optional[dict] = None):
     """Generate Tech Stack Selection document using OpenRouter AI"""
@@ -29,22 +21,11 @@ def generate_hld_tech(state: HLDTechState, config: Optional[dict] = None):
         api_key=cfg.get("api_key"),
     )
 
-    # Build comprehensive prompt with context
+    # Build system prompt
     user_message = state['user_message']
     extracted_text = state.get('extracted_text', '')
-    chat_context = state.get('chat_context', '')
-
-    context_parts = []
-    if chat_context:
-        context_parts.append(f"Context from previous conversation:\n{chat_context}\n")
-    if extracted_text:
-        context_parts.append(f"Extracted content from uploaded files:\n{extracted_text}\n")
-
-    context_str = "\n".join(context_parts)
-
+    chat_context = state.get('chat_context') or []
     prompt = f"""
-    {context_str}
-
     ### ROLE
     Senior Technical Architect (tech stack selection for scalable, maintainable systems).
 
@@ -93,9 +74,17 @@ def generate_hld_tech(state: HLDTechState, config: Optional[dict] = None):
     - Escape \\n properly
     - Be concise but complete
     """
+    messages: List[dict] = [
+        {"role": "system", "content": prompt},
+        *chat_context,
+    ]
+    if extracted_text:
+        messages.append({"role": "assistant", "content": extracted_text})
+    messages.append({"role": "user", "content": user_message})
+
     try:
         response = model_client.chat_completion(
-            messages=[{"role": "user", "content": prompt}],
+            messages=messages,
             model=cfg.get("model_name") or MODEL,
         )
         raw_output = response.choices[0].message.content or ""

@@ -5,7 +5,8 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 # from models.diagram import DiagramOutput, DiagramResponse
 # from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
-from typing import TypedDict, Optional, List
+from typing import Optional, List
+from models import UsecaseDiagramState
 from workflows.nodes import get_chat_history, get_context_node
 from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
 import logging
@@ -13,17 +14,6 @@ from utils import extractor
 from response import success_response, error_response
 
 logger = logging.getLogger(__name__)
-
-class UsecaseDiagramState(TypedDict):
-    user_message: str
-    response: dict
-    content_id: Optional[str]
-    storage_paths: Optional[List]
-    extracted_text: Optional[str]
-    chat_context: Optional[str]
-    raw_diagram: Optional[str]
-    validation_result: Optional[dict]
-    retry_count: int
 
 def generate_usecase_diagram_description(state: UsecaseDiagramState, config: Optional[dict] = None):
     """Generate use-case diagram in markdown format using OpenRouter AI"""
@@ -35,22 +25,11 @@ def generate_usecase_diagram_description(state: UsecaseDiagramState, config: Opt
         api_key=cfg.get("api_key"),
     )
 
-    # Build comprehensive prompt with context
+    # Build system prompt
     user_message = state['user_message']
     extracted_text = state.get('extracted_text', '')
-    chat_context = state.get('chat_context', '')
-
-    context_parts = []
-    if chat_context:
-        context_parts.append(f"Context from previous conversation:\n{chat_context}\n")
-    if extracted_text:
-        context_parts.append(f"Extracted content from uploaded files:\n{extracted_text}\n")
-
-    context_str = "\n".join(context_parts)
-
+    chat_context = state.get('chat_context') or []
     prompt = f"""
-    {context_str}
-
     ### ROLE
     Expert UML Use Case Diagram Designer (Mermaid).
 
@@ -85,9 +64,17 @@ def generate_usecase_diagram_description(state: UsecaseDiagramState, config: Opt
     - Use valid Mermaid syntax only
     """
 
+    messages: List[dict] = [
+        {"role": "system", "content": prompt},
+        *chat_context,
+    ]
+    if extracted_text:
+        messages.append({"role": "assistant", "content": extracted_text})
+    messages.append({"role": "user", "content": user_message})
+
     try:
         response = model_client.chat_completion(
-            messages=[{"role": "user", "content": prompt}],
+            messages=messages,
             model=cfg.get("model_name") or MODEL,
         )
         raw_output = response.choices[0].message.content or ""

@@ -4,25 +4,16 @@ Generates detailed low-level design architecture diagrams (component, deployment
 """
 
 from langgraph.graph import StateGraph, END
-from typing import TypedDict, Optional, List
+from typing import Optional, List
 import json
 import logging
 from workflows.nodes import get_chat_history, get_context_node
 from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
-from models.lld_arch import LLDArchResponse, LLDArchOutput
 from utils import extractor
 from response import success_response, error_response
+from models import LLDArchState
 
 logger = logging.getLogger(__name__)
-
-class LLDArchState(TypedDict):
-    """State for LLD Architecture workflow"""
-    user_message: str
-    response: dict
-    content_id: Optional[str]
-    storage_paths: Optional[List[str]]
-    extracted_text: Optional[str]
-    chat_context: Optional[str]
 
 def generate_lld_arch_diagram(state: LLDArchState, config: Optional[dict] = None):
     """
@@ -38,21 +29,11 @@ def generate_lld_arch_diagram(state: LLDArchState, config: Optional[dict] = None
     )
     try:
         
-        # Extract context
+        # Build system prompt
         user_message = state.get('user_message', '')
         extracted_text = state.get('extracted_text', '')
-        chat_context = state.get('chat_context', '')
-        
-        # Build context string
-        context_str = ""
-        if chat_context:
-            context_str += f"Context from previous conversation:\n{chat_context}\n\n"
-        if extracted_text:
-            context_str += f"Extracted content from uploaded files:\n{extracted_text}\n\n"
-
+        chat_context = state.get('chat_context') or []
         prompt = f"""
-        {context_str}
-
         ### ROLE
         Expert Software Architect (Low-Level Design, Mermaid).
 
@@ -90,8 +71,16 @@ def generate_lld_arch_diagram(state: LLDArchState, config: Optional[dict] = None
         - Ensure Mermaid syntax is valid and renderable
         """
 
+        messages: List[dict] = [
+            {"role": "system", "content": prompt},
+            *chat_context,
+        ]
+        if extracted_text:
+            messages.append({"role": "assistant", "content": extracted_text})
+        messages.append({"role": "user", "content": user_message})
+
         response = model_client.chat_completion(
-            messages=[{"role": "user", "content": prompt}],
+            messages=messages,
             model=cfg.get("model_name") or MODEL,
         )
         raw_output = response.choices[0].message.content or ""

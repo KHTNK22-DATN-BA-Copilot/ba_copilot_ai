@@ -1,12 +1,12 @@
-# models/srs.py
-from pydantic import BaseModel
+from typing import List, Optional, TypedDict
 
-class SRSResponse(BaseModel):
-    title: str
-    functional_requirements: str
-    non_functional_requirements: str
-    detail: str  # Markdown format
+from .chat_context_message import ChatContextMessage
 
-class SRSOutput(BaseModel):
-    type: str = "srs"
-    response: SRSResponse
+
+class SRSState(TypedDict):
+    user_message: str
+    response: dict
+    content_id: Optional[str]
+    storage_paths: Optional[List]
+    extracted_text: Optional[str]
+    chat_context: Optional[List[ChatContextMessage]]

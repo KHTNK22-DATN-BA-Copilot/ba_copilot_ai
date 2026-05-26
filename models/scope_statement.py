@@ -1,10 +1,12 @@
-# models/scope_statement.py
-from pydantic import BaseModel
+from typing import List, Optional, TypedDict
 
-class ScopeStatementResponse(BaseModel):
-    title: str
-    content: str  # Complete markdown content with all sections
+from .chat_context_message import ChatContextMessage
 
-class ScopeStatementOutput(BaseModel):
-    type: str = "scope-statement"
-    response: ScopeStatementResponse
+
+class ScopeStatementState(TypedDict):
+    user_message: str
+    response: dict
+    content_id: Optional[str]
+    storage_paths: Optional[List]
+    extracted_text: Optional[str]
+    chat_context: Optional[List[ChatContextMessage]]

@@ -1,26 +1,12 @@
-"""
-UI/UX Mockup model for Phase 6 - UI/UX Design Phase
-"""
+from typing import Dict, List, Optional, TypedDict
 
-from pydantic import BaseModel
-from typing import Optional
+from .chat_context_message import ChatContextMessage
 
 
-class UIUXMockupResponse(BaseModel):
-    """Response model for UI/UX mockup generation"""
-    title: str
-    mockup_type: str  # "visual-design", "high-fidelity", "pixel-perfect"
-    design_system: str  # Colors, typography, spacing guidelines
-    visual_hierarchy: str  # Visual weight and hierarchy
-    color_palette: str  # Primary, secondary, accent colors with hex codes
-    typography: str  # Font families, sizes, weights
-    iconography: str  # Icon set and style
-    imagery_style: str  # Photography/illustration style
-    ui_elements: str  # Buttons, forms, cards specifications
-    detail: str  # Complete mockup specification
-
-
-class UIUXMockupOutput(BaseModel):
-    """Output wrapper for mockup response"""
-    type: str = "uiux-mockup"
-    response: UIUXMockupResponse
+class UIUXMockupState(TypedDict):
+    message: str
+    content_id: Optional[str]
+    storage_paths: Optional[List[str]]
+    response: Optional[Dict]
+    extracted_text: Optional[str]
+    chat_context: Optional[List[ChatContextMessage]]

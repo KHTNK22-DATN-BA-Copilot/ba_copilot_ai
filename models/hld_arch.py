@@ -1,12 +1,15 @@
-# models/hld_arch.py
-from pydantic import BaseModel
+from typing import Dict, List, Optional, TypedDict
 
-class HLDArchResponse(BaseModel):
-    """Response model for High-Level Design Architecture Diagram"""
-    type: str
-    detail: str
+from .chat_context_message import ChatContextMessage
 
-class HLDArchOutput(BaseModel):
-    """Output wrapper for HLD Architecture Diagram"""
-    type: str = "diagram"
-    response: HLDArchResponse
+
+class HLDArchState(TypedDict):
+    user_message: str
+    response: dict
+    content_id: Optional[str]
+    storage_paths: Optional[List]
+    extracted_text: Optional[str]
+    chat_context: Optional[List[ChatContextMessage]]
+    raw_diagram: Optional[str]
+    validation_result: Optional[dict]
+    retry_count: int

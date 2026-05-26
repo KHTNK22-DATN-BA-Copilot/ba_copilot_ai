@@ -1,12 +1,12 @@
-# models/lld_arch.py
-from pydantic import BaseModel
+from typing import List, Optional, TypedDict
 
-class LLDArchResponse(BaseModel):
-    """Response model for Low-Level Design Architecture Diagram"""
-    type: str
-    detail: str
+from .chat_context_message import ChatContextMessage
 
-class LLDArchOutput(BaseModel):
-    """Output wrapper for LLD Architecture Diagram"""
-    type: str = "diagram"
-    response: LLDArchResponse
+
+class LLDArchState(TypedDict):
+    user_message: str
+    response: dict
+    content_id: Optional[str]
+    storage_paths: Optional[List[str]]
+    extracted_text: Optional[str]
+    chat_context: Optional[List[ChatContextMessage]]

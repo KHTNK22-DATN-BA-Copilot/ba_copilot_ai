@@ -1,12 +1,15 @@
-from typing import List, Optional, TypedDict
+from typing import Dict, List, Optional, TypedDict
 
 from .chat_context_message import ChatContextMessage
 
 
-class HLDTechState(TypedDict):
+class ActivityDiagramState(TypedDict):
     user_message: str
     response: dict
     content_id: Optional[str]
     storage_paths: Optional[List]
     extracted_text: Optional[str]
     chat_context: Optional[List[ChatContextMessage]]
+    raw_diagram: Optional[str]
+    validation_result: Optional[dict]
+    retry_count: int

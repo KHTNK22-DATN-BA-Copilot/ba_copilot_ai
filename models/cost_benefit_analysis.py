@@ -1,18 +1,12 @@
-# models/cost_benefit_analysis.py
-from pydantic import BaseModel
+from typing import List, Optional, TypedDict
 
-class CostBenefitAnalysisResponse(BaseModel):
-    """Response model for Cost-Benefit Analysis document"""
-    title: str
-    executive_summary: str
-    cost_analysis: str
-    benefit_analysis: str
-    roi_calculation: str
-    npv_analysis: str
-    payback_period: str
-    detail: str
+from .chat_context_message import ChatContextMessage
 
-class CostBenefitAnalysisOutput(BaseModel):
-    """Output wrapper for Cost-Benefit Analysis"""
-    type: str = "cost-benefit-analysis"
-    response: CostBenefitAnalysisResponse
+
+class CostBenefitAnalysisState(TypedDict):
+    user_message: str
+    response: dict
+    content_id: Optional[str]
+    storage_paths: Optional[List]
+    extracted_text: Optional[str]
+    chat_context: Optional[List[ChatContextMessage]]

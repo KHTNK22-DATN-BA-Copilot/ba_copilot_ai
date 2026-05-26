@@ -8,7 +8,7 @@ and extracts their line ranges.
 """
 
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict
+from typing import Dict, List, Optional, TypedDict
 
 
 # ============================================================================
@@ -242,3 +242,19 @@ def create_single_type_metadata(
         type="metadata_extraction",
         response=response_items
     )
+
+
+class MetadataExtractionState(TypedDict):
+    document_id: str
+    content: str
+    filename: Optional[str]
+    total_lines: int
+    phase1_results: Optional[List[Dict]]
+    phase2_results: Optional[List[Dict]]
+    phase3_results: Optional[List[Dict]]
+    phase4_results: Optional[List[Dict]]
+    phase5_results: Optional[List[Dict]]
+    phase6_results: Optional[List[Dict]]
+    phase7_results: Optional[List[Dict]]
+    additional_results: Optional[List[Dict]]
+    response: Optional[Dict]

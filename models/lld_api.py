@@ -1,19 +1,12 @@
-# models/lld_api.py
-from pydantic import BaseModel
+from typing import List, Optional, TypedDict
 
-class LLDAPIResponse(BaseModel):
-    """Response model for API Specifications Document"""
-    title: str
-    api_overview: str
-    authentication: str
-    endpoints: str
-    data_models: str
-    error_handling: str
-    rate_limiting: str
-    versioning: str
-    detail: str
+from .chat_context_message import ChatContextMessage
 
-class LLDAPIOutput(BaseModel):
-    """Output wrapper for API Specifications"""
-    type: str = "lld-api"
-    response: LLDAPIResponse
+
+class LLDAPIState(TypedDict):
+    user_message: str
+    response: dict
+    content_id: Optional[str]
+    storage_paths: Optional[List[str]]
+    extracted_text: Optional[str]
+    chat_context: Optional[List[ChatContextMessage]]

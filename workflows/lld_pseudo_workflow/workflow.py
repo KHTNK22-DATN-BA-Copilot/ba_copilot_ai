@@ -4,26 +4,17 @@ Generates algorithm pseudocode and logic flow documentation.
 """
 
 from langgraph.graph import StateGraph, END
-from typing import TypedDict, Optional, List
+from typing import Optional, List
 import json
 import logging
 from workflows.nodes import get_chat_history, get_context_node
 from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
-from models.lld_pseudo import LLDPseudoResponse, LLDPseudoOutput
 import re
 from utils import extractor
 from response import success_response, error_response
+from models import LLDPseudoState
 
 logger = logging.getLogger(__name__)
-
-class LLDPseudoState(TypedDict):
-    """State for LLD Pseudocode workflow"""
-    user_message: str
-    response: dict
-    content_id: Optional[str]
-    storage_paths: Optional[List[str]]
-    extracted_text: Optional[str]
-    chat_context: Optional[str]
 
 def generate_lld_pseudocode(state: LLDPseudoState, config: Optional[dict] = None):
     """
@@ -39,21 +30,11 @@ def generate_lld_pseudocode(state: LLDPseudoState, config: Optional[dict] = None
     )
     try:
         
-        # Extract context
+        # Build system prompt
         user_message = state.get('user_message', '')
         extracted_text = state.get('extracted_text', '')
-        chat_context = state.get('chat_context', '')
-        
-        # Build context string
-        context_str = ""
-        if chat_context:
-            context_str += f"Context from previous conversation:\n{chat_context}\n\n"
-        if extracted_text:
-            context_str += f"Extracted content from uploaded files:\n{extracted_text}\n\n"
-
+        chat_context = state.get('chat_context') or []
         prompt = f"""
-        {context_str}
-
         ### ROLE
         Algorithm Designer (pseudocode, analysis).
 
@@ -103,8 +84,16 @@ def generate_lld_pseudocode(state: LLDPseudoState, config: Optional[dict] = None
         - All values must be strings
         """
 
+        messages: List[dict] = [
+            {"role": "system", "content": prompt},
+            *chat_context,
+        ]
+        if extracted_text:
+            messages.append({"role": "assistant", "content": extracted_text})
+        messages.append({"role": "user", "content": user_message})
+
         response = model_client.chat_completion(
-            messages=[{"role": "user", "content": prompt}],
+            messages=messages,
             model=cfg.get("model_name") or MODEL,
         )
         raw_output = response.choices[0].message.content or ""

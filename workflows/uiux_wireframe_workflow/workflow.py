@@ -4,24 +4,15 @@ Generates UI wireframes with layout and component specifications
 """
 
 from langgraph.graph import StateGraph, END
-from typing import TypedDict, Optional, List, Dict
+from typing import Optional, List, Dict
 import json
 import logging
 from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
 from utils import extractor
 from response import success_response, error_response
+from models import UIUXWireframeState
 
 logger = logging.getLogger(__name__)
-
-
-class UIUXWireframeState(TypedDict):
-    """State for wireframe generation workflow"""
-    message: str
-    content_id: Optional[str]
-    storage_paths: Optional[List[str]]
-    response: Optional[Dict]
-    extracted_text: Optional[str]
-    chat_context: Optional[str]
 
 
 def get_context_node(state: UIUXWireframeState) -> UIUXWireframeState:
@@ -43,11 +34,11 @@ def get_chat_history(state: UIUXWireframeState) -> UIUXWireframeState:
     
     if not content_id:
         print("No content_id provided, skipping chat history")
-        return {"chat_context": ""}
+        return {"chat_context": []}
     
     # TODO: Implement chat history retrieval from database
     # For now, return empty string
-    return {"chat_context": ""}
+    return {"chat_context": []}
 
 
 def generate_uiux_wireframe(state: UIUXWireframeState, config: Optional[dict] = None) -> UIUXWireframeState:
@@ -65,20 +56,9 @@ def generate_uiux_wireframe(state: UIUXWireframeState, config: Optional[dict] = 
         
         user_message = state.get('message', '')
         extracted_text = state.get('extracted_text', '')
-        chat_context = state.get('chat_context', '')
-        
-        # Build context
-        context_parts = []
-        if chat_context:
-            context_parts.append(f"Context from previous conversation:\n{chat_context}\n")
-        if extracted_text:
-            context_parts.append(f"Extracted content from uploaded files:\n{extracted_text}\n")
-        
-        context_str = "\n".join(context_parts)
-        
-        prompt = f"""
-        {context_str}
+        chat_context = state.get('chat_context') or []
 
+        prompt = f"""
         ### ROLE
         UX/UI Wireframe Designer (HTML/CSS Layout).
 
@@ -120,8 +100,16 @@ def generate_uiux_wireframe(state: UIUXWireframeState, config: Optional[dict] = 
         - NEVER return empty html or css
         """
         
+        messages: List[dict] = [
+            {"role": "system", "content": prompt},
+            *chat_context,
+        ]
+        if extracted_text:
+            messages.append({"role": "assistant", "content": extracted_text})
+        messages.append({"role": "user", "content": user_message})
+
         response = model_client.chat_completion(
-            messages=[{"role": "user", "content": prompt}],
+            messages=messages,
             model=cfg.get("model_name") or MODEL,
         )
         raw_output = response.choices[0].message.content or ""

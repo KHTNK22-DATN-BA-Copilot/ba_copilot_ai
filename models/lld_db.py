@@ -1,12 +1,12 @@
-# models/lld_db.py
-from pydantic import BaseModel
+from typing import List, Optional, TypedDict
 
-class LLDDBResponse(BaseModel):
-    """Response model for Database Schema ERD"""
-    type: str
-    detail: str
+from .chat_context_message import ChatContextMessage
 
-class LLDDBOutput(BaseModel):
-    """Output wrapper for Database Schema"""
-    type: str = "database-schema"
-    response: LLDDBResponse
+
+class LLDDBState(TypedDict):
+    user_message: str
+    response: dict
+    content_id: Optional[str]
+    storage_paths: Optional[List[str]]
+    extracted_text: Optional[str]
+    chat_context: Optional[List[ChatContextMessage]]

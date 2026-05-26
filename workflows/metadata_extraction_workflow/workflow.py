@@ -12,7 +12,7 @@ import sys
 import os
 import json
 import re
-from typing import TypedDict, Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
@@ -31,29 +31,7 @@ from models.metadata_extraction import (
     PHASE_7_TESTING_QA,
     ADDITIONAL_DOCUMENT_TYPES,
 )
-
-
-# ============================================================================
-# State Definition
-# ============================================================================
-
-class MetadataExtractionState(TypedDict):
-    """State for the metadata extraction workflow."""
-    document_id: str
-    content: str
-    filename: Optional[str]
-    total_lines: int
-    # Results from each phase node
-    phase1_results: Optional[List[Dict]]
-    phase2_results: Optional[List[Dict]]
-    phase3_results: Optional[List[Dict]]
-    phase4_results: Optional[List[Dict]]
-    phase5_results: Optional[List[Dict]]
-    phase6_results: Optional[List[Dict]]
-    phase7_results: Optional[List[Dict]]
-    additional_results: Optional[List[Dict]]
-    # Final aggregated response
-    response: Optional[Dict]
+from models import MetadataExtractionState
 
 
 # ============================================================================

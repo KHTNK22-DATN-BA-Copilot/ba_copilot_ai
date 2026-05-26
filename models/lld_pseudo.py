@@ -1,18 +1,12 @@
-# models/lld_pseudo.py
-from pydantic import BaseModel
+from typing import List, Optional, TypedDict
 
-class LLDPseudoResponse(BaseModel):
-    """Response model for Pseudocode Document"""
-    title: str
-    algorithm_overview: str
-    input_output: str
-    pseudocode: str
-    complexity_analysis: str
-    edge_cases: str
-    implementation_notes: str
-    detail: str
+from .chat_context_message import ChatContextMessage
 
-class LLDPseudoOutput(BaseModel):
-    """Output wrapper for Pseudocode"""
-    type: str = "lld-pseudo"
-    response: LLDPseudoResponse
+
+class LLDPseudoState(TypedDict):
+    user_message: str
+    response: dict
+    content_id: Optional[str]
+    storage_paths: Optional[List[str]]
+    extracted_text: Optional[str]
+    chat_context: Optional[List[ChatContextMessage]]

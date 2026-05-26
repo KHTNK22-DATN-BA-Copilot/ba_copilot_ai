@@ -1,18 +1,12 @@
-# models/feasibility_study.py
-from pydantic import BaseModel
+from typing import List, Optional, TypedDict
 
-class FeasibilityStudyResponse(BaseModel):
-    """Response model for Feasibility Study document"""
-    title: str
-    executive_summary: str
-    technical_feasibility: str
-    operational_feasibility: str
-    economic_feasibility: str
-    schedule_feasibility: str
-    legal_feasibility: str
-    detail: str
+from .chat_context_message import ChatContextMessage
 
-class FeasibilityStudyOutput(BaseModel):
-    """Output wrapper for Feasibility Study"""
-    type: str = "feasibility-study"
-    response: FeasibilityStudyResponse
+
+class FeasibilityStudyState(TypedDict):
+    user_message: str
+    response: dict
+    content_id: Optional[str]
+    storage_paths: Optional[List]
+    extracted_text: Optional[str]
+    chat_context: Optional[List[ChatContextMessage]]

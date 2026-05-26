@@ -3,7 +3,7 @@ from typing import List, Optional, TypedDict
 from .chat_context_message import ChatContextMessage
 
 
-class HLDTechState(TypedDict):
+class RequirementsManagementPlanState(TypedDict):
     user_message: str
     response: dict
     content_id: Optional[str]

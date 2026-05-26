@@ -1,17 +1,12 @@
-# models/compliance.py
-from pydantic import BaseModel
+from typing import List, Optional, TypedDict
 
-class ComplianceResponse(BaseModel):
-    """Response model for Compliance document"""
-    title: str
-    executive_summary: str
-    regulatory_requirements: str
-    legal_requirements: str
-    compliance_status: str
-    recommendations: str
-    detail: str
+from .chat_context_message import ChatContextMessage
 
-class ComplianceOutput(BaseModel):
-    """Output wrapper for Compliance"""
-    type: str = "compliance"
-    response: ComplianceResponse
+
+class ComplianceState(TypedDict):
+    user_message: str
+    response: dict
+    content_id: Optional[str]
+    storage_paths: Optional[List]
+    extracted_text: Optional[str]
+    chat_context: Optional[List[ChatContextMessage]]

@@ -12,7 +12,7 @@ from connect_model import (
 )
 from utils.tokenizer import estimate_tokens as _estimate_tokens
 
-BACKEND_API_URL = os.getenv("BACKEND_API_URL", "http://localhost:8010")
+BACKEND_API_URL = os.getenv("BACKEND_API_URL", "http://backend:8010")
 
 class ChatMessage(TypedDict):
     role: str
@@ -93,35 +93,47 @@ def summarize_chat_history(history: List[ChatMessage], model: str = MODEL) -> st
         ])
 
 
-def format_chat_context(history: List[ChatMessage], max_tokens: int = MAX_CONTEXT_TOKENS) -> str:
+def format_chat_context(
+    history: List[ChatMessage],
+    max_tokens: int = MAX_CONTEXT_TOKENS,
+) -> List[Dict[str, str]]:
     """
-    Format chat history into context string, summarizing if necessary
+    Format chat history into role/content messages, summarizing if necessary
 
     Args:
         history: List of chat messages
         max_tokens: Maximum tokens allowed for context
 
     Returns:
-        Formatted chat context
+        List of messages in role/content format
     """
     if not history:
-        return ""
+        return []
 
-    # Format full history
+    # Format full history to estimate size
     formatted = "\n".join([
         f"{msg['role']} ({msg['create_at']}): {msg['message']}"
         for msg in history
     ])
 
-    # Check if it exceeds token limit
     estimated_tokens = _estimate_tokens(formatted)
-
     if estimated_tokens > max_tokens:
         print(f"Chat history exceeds token limit ({estimated_tokens} > {max_tokens}), summarizing...")
         summary = summarize_chat_history(history)
-        return f"Previous conversation summary:\n{summary}"
+        return [
+            {
+                "role": "assistant",
+                "content": f"Previous conversation summary:\n{summary}",
+            }
+        ]
 
-    return f"Previous conversation:\n{formatted}"
+    return [
+        {
+            "role": msg["role"],
+            "content": msg["message"],
+        }
+        for msg in history
+    ]
 
 
 async def get_chat_history(state: Dict[str, Any], model: str = MODEL) -> Dict[str, Any]:
@@ -139,7 +151,7 @@ async def get_chat_history(state: Dict[str, Any], model: str = MODEL) -> Dict[st
 
     if not content_id:
         print("No content_id provided, skipping chat history")
-        state["chat_context"] = ""
+        state["chat_context"] = []
         return state
 
     # Try to fetch chat history from backend
@@ -158,9 +170,9 @@ async def get_chat_history(state: Dict[str, Any], model: str = MODEL) -> Dict[st
         chat_context = format_chat_context(history, max_context_tokens)
         state["chat_context"] = chat_context
 
-        print(f"Chat history processed: {len(history)} messages, {_estimate_tokens(chat_context)} tokens")
+        print(f"Chat history processed: {len(history)} messages")
     except Exception as e:
         print(f"Failed to fetch chat history: {e}. Continuing without history context.")
-        state["chat_context"] = ""
+        state["chat_context"] = []
 
     return state
