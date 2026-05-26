@@ -175,7 +175,7 @@ class MetadataExtractionResponse(BaseModel):
     """
     document_id: str = Field(..., description="UUID of the document")
     type: str = Field(default="metadata_extraction", description="Response type")
-    response: str = Field(default="other", description="Document type detection result, is a str")
+    response: str = Field(default="stakeholder_requirements", description="Document type detection result, is a str")
 
 
 # ============================================================================
