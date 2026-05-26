@@ -6,6 +6,7 @@ Node to fetch RAG context using semantic search over indexed chunks.
 import os
 import sys
 from typing import Any, Dict, List
+import traceback
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
@@ -34,6 +35,7 @@ async def get_context_node(state: Dict[str, Any]) -> Dict[str, Any]:
         state["extracted_text"] = context
     except Exception as e:
         print(f"Error retrieving RAG context: {e}")
+        print(traceback.format_exc())
         state["extracted_text"] = ""
 
     return state

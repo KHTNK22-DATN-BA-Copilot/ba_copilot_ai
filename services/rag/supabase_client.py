@@ -1,22 +1,14 @@
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 import os
-from typing import Any
-from dotenv import load_dotenv
-from supabase import create_client
 
-load_dotenv()
+rag_database_url = os.getenv("RAG_DATABASE_URL") or os.getenv("DATABASE_URL")
+rag_engine = create_engine(rag_database_url)
+RagSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=rag_engine)
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
-
-_supabase_client = None
-
-def get_supabase_client() -> Any:
-    global _supabase_client
-    if _supabase_client is None:
-        if not SUPABASE_URL or not SUPABASE_KEY:
-            raise ValueError(
-                "SUPABASE_URL and SUPABASE_KEY must be set in environment variables. "
-                "Please check your .env file."
-            )
-        _supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
-    return _supabase_client
+def get_rag_db():
+    db = RagSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
