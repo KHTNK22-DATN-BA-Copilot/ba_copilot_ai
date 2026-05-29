@@ -5,9 +5,9 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from models.srs import SRSOutput, SRSResponse
 from typing import TypedDict, Optional, List
-from workflows.nodes import get_chat_history, get_content_file
+from workflows.nodes import get_chat_history, get_context_node
 from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
-from ..utils import extractor
+from utils import extractor
 from response import success_response, error_response
 
 class SRSState(TypedDict):
@@ -90,7 +90,7 @@ def generate_srs(state: SRSState, config: Optional[dict] = None):
     - No extra keys, no missing keys
     - Do NOT change section titles or order
     - Escape \\n properly
-    - All values must be strings
+    - All values must be strings, root must always have "content" and "summary" as specified - no nesting
     """
 
     try:
@@ -124,13 +124,13 @@ def generate_srs(state: SRSState, config: Optional[dict] = None):
 workflow = StateGraph(SRSState)
 
 # Add nodes in sequence: Get Content File -> Chat History -> Generate
-workflow.add_node("get_content_file", get_content_file)
+workflow.add_node("get_context_node", get_context_node)
 workflow.add_node("get_chat_history", get_chat_history)
 workflow.add_node("generate_srs", generate_srs)
 
 # Set entry point and edges
-workflow.set_entry_point("get_content_file")
-workflow.add_edge("get_content_file", "get_chat_history")
+workflow.set_entry_point("get_context_node")
+workflow.add_edge("get_context_node", "get_chat_history")
 workflow.add_edge("get_chat_history", "generate_srs")
 workflow.add_edge("generate_srs", END)
 

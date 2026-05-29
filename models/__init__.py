@@ -5,7 +5,7 @@ from .diagram import DiagramOutput, DiagramResponse
 from .metadata_extraction import (
     MetadataExtractionRequest,
     MetadataExtractionResponse,
-    DocumentTypeMetadata,
+    # DocumentTypeMetadata,
     ALL_DOCUMENT_TYPES,
     DOCUMENT_TYPE_DESCRIPTIONS,
     PHASE_1_PROJECT_INITIATION,
@@ -16,8 +16,8 @@ from .metadata_extraction import (
     PHASE_6_UIUX_DESIGN,
     PHASE_7_TESTING_QA,
     ADDITIONAL_DOCUMENT_TYPES,
-    create_empty_metadata_response,
-    create_single_type_metadata,
+    # create_empty_metadata_response,
+    # create_single_type_metadata,
 )
 
 __all__ = [
@@ -29,7 +29,7 @@ __all__ = [
     "DiagramResponse",
     "MetadataExtractionRequest",
     "MetadataExtractionResponse",
-    "DocumentTypeMetadata",
+    # "DocumentTypeMetadata",
     "ALL_DOCUMENT_TYPES",
     "DOCUMENT_TYPE_DESCRIPTIONS",
     "PHASE_1_PROJECT_INITIATION",
@@ -40,6 +40,6 @@ __all__ = [
     "PHASE_6_UIUX_DESIGN",
     "PHASE_7_TESTING_QA",
     "ADDITIONAL_DOCUMENT_TYPES",
-    "create_empty_metadata_response",
-    "create_single_type_metadata",
+    # "create_empty_metadata_response",
+    # "create_single_type_metadata",
 ]

@@ -6,9 +6,9 @@ import json
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from models.hld_cloud import HLDCloudOutput, HLDCloudResponse
 from typing import TypedDict, Optional, List
-from workflows.nodes import get_chat_history, get_content_file
+from workflows.nodes import get_chat_history, get_context_node
 from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
-from ..utils import extractor
+from utils import extractor
 from response import success_response, error_response
 class HLDCloudState(TypedDict):
     user_message: str
@@ -98,7 +98,7 @@ def generate_hld_cloud(state: HLDCloudState, config: Optional[dict] = None):
     - No extra keys, no missing keys
     - Do NOT change section titles or order
     - Escape \\n properly
-    - Be concise but complete
+    - Be concise but complete, root must always have "content" and "summary" as specified - no nesting
     """
 
     try:
@@ -136,13 +136,13 @@ def generate_hld_cloud(state: HLDCloudState, config: Optional[dict] = None):
 workflow = StateGraph(HLDCloudState)
 
 # Add nodes in sequence: Get Content File -> Chat History -> Generate
-workflow.add_node("get_content_file", get_content_file)
+workflow.add_node("get_context_node", get_context_node)
 workflow.add_node("get_chat_history", get_chat_history)
 workflow.add_node("generate_hld_cloud", generate_hld_cloud)
 
 # Set entry point and edges
-workflow.set_entry_point("get_content_file")
-workflow.add_edge("get_content_file", "get_chat_history")
+workflow.set_entry_point("get_context_node")
+workflow.add_edge("get_context_node", "get_chat_history")
 workflow.add_edge("get_chat_history", "generate_hld_cloud")
 workflow.add_edge("generate_hld_cloud", END)
 

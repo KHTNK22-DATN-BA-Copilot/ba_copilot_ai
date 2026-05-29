@@ -5,9 +5,9 @@ import os
 # import json
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from typing import TypedDict, Optional, List
-from workflows.nodes import get_chat_history, get_content_file
+from workflows.nodes import get_chat_history, get_context_node
 from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
-from ..utils import extractor
+from utils import extractor
 from response import success_response, error_response
 
 class HighLevelRequirementsState(TypedDict):
@@ -83,7 +83,7 @@ def generate_high_level_requirements(state: HighLevelRequirementsState, config: 
     - Use IDs for requirements (FR-XXX, NFR-XXX)
     - Include tables where appropriate
     - Keep content concise but complete
-    - Ensure JSON is parsable (escape \\n properly)
+    - Ensure JSON is parsable (escape \\n properly), root must always have "content" and "summary" as specified - no nesting
     """
 
     try:
@@ -117,13 +117,13 @@ def generate_high_level_requirements(state: HighLevelRequirementsState, config: 
 workflow = StateGraph(HighLevelRequirementsState)
 
 # Add nodes in sequence: Get Content File -> Chat History -> Generate
-workflow.add_node("get_content_file", get_content_file)
+workflow.add_node("get_context_node", get_context_node)
 workflow.add_node("get_chat_history", get_chat_history)
 workflow.add_node("generate_high_level_requirements", generate_high_level_requirements)
 
 # Set entry point and edges
-workflow.set_entry_point("get_content_file")
-workflow.add_edge("get_content_file", "get_chat_history")
+workflow.set_entry_point("get_context_node")
+workflow.add_edge("get_context_node", "get_chat_history")
 workflow.add_edge("get_chat_history", "generate_high_level_requirements")
 workflow.add_edge("generate_high_level_requirements", END)
 

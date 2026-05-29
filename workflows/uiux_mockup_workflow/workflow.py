@@ -8,7 +8,7 @@ from typing import TypedDict, Optional, List, Dict
 import json
 import logging
 from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
-from ..utils import extractor
+from utils import extractor
 from response import success_response, error_response
 
 logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ class UIUXMockupState(TypedDict):
     chat_context: Optional[str]
 
 
-def get_content_file(state: UIUXMockupState) -> UIUXMockupState:
+def get_context_node(state: UIUXMockupState) -> UIUXMockupState:
     """Extract content from uploaded files"""
     storage_paths = state.get('storage_paths')
     
@@ -93,7 +93,7 @@ def generate_uiux_mockup(state: UIUXMockupState, config: Optional[dict] = None):
         - Use semantic HTML and clear class naming
         - Minimal, professional color palette
 
-        ### OUTPUT (STRICT JSON ONLY)
+        ### OUTPUT
         {{
         "content": {{
             "html": "<single-line HTML>",
@@ -104,7 +104,7 @@ def generate_uiux_mockup(state: UIUXMockupState, config: Optional[dict] = None):
 
         ### RULES
         - Output JSON ONLY (no markdown, no explanations)
-        - No extra keys, no missing keys
+        - No extra keys, no missing keys, root must always have "content" and "summary" as specified - no nesting
         - HTML & CSS must be single-line strings
         - Use single quotes for HTML attributes
         - Do NOT include <style> tags
@@ -143,13 +143,13 @@ def generate_uiux_mockup(state: UIUXMockupState, config: Optional[dict] = None):
 workflow = StateGraph(UIUXMockupState)
 
 # Add nodes
-workflow.add_node("get_content_file", get_content_file)
+workflow.add_node("get_context_node", get_context_node)
 workflow.add_node("get_chat_history", get_chat_history)
 workflow.add_node("generate_uiux_mockup", generate_uiux_mockup)
 
 # Define edges
-workflow.set_entry_point("get_content_file")
-workflow.add_edge("get_content_file", "get_chat_history")
+workflow.set_entry_point("get_context_node")
+workflow.add_edge("get_context_node", "get_chat_history")
 workflow.add_edge("get_chat_history", "generate_uiux_mockup")
 workflow.add_edge("generate_uiux_mockup", END)
 
