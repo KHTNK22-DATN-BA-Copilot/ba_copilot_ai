@@ -8,7 +8,7 @@ from typing import TypedDict, Optional, List, Dict
 import json
 import logging
 from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
-from ..utils import extractor
+from utils import extractor
 from response import success_response, error_response
 
 logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ class UIUXPrototypeState(TypedDict):
     chat_context: Optional[str]
 
 
-def get_content_file(state: UIUXPrototypeState) -> UIUXPrototypeState:
+def get_context_node(state: UIUXPrototypeState) -> UIUXPrototypeState:
     """Extract content from uploaded files"""
     storage_paths = state.get('storage_paths')
     
@@ -112,7 +112,7 @@ def generate_uiux_prototype(state: UIUXPrototypeState, config: Optional[dict] = 
         - No comments in CSS
         - Include responsive + interaction states
         - Escape quotes properly
-        - Ensure valid JSON (parsable)
+        - Ensure valid JSON (parsable), root must always have "content" and "summary" as specified - no nesting
         """
         
         response = model_client.chat_completion(
@@ -145,13 +145,13 @@ def generate_uiux_prototype(state: UIUXPrototypeState, config: Optional[dict] = 
 workflow = StateGraph(UIUXPrototypeState)
 
 # Add nodes
-workflow.add_node("get_content_file", get_content_file)
+workflow.add_node("get_context_node", get_context_node)
 workflow.add_node("get_chat_history", get_chat_history)
 workflow.add_node("generate_uiux_prototype", generate_uiux_prototype)
 
 # Define edges
-workflow.set_entry_point("get_content_file")
-workflow.add_edge("get_content_file", "get_chat_history")
+workflow.set_entry_point("get_context_node")
+workflow.add_edge("get_context_node", "get_chat_history")
 workflow.add_edge("get_chat_history", "generate_uiux_prototype")
 workflow.add_edge("generate_uiux_prototype", END)
 

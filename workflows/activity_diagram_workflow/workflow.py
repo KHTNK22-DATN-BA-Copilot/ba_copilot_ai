@@ -7,9 +7,9 @@ import re
 import logging
 from models.diagram import DiagramOutput, DiagramResponse
 from typing import TypedDict, Optional, List
-from workflows.nodes import get_chat_history, get_content_file
+from workflows.nodes import get_chat_history, get_context_node
 from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
-from ..utils import extractor
+from utils import extractor
 from response import success_response, error_response
 
 # from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
@@ -80,6 +80,7 @@ def generate_activity_diagram_description(state: ActivityDiagramState, config: O
     - Escape newlines properly (\\n)
     - No extra keys
     - No extra text before/after JSON
+    - Root must always have "content" and "summary" as specified - no nesting
     """
 
     try:
@@ -223,15 +224,15 @@ def generate_activity_diagram_description(state: ActivityDiagramState, config: O
 workflow = StateGraph(ActivityDiagramState)
 
 # Add nodes in sequence: Get Content File -> Chat History -> Generate
-workflow.add_node("get_content_file", get_content_file)
+workflow.add_node("get_context_node", get_context_node)
 workflow.add_node("get_chat_history", get_chat_history)
 workflow.add_node("generate_activity_diagram", generate_activity_diagram_description)
 # workflow.add_node("validate_diagram", validate_diagram)
 # workflow.add_node("finalize_response", finalize_response)
 
 # Set entry point and edges
-workflow.set_entry_point("get_content_file")
-workflow.add_edge("get_content_file", "get_chat_history")
+workflow.set_entry_point("get_context_node")
+workflow.add_edge("get_context_node", "get_chat_history")
 workflow.add_edge("get_chat_history", "generate_activity_diagram")
 # workflow.add_edge("generate_activity_diagram", "validate_diagram")
 # workflow.add_edge("validate_diagram", "finalize_response")

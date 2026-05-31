@@ -9,8 +9,8 @@ from connect_model import (
     get_model_client,
     MODEL,
     MAX_CONTEXT_TOKENS,
-    estimate_tokens as _estimate_tokens
 )
+from utils.tokenizer import estimate_tokens as _estimate_tokens
 
 BACKEND_API_URL = os.getenv("BACKEND_API_URL", "http://localhost:8010")
 

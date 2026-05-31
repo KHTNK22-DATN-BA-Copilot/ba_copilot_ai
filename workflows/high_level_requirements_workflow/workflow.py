@@ -13,7 +13,7 @@ from typing import Optional
 
 from workflows.nodes import (
     get_chat_history,
-    get_content_file,
+    get_context_node,
 )
 
 from ..base.state import BaseDocumentState
@@ -64,8 +64,8 @@ for the provided project or business idea.
 workflow = StateGraph(HighLevelRequirementsState)
 
 workflow.add_node(
-    "get_content_file",
-    get_content_file,
+    "get_context_node",
+    get_context_node,
 )
 
 workflow.add_node(
@@ -78,10 +78,10 @@ workflow.add_node(
     generate_high_level_requirements,
 )
 
-workflow.set_entry_point("get_content_file")
+workflow.set_entry_point("get_context_node")
 
 workflow.add_edge(
-    "get_content_file",
+    "get_context_node",
     "get_chat_history",
 )
 

@@ -6,10 +6,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 # from models.diagram import DiagramOutput, DiagramResponse
 # from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
 from typing import TypedDict, Optional, List
-from workflows.nodes import get_chat_history, get_content_file
+from workflows.nodes import get_chat_history, get_context_node
 from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
 import logging
-from ..utils import extractor
+from utils import extractor
 from response import success_response, error_response
 
 logger = logging.getLogger(__name__)
@@ -82,7 +82,7 @@ def generate_usecase_diagram_description(state: UsecaseDiagramState, config: Opt
     - Escape \\n properly
     - No extra keys, no extra text
     - Must be valid JSON (parsable)
-    - Use valid Mermaid syntax only
+    - Use valid Mermaid syntax only, root must always have "content" and "summary" as specified - no nesting
     """
 
     try:
@@ -218,15 +218,15 @@ def generate_usecase_diagram_description(state: UsecaseDiagramState, config: Opt
 workflow = StateGraph(UsecaseDiagramState)
 
 # Add nodes in sequence: Get Content File -> Chat History -> Generate
-workflow.add_node("get_content_file", get_content_file)
+workflow.add_node("get_context_node", get_context_node)
 workflow.add_node("get_chat_history", get_chat_history)
 workflow.add_node("generate_usecase_diagram", generate_usecase_diagram_description)
 # workflow.add_node("validate_diagram", validate_diagram)
 # workflow.add_node("finalize_response", finalize_response)
 
 # Set entry point and edges
-workflow.set_entry_point("get_content_file")
-workflow.add_edge("get_content_file", "get_chat_history")
+workflow.set_entry_point("get_context_node")
+workflow.add_edge("get_context_node", "get_chat_history")
 workflow.add_edge("get_chat_history", "generate_usecase_diagram")
 # workflow.add_edge("generate_usecase_diagram", "validate_diagram")
 # workflow.add_edge("validate_diagram", "finalize_response")
