@@ -5,121 +5,40 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 # from models.hld_arch import HLDArchOutput, HLDArchResponse
-from typing import TypedDict, Optional, List
+from typing import Optional
 from workflows.nodes import get_chat_history, get_context_node
-from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
-import logging
-from utils import extractor
-from response import success_response, error_response
+from ..base.document_generator import generate_document
+from ..base.state import BaseDocumentState
+from ..base.additional_rules import DIAGRAM_DOCUMENT_ADDITIONAL_RULES
 
-logger = logging.getLogger(__name__)
-
-class HLDArchState(TypedDict):
-    user_message: str
-    response: dict
-    content_id: Optional[str]
-    storage_paths: Optional[List]
-    extracted_text: Optional[str]
-    chat_context: Optional[str]
-    raw_diagram: Optional[str]
-    validation_result: Optional[dict]
-    retry_count: int
+class HLDArchState(BaseDocumentState):
+    pass
 
 def generate_hld_arch_diagram(state: HLDArchState, config: Optional[dict] = None):
     """Generate High-Level Design Architecture Diagram in Mermaid format"""
-    model_client = get_model_client()
-    cfg = (config or {}).get("configurable", {})
-    token = set_request_model_config(
-        provider=cfg.get("provider"),
-        model_name=cfg.get("model_name"),
-        api_key=cfg.get("api_key"),
-    )
-
-    # Build comprehensive prompt with context
-    user_message = state['user_message']
-    extracted_text = state.get('extracted_text', '')
-    chat_context = state.get('chat_context', '')
-
-    context_parts = []
-    if chat_context:
-        context_parts.append(f"Context from previous conversation:\n{chat_context}\n")
-    if extracted_text:
-        context_parts.append(f"Extracted content from uploaded files:\n{extracted_text}\n")
-
-    context_str = "\n".join(context_parts)
-
-    prompt = f"""
-    {context_str}
-
-    ### ROLE
-    Solution Architect (HLD, Mermaid).
-
-    ### TASK
-    Create a High-Level System Architecture Diagram for: {user_message}
-
-    ### REQUIREMENTS
-    Include:
+    HLD_ARCH_ADDITIONAL_RULES =  DIAGRAM_DOCUMENT_ADDITIONAL_RULES + """
+\n-Include:
     - System components (frontend, backend, database, services)
     - External systems (APIs, third-party)
     - Data flow (directional)
     - Layers (presentation, application, data)
     - Infrastructure (LB, cache, queues)
     - Security boundaries (auth, gateway, firewall)
-
-    Use:
-    - Mermaid flowchart (`graph TD` or `graph TB`)
-    - Subgraphs for architectural layers
-    - Clear labels and directional connections
-    - Consistent node naming
-    - Logical grouping of related services
-    - Readable and valid Mermaid structure
-
-    ### OUTPUT (STRICT JSON ONLY)
-    {{
-      "content": "```mermaid\\ngraph TD\\n...\\n```",
-      "summary": "One-line description of the architecture"
-    }}
-
-    ### RULES
-    - ALWAYS include triple backticks (` ``` `) around the Mermaid diagram
-    - ALWAYS start the Mermaid content with `graph TD` or `graph TB`
-    - The `content` field MUST contain a complete Mermaid markdown block
-    - Use escaped newlines (`\\n`) inside JSON strings
-    - Return VALID parsable JSON only
-    - Do NOT return markdown outside the JSON object
-    - Do NOT add explanations, comments, or extra text
-    - Ensure Mermaid syntax is valid and renderable, root must always have "content" and "summary" as specified - no nesting
-    """
-
-    try:
-        response = model_client.chat_completion(
-            messages=[{"role": "user", "content": prompt}],
-            model=cfg.get("model_name") or MODEL,
-        )
-        raw_output = response.choices[0].message.content or ""
-
-        json_data = extractor.extract_json(raw_output)
-        summary = "HLD architecture diagram"
-        content = ""
-        if not json_data:
-            print("No JSON data found! Returning raw output...")
-            content = raw_output
-        else:
-            summary = json_data.get("summary", "HLD architecture diagram")
-            content = json_data.get("content", "Empty json_data")
-        return {
-            "response": success_response(summary, content)
-        } # pyright: ignore[reportReturnType]
-    except Exception as e:
-        logger.error(f"Error generating HLD architecture diagram: {e}")
-        return {
-            "response": error_response(
-                "HLD architecture diagram",
-                f"Error generating HLD architecture diagram: {e}",
-            )
-        } # pyright: ignore[reportReturnType]
-    finally:
-        reset_request_model_config(token)
+- Mermaid flowchart, start the Mermaid content with `graph TD` or `graph TB`
+- Subgraphs for architectural layers
+- Clear labels and directional connections
+- Consistent node naming
+- Logical grouping of related services
+- Readable and valid Mermaid structure
+"""
+    return generate_document(
+        state=state,
+        config=config,
+        role="Solution Architect specializing in HLD, Mermaid",
+        task="Create a complete High-level System Architecture Diagram",
+        default_summary="High-level System Architecture Diagram",
+        additional_rules=HLD_ARCH_ADDITIONAL_RULES
+    )
 
 # Build LangGraph pipeline for HLD Architecture
 workflow = StateGraph(HLDArchState)

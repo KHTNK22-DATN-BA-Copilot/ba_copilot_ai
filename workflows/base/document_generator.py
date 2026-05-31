@@ -9,9 +9,9 @@ from connect_model import (
 
 from response import success_response, error_response
 
-from ..utils.context_builder import build_context
-from ..utils.prompt_builder import build_document_prompt
-from ..utils.response_parser import parse_ai_json_response
+from utils.context_builder import build_context
+from utils.prompt_builder import build_document_prompt
+from utils.response_parser import parse_ai_json_response
 
 
 def generate_document(

@@ -4,142 +4,44 @@ Generates interactive prototype specifications and user flow documentation
 """
 
 from langgraph.graph import StateGraph, END
-from typing import TypedDict, Optional, List, Dict
-import json
-import logging
-from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
-from utils import extractor
-from response import success_response, error_response
-
-logger = logging.getLogger(__name__)
-
-
-class UIUXPrototypeState(TypedDict):
-    """State for prototype generation workflow"""
-    message: str
-    content_id: Optional[str]
-    storage_paths: Optional[List[str]]
-    response: Optional[Dict]
-    extracted_text: Optional[str]
-    chat_context: Optional[str]
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from typing import Optional
+from workflows.nodes import get_chat_history, get_context_node
+from ..base.additional_rules import DIAGRAM_DOCUMENT_ADDITIONAL_RULES
+from ..base.document_generator import generate_document
+from ..base.state import BaseDocumentState
 
 
-def get_context_node(state: UIUXPrototypeState) -> UIUXPrototypeState:
-    """Extract content from uploaded files"""
-    storage_paths = state.get('storage_paths')
-    
-    if not storage_paths:
-        print("No storage_paths provided, skipping file content retrieval")
-        return {"extracted_text": ""}
-    
-    # TODO: Implement file extraction from Supabase Storage
-    return {"extracted_text": ""}
-
-
-def get_chat_history(state: UIUXPrototypeState) -> UIUXPrototypeState:
-    """Retrieve chat history from content_id"""
-    content_id = state.get('content_id')
-    
-    if not content_id:
-        print("No content_id provided, skipping chat history")
-        return {"chat_context": ""}
-    
-    # TODO: Implement chat history retrieval from database
-    return {"chat_context": ""}
-
+class UIUXPrototypeState(BaseDocumentState):
+    pass
 
 def generate_uiux_prototype(state: UIUXPrototypeState, config: Optional[dict] = None):
     """
     Generate interactive prototype specifications and user flow documentation
     """
-    model_client = get_model_client()
-    cfg = (config or {}).get("configurable", {})
-    token = set_request_model_config(
-        provider=cfg.get("provider"),
-        model_name=cfg.get("model_name"),
-        api_key=cfg.get("api_key"),
+    UIUX_PROTOTYPE_ADDITIONAL_RULES = DIAGRAM_DOCUMENT_ADDITIONAL_RULES + """
+\n- Demonstrate Page structure (header, nav, main, sections, footer), Navigation flow and layout hierarchy, Interaction states (hover, focus, active), Responsive behavior (mobile, tablet, desktop)
+- At least 3 interactive components (e.g., nav, cards, form, modal)
+- Use semantic HTML and clear class naming
+- Use CSS for layout, responsiveness (media queries), and interactions
+- Follow modern UX principles (clarity, accessibility, spacing)
+- HTML & CSS must be single-line strings
+- Use single quotes for HTML attributes
+- Do NOT include <style> tags
+- No comments in CSS
+- Include responsive + interaction states
+- Escape quotes properly
+"""
+    return generate_document(
+        state=state,
+        config=config,
+        role="Interaction Designer & Frontend Prototyper (HTML/CSS)",
+        task="Create an interactive UIUX prototype",
+        default_summary="UIUX Prototype",
+        additional_rules=UIUX_PROTOTYPE_ADDITIONAL_RULES
     )
-    try:
-        
-        user_message = state.get('message', '')
-        extracted_text = state.get('extracted_text', '')
-        chat_context = state.get('chat_context', '')
-        
-        # Build context
-        context_parts = []
-        if chat_context:
-            context_parts.append(f"Context from previous conversation:\n{chat_context}\n")
-        if extracted_text:
-            context_parts.append(f"Extracted content from uploaded files:\n{extracted_text}\n")
-        
-        context_str = "\n".join(context_parts)
-        
-        prompt = f"""
-        {context_str}
-
-        ### ROLE
-        Interaction Designer & Frontend Prototyper (HTML/CSS).
-
-        ### TASK
-        Create an interactive UI prototype for: {user_message}
-
-        ### REQUIREMENTS
-        - Demonstrate:
-        - Page structure (header, nav, main, sections, footer)
-        - Navigation flow and layout hierarchy
-        - Interaction states (hover, focus, active)
-        - Responsive behavior (mobile, tablet, desktop)
-        - At least 3 interactive components (e.g., nav, cards, form, modal)
-        - Use semantic HTML and clear class naming
-        - Use CSS for layout, responsiveness (media queries), and interactions
-        - Follow modern UX principles (clarity, accessibility, spacing)
-
-        ### OUTPUT (STRICT JSON ONLY)
-        {{
-        "content": {{
-            "html": "<single-line HTML>",
-            "css": "<single-line CSS>"
-        }},
-        "summary": "One-line prototype description"
-        }}
-
-        ### RULES
-        - Output JSON ONLY (no markdown, no explanations)
-        - No extra keys, no missing keys
-        - HTML & CSS must be single-line strings
-        - Use single quotes for HTML attributes
-        - Do NOT include <style> tags
-        - No comments in CSS
-        - Include responsive + interaction states
-        - Escape quotes properly
-        - Ensure valid JSON (parsable), root must always have "content" and "summary" as specified - no nesting
-        """
-        
-        response = model_client.chat_completion(
-            messages=[{"role": "user", "content": prompt}],
-            model=cfg.get("model_name") or MODEL,
-        )
-        raw_output = response.choices[0].message.content or ""
-
-        json_data = extractor.extract_json(raw_output)
-        summary = "UIUX Prototype"
-        content = ""
-        if not json_data:
-            print("No JSON data found! Returning raw output...")
-            content = raw_output
-        else:
-            summary = json_data.get("summary", "UIUX Prototype")
-            content = json_data.get("content", "Empty json_data")
-        return {
-            "response": success_response(summary, content)
-        } # pyright: ignore[reportReturnType]
-    except json.JSONDecodeError as e:
-        logger.error(f"Error generating UIUX Prototype: {e}")
-        return {
-            "response": error_response("UIUX Prototype", f"Error generating UIUX Prototype: {e}")
-        } # pyright: ignore[reportReturnType]
-    finally:
-        reset_request_model_config(token)
 
 # Build workflow graph
 workflow = StateGraph(UIUXPrototypeState)

@@ -11,7 +11,6 @@ from langgraph.graph import StateGraph, END
 import sys
 import os
 import json
-import re
 from typing import TypedDict, Optional, List, Dict, Any
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -36,14 +35,14 @@ class MetadataExtractionState(TypedDict):
     filename: Optional[str]
     total_lines: int
     # Results from each phase node
-    phase1_results: Optional[List[Dict]]
-    phase2_results: Optional[List[Dict]]
-    phase3_results: Optional[List[Dict]]
-    phase4_results: Optional[List[Dict]]
-    phase5_results: Optional[List[Dict]]
-    phase6_results: Optional[List[Dict]]
-    phase7_results: Optional[List[Dict]]
-    additional_results: Optional[List[Dict]]
+    # phase1_results: Optional[List[Dict]]
+    # phase2_results: Optional[List[Dict]]
+    # phase3_results: Optional[List[Dict]]
+    # phase4_results: Optional[List[Dict]]
+    # phase5_results: Optional[List[Dict]]
+    # phase6_results: Optional[List[Dict]]
+    # phase7_results: Optional[List[Dict]]
+    # additional_results: Optional[List[Dict]]
     # Final aggregated response
     response: Optional[Dict]
 
