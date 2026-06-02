@@ -1,4 +1,4 @@
-from ..utils import extractor
+from . import extractor
 
 
 def parse_ai_json_response(
