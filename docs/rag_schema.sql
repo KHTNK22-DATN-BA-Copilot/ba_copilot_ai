@@ -10,15 +10,16 @@ CREATE TABLE IF NOT EXISTS rag_chunks (
     chunk_index INTEGER NOT NULL,
     content TEXT NOT NULL,
     token_count INTEGER,
-    embedding VECTOR(3072) NOT NULL,
+    embedding VECTOR(1536) NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- RPC for similarity search
 CREATE OR REPLACE FUNCTION match_rag_chunks(
-    query_embedding VECTOR(3072),
+    query_embedding VECTOR(1536),
     match_count INT,
     project_id_filter INTEGER DEFAULT NULL,
+    document_types TEXT[] DEFAULT NULL,
     min_similarity FLOAT DEFAULT 0.0
 )
 RETURNS TABLE (
@@ -45,6 +46,7 @@ BEGIN
         1 - (rag_chunks.embedding <=> query_embedding) AS similarity
     FROM rag_chunks
         WHERE (project_id_filter IS NULL OR rag_chunks.project_id = project_id_filter)
+            AND (document_types IS NULL OR rag_chunks.document_type = ANY(document_types))
       AND (1 - (rag_chunks.embedding <=> query_embedding)) >= min_similarity
     ORDER BY rag_chunks.embedding <=> query_embedding
     LIMIT match_count;

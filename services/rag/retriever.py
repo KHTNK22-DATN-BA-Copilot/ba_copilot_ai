@@ -11,11 +11,12 @@ from .supabase_client import get_rag_db
 def retrieve_rag_context(
     *,
     query: str,
-    storage_paths: List[str],
+    project_id: int,
+    document_constraint: List[str],
     top_k: int = 5,
 ) -> str:
-    storage_paths = [p for p in storage_paths if p]
-    if not query or not storage_paths:
+    document_constraint = [p for p in document_constraint if p]
+    if not query and project_id is None and not document_constraint:
         return ""
 
     rag_db_gen = None
@@ -25,13 +26,16 @@ def retrieve_rag_context(
         rag_db_gen = get_rag_db()
         rag_db = next(rag_db_gen)
         embedding_literal = "[" + ",".join(f"{value:.6f}" for value in embedding) + "]"
-        print(f"For query: {embedding_literal}")
+        # print(f"For query: {embedding_literal}")
+        document_types_literal = "{" + ",".join(document_constraint) + "}"
         sql = text(
             """
             SELECT *
             FROM match_rag_chunks(
                 CAST(:query_embedding AS vector),
                 :match_count,
+                :project_id_filter,
+                CAST(:document_types AS text[]),
                 :min_similarity
             )
             """
@@ -43,6 +47,8 @@ def retrieve_rag_context(
                 {
                     "query_embedding": embedding_literal,
                     "match_count": top_k,
+                    "project_id_filter": project_id,
+                    "document_types": document_types_literal,
                     "min_similarity": 0.0,
                 },
             )
@@ -50,18 +56,6 @@ def retrieve_rag_context(
             .all()
         )
         print(f"Retrieved {len(rows)} RAG chunks for query: {query}")
-    except OperationalError as exc:
-        print(f"RAG DB connection error: {exc}")
-        print(traceback.format_exc())
-        raise
-    except SQLAlchemyError as exc:
-        print(f"RAG DB SQLAlchemy error: {exc}")
-        print(traceback.format_exc())
-        raise
-    except Exception as exc:
-        print(f"RAG retrieval unexpected error: {exc}")
-        print(traceback.format_exc())
-        raise
     finally:
         if rag_db_gen is not None:
             rag_db_gen.close()

@@ -1,148 +1,87 @@
-"""
-LLD Pseudocode Workflow
-Generates algorithm pseudocode and logic flow documentation.
-"""
+# workflows/lld_pseudocode_workflow/workflow.py
 
 from langgraph.graph import StateGraph, END
-from typing import TypedDict, Optional, List
-import json
+
 import logging
-from workflows.nodes import get_chat_history, get_context_node
-from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
-from models.lld_pseudo import LLDPseudoResponse, LLDPseudoOutput
-import re
-from utils import extractor
-from response import success_response, error_response
+
+from typing import Optional
+
+from workflows.nodes import (
+    get_chat_history,
+    get_context_node,
+)
+
+from ..base.state import BaseDocumentState
+
+from ..base.document_generator import (
+    generate_document,
+)
 
 logger = logging.getLogger(__name__)
 
-class LLDPseudoState(TypedDict):
-    """State for LLD Pseudocode workflow"""
-    user_message: str
-    response: dict
-    content_id: Optional[str]
-    storage_paths: Optional[List[str]]
-    extracted_text: Optional[str]
-    chat_context: Optional[str]
 
-def generate_lld_pseudocode(state: LLDPseudoState, config: Optional[dict] = None):
-    """
-    Generate algorithm pseudocode document using LLM.
-    Creates detailed pseudocode with complexity analysis and implementation notes.
-    """
-    model_client = get_model_client()
-    cfg = (config or {}).get("configurable", {})
-    token = set_request_model_config(
-        provider=cfg.get("provider"),
-        model_name=cfg.get("model_name"),
-        api_key=cfg.get("api_key"),
+class LLDPseudoState(BaseDocumentState):
+    pass
+
+
+LLD_PSEUDOCODE_RULES = """
+### RULES
+- Use concise bullet points (except pseudocode)
+- Ensure clarity and correctness
+- Do NOT change section titles or order
+- Use clean, structured Markdown
+"""
+
+
+def generate_lld_pseudocode(
+    state: LLDPseudoState,
+    config: Optional[dict] = None,
+):
+    return generate_document(
+        state=state,
+        config=config,
+        role="Algorithm Designer (pseudocode, analysis)",
+        task="""
+Create a detailed Pseudocode Design document
+for the provided algorithm, system, or feature.
+""",
+        default_summary="LLD Pseudo",
+        additional_rules=LLD_PSEUDOCODE_RULES,
     )
-    try:
-        
-        # Extract context
-        user_message = state.get('user_message', '')
-        extracted_text = state.get('extracted_text', '')
-        chat_context = state.get('chat_context', '')
-        
-        # Build context string
-        context_str = ""
-        if chat_context:
-            context_str += f"Context from previous conversation:\n{chat_context}\n\n"
-        if extracted_text:
-            context_str += f"Extracted content from uploaded files:\n{extracted_text}\n\n"
 
-        prompt = f"""
-        {context_str}
 
-        ### ROLE
-        Algorithm Designer (pseudocode, analysis).
-
-        ### TASK
-        Create a Pseudocode Design for: {user_message}
-
-        ### REQUIREMENTS
-        The "content" MUST be a Markdown document (use \\n) with EXACT structure:
-
-        # Pseudocode - <Algorithm Name>
-
-        ## 1. Overview
-        - Problem, goal, approach
-
-        ## 2. Input / Output
-        - Inputs, outputs, preconditions, postconditions
-
-        ## 3. Pseudocode
-        - Use standard notation: FUNCTION, BEGIN, END, IF, ELSE, FOR, WHILE, RETURN
-        - Clear structure, proper indentation
-        - Include helper functions if needed
-
-        ## 4. Complexity Analysis
-        - Time and space (Big-O)
-        - Best, average, worst cases (brief justification)
-
-        ## 5. Edge Cases
-        - Boundary conditions, errors, special cases
-
-        ## 6. Implementation Notes
-        - Data structures, optimizations, pitfalls
-
-        - Use concise bullet points (except pseudocode)
-        - Ensure clarity and correctness
-
-        ### OUTPUT (STRICT JSON ONLY)
-        {{
-        "content": "Markdown document following REQUIRED structure (use \\n for newlines)",
-        "summary": "One-line algorithm summary"
-        }}
-
-        ### RULES
-        - Output JSON ONLY (no markdown wrappers, no explanations)
-        - No extra keys, no missing keys
-        - Do NOT change section titles or order
-        - Escape \\n properly
-        - All values must be strings, root must always have "content" and "summary" as specified - no nesting
-        """
-
-        response = model_client.chat_completion(
-            messages=[{"role": "user", "content": prompt}],
-            model=cfg.get("model_name") or MODEL,
-        )
-        raw_output = response.choices[0].message.content or ""
-
-        json_data = extractor.extract_json(raw_output)
-        summary = "LLD Pseudo"
-        content = ""
-        if not json_data:
-            print("No JSON data found! Returning raw output...")
-            content = raw_output
-        else:
-            summary = json_data.get("summary", "LLD Pseudo")
-            content = json_data.get("content", "Empty json_data")
-        return {
-            "response": success_response(summary, content)
-        } # pyright: ignore[reportReturnType]
-
-    except Exception as e:
-        logger.error(f"Error generating pseudocode: {e}")
-        return {
-            "response": error_response("LLD Pseudo", f"Error generating pseudocode: {e}")
-        } # pyright: ignore[reportReturnType]
-    finally:
-        reset_request_model_config(token)
-
-# Build LangGraph pipeline for LLD Pseudocode
 workflow = StateGraph(LLDPseudoState)
 
-# Add nodes in sequence: Get Content File -> Chat History -> Generate
-workflow.add_node("get_context_node", get_context_node)
-workflow.add_node("get_chat_history", get_chat_history)
-workflow.add_node("generate_lld_pseudo", generate_lld_pseudocode)
+workflow.add_node(
+    "get_context_node",
+    get_context_node,
+)
 
-# Set entry point and edges
+workflow.add_node(
+    "get_chat_history",
+    get_chat_history,
+)
+
+workflow.add_node(
+    "generate_lld_pseudo",
+    generate_lld_pseudocode,
+)
+
 workflow.set_entry_point("get_context_node")
-workflow.add_edge("get_context_node", "get_chat_history")
-workflow.add_edge("get_chat_history", "generate_lld_pseudo")
-workflow.add_edge("generate_lld_pseudo", END)
 
-# Compile graph
+workflow.add_edge(
+    "get_context_node",
+    "get_chat_history",
+)
+
+workflow.add_edge(
+    "get_chat_history",
+    "generate_lld_pseudo",
+)
+
+workflow.add_edge(
+    "generate_lld_pseudo",
+    END,
+)
+
 lld_pseudo_graph = workflow.compile()

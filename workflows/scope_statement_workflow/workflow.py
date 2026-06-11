@@ -1,163 +1,91 @@
 # workflows/scope_statement_workflow/workflow.py
+
 from langgraph.graph import StateGraph, END
+
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from models.scope_statement import ScopeStatementOutput, ScopeStatementResponse
-from typing import TypedDict, Optional, List
-from workflows.nodes import get_chat_history, get_context_node
-from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
-from utils import extractor
-from response import success_response, error_response
 
-class ScopeStatementState(TypedDict):
-    user_message: str
-    response: dict
-    content_id: Optional[str]
-    storage_paths: Optional[List]
-    extracted_text: Optional[str]
-    chat_context: Optional[str]
+sys.path.append(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
-def generate_scope_statement(state: ScopeStatementState, config: Optional[dict] = None):
-    """Generate Scope Statement document using OpenRouter AI"""
-    model_client = get_model_client()
-    cfg = (config or {}).get("configurable", {})
-    token = set_request_model_config(
-        provider=cfg.get("provider"),
-        model_name=cfg.get("model_name"),
-        api_key=cfg.get("api_key"),
+from typing import Optional
+
+from workflows.nodes import (
+    get_chat_history,
+    get_context_node,
+)
+
+from ..base.state import BaseDocumentState
+
+from ..base.document_generator import (
+    generate_document,
+)
+
+
+class ScopeStatementState(BaseDocumentState):
+    pass
+
+
+SCOPE_STATEMENT_RULES = """
+### RULES
+- Use concise bullet points (except tables)
+- Do NOT leave any section empty
+- Use clear, structured Markdown
+- Include tables where specified
+- Do NOT change section titles or order
+"""
+
+
+def generate_scope_statement(
+    state: ScopeStatementState,
+    config: Optional[dict] = None,
+):
+    return generate_document(
+        state=state,
+        config=config,
+        role="Business Analyst (scope definition, stakeholder alignment)",
+        task="""
+Create a professional Project Scope Statement
+for the provided project or business idea.
+""",
+        default_summary="Scope Statement",
+        additional_rules=SCOPE_STATEMENT_RULES,
     )
 
-    # Build comprehensive prompt with context
-    user_message = state['user_message']
-    extracted_text = state.get('extracted_text', '')
-    chat_context = state.get('chat_context', '')
 
-    context_parts = []
-    if chat_context:
-        context_parts.append(f"Context from previous conversation:\n{chat_context}\n")
-    if extracted_text:
-        context_parts.append(f"Extracted content from uploaded files:\n{extracted_text}\n")
-
-    context_str = "\n".join(context_parts)
-
-    prompt = f"""
-    {context_str}
-
-    ### ROLE
-    Business Analyst (scope definition, stakeholder alignment).
-
-    ### TASK
-    Create a Project Scope Statement for: {user_message}
-
-    ### REQUIREMENTS
-    The "content" MUST be a Markdown document (use \\n) with EXACT structure:
-
-    # Project Scope Statement - <Project Name>
-
-    ## 1. Document Control
-    - Version, date, approval
-
-    ## 2. Project Overview
-    ### 2.1 Purpose
-    ### 2.2 Description
-    ### 2.3 Justification
-
-    ## 3. Project Scope
-    ### 3.1 In Scope
-    ### 3.2 Out of Scope
-
-    ## 4. Deliverables
-    ### 4.1 Major Deliverables
-    - Include table: Deliverable | Description | Acceptance Criteria
-
-    ### 4.2 Milestones
-    - Include table: Milestone | Target Date | Description
-
-    ## 5. Requirements Summary
-    ### 5.1 Functional
-    ### 5.2 Non-Functional
-    ### 5.3 Technical
-
-    ## 6. Constraints
-    ## 7. Assumptions
-
-    ## 8. Dependencies
-    ### 8.1 Internal
-    ### 8.2 External
-
-    ## 9. Success Criteria
-    ### 9.1 Project Success
-    ### 9.2 Acceptance Criteria
-
-    ## 10. Stakeholders
-    - Include table: Stakeholder | Role | Responsibility
-
-    ## 11. Change Management
-    - Scope change process
-
-    ## 12. Risks and Issues
-
-    ## 13. Approval
-    - Include table: Role | Name | Signature | Date
-
-    - Use concise bullet points (except tables)
-    - Do NOT leave any section empty
-
-    ### OUTPUT (STRICT JSON ONLY)
-    {{
-    "content": "Markdown document following REQUIRED structure (use \\n for newlines)",
-    "summary": "One-line scope summary"
-    }}
-
-    ### RULES
-    - Output JSON ONLY (no markdown wrappers, no explanations)
-    - No extra keys, no missing keys
-    - Do NOT change section titles or order
-    - Escape \\n properly
-    - All values must be strings,root must always have "content" and "summary" as specified - no nesting
-    """
-
-    try:
-        response = model_client.chat_completion(
-            messages=[{"role": "user", "content": prompt}],
-            model=cfg.get("model_name") or MODEL,
-        )
-        raw_output = response.choices[0].message.content or ""
-
-        json_data = extractor.extract_json(raw_output)
-        summary = "Scope Statement"
-        content = ""
-        if not json_data:
-            print("No JSON data found! Returning raw output...")
-            content = raw_output
-        else:
-            summary = json_data.get("summary", "Scope Statement")
-            content = json_data.get("content", "Empty json_data")
-        return {
-            "response": success_response(summary, content)
-        } # pyright: ignore[reportReturnType]
-    except Exception as e:
-        print(f"Error generating Scope Statement: {e}")
-        return {
-            "response": error_response("Scope Statement", f"Error generating Scope Statement: {e}")
-        } # pyright: ignore[reportReturnType]
-    finally:
-        reset_request_model_config(token)
-
-# Build LangGraph pipeline for Scope Statement
 workflow = StateGraph(ScopeStatementState)
 
-# Add nodes in sequence: Get Content File -> Chat History -> Generate
-workflow.add_node("get_context_node", get_context_node)
-workflow.add_node("get_chat_history", get_chat_history)
-workflow.add_node("generate_scope_statement", generate_scope_statement)
+workflow.add_node(
+    "get_context_node",
+    get_context_node,
+)
 
-# Set entry point and edges
+workflow.add_node(
+    "get_chat_history",
+    get_chat_history,
+)
+
+workflow.add_node(
+    "generate_scope_statement",
+    generate_scope_statement,
+)
+
 workflow.set_entry_point("get_context_node")
-workflow.add_edge("get_context_node", "get_chat_history")
-workflow.add_edge("get_chat_history", "generate_scope_statement")
-workflow.add_edge("generate_scope_statement", END)
 
-# Compile graph
+workflow.add_edge(
+    "get_context_node",
+    "get_chat_history",
+)
+
+workflow.add_edge(
+    "get_chat_history",
+    "generate_scope_statement",
+)
+
+workflow.add_edge(
+    "generate_scope_statement",
+    END,
+)
+
 scope_statement_graph = workflow.compile()

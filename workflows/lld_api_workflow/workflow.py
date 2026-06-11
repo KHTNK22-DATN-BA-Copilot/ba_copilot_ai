@@ -1,173 +1,88 @@
-"""
-LLD API Specifications Workflow
-Generates detailed API endpoint specifications in OpenAPI/Swagger format.
-"""
+# workflows/lld_api_workflow/workflow.py
 
 from langgraph.graph import StateGraph, END
-from typing import TypedDict, Optional, List
-import json
+
 import logging
-from workflows.nodes import get_chat_history, get_context_node
-from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
-# from models.lld_api import LLDAPIResponse, LLDAPIOutput
-import re
-from utils import extractor
-from response import success_response, error_response
+
+from typing import Optional
+
+from workflows.nodes import (
+    get_chat_history,
+    get_context_node,
+)
+
+from ..base.state import BaseDocumentState
+
+from ..base.document_generator import (
+    generate_document,
+)
 
 logger = logging.getLogger(__name__)
 
-class LLDAPIState(TypedDict):
-    """State for LLD API Specifications workflow"""
-    user_message: str
-    response: dict
-    content_id: Optional[str]
-    storage_paths: Optional[List[str]]
-    extracted_text: Optional[str]
-    chat_context: Optional[str]
 
-def extract_json(text: str) -> dict:
-    try:
-        # Step 1: extract JSON block
-        match = re.search(r'\{.*\}', text, re.DOTALL)
-        if not match:
-            return {}
-        json_str = match.group(0)
-        # Step 2: first parse
-        data = json.loads(json_str)
-        # Step 3: handle double-encoded JSON (VERY IMPORTANT)
-        if isinstance(data, str):
-            data = json.loads(data)
-        return data
-    except Exception as e:
-        print(f"[extract_json ERROR] {e}")
-        print(f"[extract_json RAW]\n{text}")
-        return {}
+class LLDAPIState(BaseDocumentState):
+    pass
 
-def generate_lld_api_specs(state: LLDAPIState, config: Optional[dict] = None):
-    """
-    Generate detailed API specifications document using LLM.
-    Creates comprehensive API documentation with endpoints, models, authentication.
-    """
-    model_client = get_model_client()
-    cfg = (config or {}).get("configurable", {})
-    token = set_request_model_config(
-        provider=cfg.get("provider"),
-        model_name=cfg.get("model_name"),
-        api_key=cfg.get("api_key"),
+
+LLD_API_RULES = """
+### RULES
+- Use concise formatting
+- Use clean and readable Markdown
+- Include realistic request/response examples
+- Do NOT leave any section empty
+- Do NOT change section titles or order
+"""
+
+
+def generate_lld_api_specs(
+    state: LLDAPIState,
+    config: Optional[dict] = None,
+):
+    return generate_document(
+        state=state,
+        config=config,
+        role="API Architect (REST, OpenAPI-style)",
+        task="""
+Design a detailed Low-Level API Specification
+for the provided project, platform, or system.
+""",
+        default_summary="LLD API",
+        additional_rules=LLD_API_RULES,
     )
-    
-    # Extract context
-    user_message = state.get('user_message', '')
-    extracted_text = state.get('extracted_text', '')
-    chat_context = state.get('chat_context', '')
-    
-    # Build context string
-    context_str = ""
-    if chat_context:
-        context_str += f"Context from previous conversation:\n{chat_context}\n\n"
-    if extracted_text:
-        context_str += f"Extracted content from uploaded files:\n{extracted_text}\n\n"
 
-    prompt = f"""
-    {context_str}
 
-    ### ROLE
-    API Architect (REST, OpenAPI-style).
-
-    ### TASK
-    Design a Low-Level API Specification for: {user_message}
-
-    ### REQUIREMENTS
-    The "content" MUST be a Markdown document (use \\n) with EXACT structure:
-
-    # API Specification - <Project Name>
-
-    ## 1. API Overview
-    - Purpose, base URL, format (JSON), REST style
-
-    ## 2. Authentication
-    - Method (JWT/API key), token flow, security notes
-
-    ## 3. Endpoints
-    - Group by resource
-    - For each endpoint include:
-    - Method + path + description
-    - Parameters (path/query/body)
-    - Request/response JSON examples
-    - Status codes
-
-    ## 4. Data Models
-    - Fields: name, type, required, validation, example
-
-    ## 5. Error Handling
-    - Standard HTTP codes + response format
-
-    ## 6. Rate Limiting
-    - Limits, headers, throttling
-
-    ## 7. Versioning
-    - Strategy + deprecation
-
-    ## 8. Examples
-    - cURL, JavaScript, Python
-
-    - Use concise formatting and clear examples
-    - Do NOT leave any section empty
-
-    ### OUTPUT (STRICT JSON ONLY)
-    {{
-    "content": "Markdown document following REQUIRED structure (use \\n for newlines)",
-    "summary": "One-line API summary"
-    }}
-
-    ### RULES
-    - Output JSON ONLY (no markdown wrappers, no explanations)
-    - No extra keys, no missing keys
-    - Do NOT change section titles or order
-    - Escape \\n properly
-    - All values must be strings, root must always have "content" and "summary" as specified - no nesting
-    """
-    try:
-        response = model_client.chat_completion(
-            messages=[{"role": "user", "content": prompt}],
-            model=cfg.get("model_name") or MODEL,
-        )
-        raw_output = response.choices[0].message.content or ""
-
-        json_data = extractor.extract_json(raw_output)
-        summary = "LLD API"
-        content = ""
-        if not json_data:
-            print("No JSON data found! Returning raw output...")
-            content = raw_output
-        else:
-            summary = json_data.get("summary", "LLD API")
-            content = json_data.get("content", "Empty json_data")
-        return {
-            "response": success_response(summary, content)
-        } # pyright: ignore[reportReturnType]
-    except Exception as e:
-        print(f"Error generating Low-level-design API Specs: {e}")
-        # Fallback response
-        return {
-            "response": error_response("LLD API", f"Error generating Low-level-design API Specs: {e}")
-        } # pyright: ignore[reportReturnType]
-    finally:
-        reset_request_model_config(token)
-
-# Build LangGraph pipeline for LLD API Specifications
 workflow = StateGraph(LLDAPIState)
 
-# Add nodes in sequence: Get Content File -> Chat History -> Generate
-workflow.add_node("get_context_node", get_context_node)
-workflow.add_node("get_chat_history", get_chat_history)
-workflow.add_node("generate_lld_api", generate_lld_api_specs)
+workflow.add_node(
+    "get_context_node",
+    get_context_node,
+)
 
-# Set entry point and edges
+workflow.add_node(
+    "get_chat_history",
+    get_chat_history,
+)
+
+workflow.add_node(
+    "generate_lld_api",
+    generate_lld_api_specs,
+)
+
 workflow.set_entry_point("get_context_node")
-workflow.add_edge("get_context_node", "get_chat_history")
-workflow.add_edge("get_chat_history", "generate_lld_api")
-workflow.add_edge("generate_lld_api", END)
 
-# Compile graph
+workflow.add_edge(
+    "get_context_node",
+    "get_chat_history",
+)
+
+workflow.add_edge(
+    "get_chat_history",
+    "generate_lld_api",
+)
+
+workflow.add_edge(
+    "generate_lld_api",
+    END,
+)
+
 lld_api_graph = workflow.compile()

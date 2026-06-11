@@ -3,172 +3,43 @@ from langgraph.graph import StateGraph, END
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-# from models.diagram import DiagramOutput, DiagramResponse
-from typing import TypedDict, Optional, List
+from typing import Optional
 from workflows.nodes import get_chat_history, get_context_node
-from connect_model import get_model_client, set_request_model_config, reset_request_model_config, MODEL
-import logging
-from utils import extractor
-from response import success_response, error_response
-# from services.mermaid_validator.subprocess_manager import MermaidSubprocessManager
 
-logger = logging.getLogger(__name__)
+from workflows.nodes import get_chat_history, get_context_node
+from ..base.state import BaseDocumentState
+from ..base.document_generator import (
+    generate_document,
+)
+from ..base.additional_rules import DIAGRAM_DOCUMENT_ADDITIONAL_RULES
 
-class ClassDiagramState(TypedDict):
-    user_message: str
-    response: dict
-    content_id: Optional[str]
-    storage_paths: Optional[List]
-    extracted_text: Optional[str]
-    chat_context: Optional[str]
-    raw_diagram: Optional[str]
-    validation_result: Optional[dict]
-    retry_count: int
+
+class ClassDiagramState(BaseDocumentState):
+    pass
 
 def generate_class_diagram_description(state: ClassDiagramState, config: Optional[dict] = None):
     """Generate class diagram in markdown format using OpenRouter AI"""
-    model_client = get_model_client()
-    cfg = (config or {}).get("configurable", {})
-    token = set_request_model_config(
-        provider=cfg.get("provider"),
-        model_name=cfg.get("model_name"),
-        api_key=cfg.get("api_key"),
+    CLASS_DIAGRAM_ADDITIONAL_RULES = DIAGRAM_DOCUMENT_ADDITIONAL_RULES + """
+\n- Classes: attributes (+/-/#, name, type) and methods (params, return, visibility)
+- Relationships: association, aggregation, composition, inheritance, dependency
+- Include multiplicity where relevant
+- Use abstract classes/interfaces if needed
+- Apply design patterns if appropriate
+- Ensure clear, logical structure and valid Mermaid syntax
+"""
+    return generate_document(
+        state=state,
+        config=config,
+        role="Expert UML Class Diagram designer (Mermaid)",
+        task="Create a professional Class Diagram",
+        default_summary="Class Diagram",
+        additional_rules=CLASS_DIAGRAM_ADDITIONAL_RULES
     )
-
-    # Build comprehensive prompt with context
-    user_message = state['user_message']
-    extracted_text = state.get('extracted_text', '')
-    chat_context = state.get('chat_context', '')
-
-    context_parts = []
-    if chat_context:
-        context_parts.append(f"Context from previous conversation:\n{chat_context}\n")
-    if extracted_text:
-        context_parts.append(f"Extracted content from uploaded files:\n{extracted_text}\n")
-
-    context_str = "\n".join(context_parts)
-
-    prompt = f"""
-    {context_str}
-
-    ### ROLE
-    Expert UML Class Diagram designer (Mermaid).
-
-    ### TASK
-    Create a UML Class Diagram for: {user_message}
-
-    ### REQUIREMENTS
-    - Classes: attributes (+/-/#, name, type) and methods (params, return, visibility)
-    - Relationships: association, aggregation, composition, inheritance, dependency
-    - Include multiplicity where relevant
-    - Use abstract classes/interfaces if needed
-    - Apply design patterns if appropriate
-    - Ensure clear, logical structure and valid Mermaid syntax
-
-    ### OUTPUT (STRICT JSON ONLY)
-    {{
-    "content": "Mermaid class diagram starting with 'classDiagram' (with backticks, use \\n for newlines)",
-    "summary": "One-line concise description of the diagram"
-    }}
-
-    ### RULES
-    - Do include ``` as markdown wrappers
-    - Escape newlines properly (\\n)
-    - No extra keys, no extra text, root must always have "content" and "summary" as specified - no nesting
-    - Must be valid JSON (parsable)
-    """
-
-    try:
-        response = model_client.chat_completion(
-            messages=[{"role": "user", "content": prompt}],
-            model=cfg.get("model_name") or MODEL,
-        )
-        raw_output = response.choices[0].message.content or ""
-
-        json_data = extractor.extract_json(raw_output)
-        summary = "Class Diagram"
-        content = ""
-        if not json_data:
-            print("No JSON data found! Returning raw output...")
-            content = raw_output
-        else:
-            summary = json_data.get("summary", "Class Diagram")
-            content = json_data.get("content", "Empty json_data")
-        return {
-            "response": success_response(summary, content)
-        } # pyright: ignore[reportReturnType]
-
-    except Exception as e:
-        print(f"Error generating class diagram: {e}")
-        return {
-            "response": error_response("Class Diagram", f"Error generating class diagram: {e}")
-        } # pyright: ignore[reportReturnType]
-    finally:
-        reset_request_model_config(token)
-     
-# def extract_mermaid_code(markdown_text: str) -> str:
-#     """Extract mermaid code from markdown fenced code block"""
-#     pattern = r'```mermaid\s*\n(.*?)```'
-#     match = re.search(pattern, markdown_text, re.DOTALL)
-#     if match:
-#         return match.group(1).strip()
-#     return markdown_text.strip()
-
-# def validate_diagram(state: ClassDiagramState) -> ClassDiagramState:
-#     """Validate the generated mermaid diagram"""
-#     raw_diagram = state.get("raw_diagram", "")
-#     if not raw_diagram:
-#         logger.error("No diagram to validate")
-#         return {
-#             "validation_result": {"valid": False, "errors": ["No diagram generated"]}
-#         }
-    
-#     # Extract mermaid code from markdown
-#     mermaid_code = extract_mermaid_code(raw_diagram)
-    
-#     validator = MermaidSubprocessManager()
-#     try:
-#         result = validator.validate_sync(mermaid_code)
-#         logger.info(f"Validation result: {result.get('valid', False)}")
-#         return {"validation_result": result}
-#     except Exception as e:
-#         logger.error(f"Validation failed: {e}")
-#         return {
-#             "validation_result": {"valid": False, "errors": [str(e)]}
-#         }
-#     finally:
-#         validator.sync_client.close()
-
-# def finalize_response(state: ClassDiagramState) -> ClassDiagramState:
-#     """Create final response based on validation result"""
-#     validation_result = state.get("validation_result", {})
-#     raw_diagram = state.get("raw_diagram", "")
-    
-#     if validation_result.get("valid", False):
-#         # Validation passed
-#         diagram_response = DiagramResponse(
-#             type="class_diagram",
-#             detail=raw_diagram
-#         )
-#         output = DiagramOutput(type="diagram", response=diagram_response)
-#         return {"response": output.model_dump()["response"]}
-#     else:
-#         # Validation failed - still return the diagram but log the error
-#         errors = validation_result.get("errors", [])
-#         logger.warning(f"Class diagram validation failed: {errors}")
-        
-#         # Return diagram anyway with a warning in the metadata
-#         diagram_response = DiagramResponse(
-#             type="class_diagram",
-#             detail=raw_diagram + f"\n\n<!-- Validation Warning: {errors} -->"
-#         )
-#         output = DiagramOutput(type="diagram", response=diagram_response)
-#         return {"response": output.model_dump()["response"]}
 
 # Build LangGraph pipeline for Class Diagram
 workflow = StateGraph(ClassDiagramState)
 
-# Add nodes in sequence: Get Content File -> Chat History -> Generate
+# Add nodes in sequence
 workflow.add_node("get_context_node", get_context_node)
 workflow.add_node("get_chat_history", get_chat_history)
 workflow.add_node("generate_class_diagram", generate_class_diagram_description)

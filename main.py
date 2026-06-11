@@ -11,6 +11,7 @@ from connect_model import (
     get_request_model_config,
 )
 from response import success_response, error_response
+from constants.docs_constraint import resolve_document_constraint
 
 # Import workflow graphs for AI-powered generation
 from workflows import (
@@ -88,10 +89,10 @@ logger = logging.getLogger(__name__)
 #             break
 #         logger.info(f"⏳ Waiting for validator to be ready... ({i+1}/{max_retries})")
 #         await asyncio.sleep(1)
-    
+
 #     if not validator_ready:
 #         logger.warning("⚠️ Validator not ready, diagram validation may fail")
-    
+
 #     # Close the health check validator instance
 #     await validator.close()
 
@@ -119,16 +120,31 @@ app.add_middleware(
 class AIRequest(BaseModel):
     message: str
     content_id: Optional[str] = None
-    storage_paths: Optional[List[str]] = None
+    project_id: Optional[int] = None
+    document_format: Optional[str] = None
 
     class Config:
         json_schema_extra = {
             "example": {
                 "message": "Create SRS for hotel management system",
                 "content_id": "123e4567-e89b-12d3-a456-426614174000",
-                "storage_paths": ["folder/file1.txt", "folder/file2.pdf"]
+                "project_id": 1,
+                "document_format": "markdown"
             }
         }
+
+
+def build_workflow_state(req: AIRequest, workflow_key: str) -> dict:
+    """Build the base state shared by document-generation workflows."""
+    # Handle empty string as None for content_id
+    effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
+    return {
+        "user_message": req.message,
+        "content_id": effective_content_id,
+        "project_id": req.project_id,
+        "document_constraint": resolve_document_constraint(workflow_key),
+        "document_format": req.document_format or "",
+    }
 
 
 async def _invoke_graph(graph: Any, state: dict) -> dict:
@@ -195,15 +211,8 @@ async def generate_srs(req: AIRequest):
         }
     """
     try:
-        # Handle empty string as None for content_id
-        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
-
         # Prepare state for workflow
-        state = {
-            "user_message": req.message,
-            "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
-        }
+        state = build_workflow_state(req, "srs")
 
         # Invoke SRS workflow
         result = await _invoke_graph(srs_graph, state)
@@ -230,21 +239,14 @@ async def generate_class_diagram(req: AIRequest):
         {
             "type": "diagram",
             "response": {
-                "type": "class_diagram",
+                "type": "class-diagram",
                 "detail": "```mermaid\\nclassDiagram\\n...```"
             }
         }
     """
     try:
-        # Handle empty string as None for content_id
-        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
-
         # Prepare state for workflow
-        state = {
-            "user_message": req.message,
-            "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
-        }
+        state = build_workflow_state(req, "class-diagram")
 
         # Invoke Class Diagram workflow
         result = await _invoke_graph(class_diagram_graph, state)
@@ -271,21 +273,14 @@ async def generate_usecase_diagram(req: AIRequest):
         {
             "type": "diagram",
             "response": {
-                "type": "usecase_diagram",
+                "type": "usecase-diagram",
                 "detail": "```mermaid\\ngraph TD\\n...```"
             }
         }
     """
     try:
-        # Handle empty string as None for content_id
-        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
-
         # Prepare state for workflow
-        state = {
-            "user_message": req.message,
-            "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
-        }
+        state = build_workflow_state(req, "usecase-diagram")
 
         # Invoke Use Case Diagram workflow
         result = await _invoke_graph(usecase_diagram_graph, state)
@@ -312,21 +307,14 @@ async def generate_activity_diagram(req: AIRequest):
         {
             "type": "diagram",
             "response": {
-                "type": "activity_diagram",
+                "type": "activity-diagram",
                 "detail": "```mermaid\\ngraph TD\\n...```"
             }
         }
     """
     try:
-        # Handle empty string as None for content_id
-        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
-
         # Prepare state for workflow
-        state = {
-            "user_message": req.message,
-            "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
-        }
+        state = build_workflow_state(req, "activity-diagram")
 
         # Invoke Activity Diagram workflow
         result = await _invoke_graph(activity_diagram_graph, state)
@@ -338,39 +326,39 @@ async def generate_activity_diagram(req: AIRequest):
             detail=f"Error generating activity diagram: {str(e)}"
         )
 
-# DEPRECATED ENDPOINT - Legacy wireframe generation
-# This endpoint has been replaced by /api/v1/generate/uiux-wireframe
-# Kept for backward compatibility but returns error message
-@app.post("/api/v1/wireframe/generate")
-async def generate_wireframe_legacy(req: AIRequest):
-    """
-    DEPRECATED: Legacy wireframe generation endpoint.
+# # DEPRECATED ENDPOINT - Legacy wireframe generation
+# # This endpoint has been replaced by /api/v1/generate/uiux-wireframe
+# # Kept for backward compatibility but returns error message
+# @app.post("/api/v1/wireframe/generate")
+# async def generate_wireframe_legacy(req: AIRequest):
+#     """
+#     DEPRECATED: Legacy wireframe generation endpoint.
     
-    This endpoint is no longer supported. Please use:
-    POST /api/v1/generate/uiux-wireframe
+#     This endpoint is no longer supported. Please use:
+#     POST /api/v1/generate/uiux-wireframe
     
-    The new endpoint provides enhanced wireframe generation with:
-    - Better component organization
-    - Responsive design specifications
-    - Navigation flow details
-    - Improved annotation system
-    """
-    raise HTTPException(
-        status_code=410,  # Gone
-        detail={
-            "error": "This endpoint is deprecated and no longer available.",
-            "message": "Please use POST /api/v1/generate/uiux-wireframe instead.",
-            "migration_guide": {
-                "old_endpoint": "/api/v1/wireframe/generate",
-                "new_endpoint": "/api/v1/generate/uiux-wireframe",
-                "breaking_changes": [
-                    "Response format has changed to include detailed wireframe specifications",
-                    "Request body structure remains the same (message, content_id, storage_paths)"
-                ]
-            },
-            "deprecated_since": "2026-01-15"
-        }
-    )
+#     The new endpoint provides enhanced wireframe generation with:
+#     - Better component organization
+#     - Responsive design specifications
+#     - Navigation flow details
+#     - Improved annotation system
+#     """
+#     raise HTTPException(
+#         status_code=410,  # Gone
+#         detail={
+#             "error": "This endpoint is deprecated and no longer available.",
+#             "message": "Please use POST /api/v1/generate/uiux-wireframe instead.",
+#             "migration_guide": {
+#                 "old_endpoint": "/api/v1/wireframe/generate",
+#                 "new_endpoint": "/api/v1/generate/uiux-wireframe",
+#                 "breaking_changes": [
+#                     "Response format has changed to include detailed wireframe specifications",
+#                     "Request body structure remains the same (message, content_id, storage_paths)"
+#                 ]
+#             },
+#             "deprecated_since": "2026-01-15"
+#         }
+#     )
 
 # Planning Document Services
 
@@ -395,15 +383,8 @@ async def generate_stakeholder_register(req: AIRequest):
         }
     """
     try:
-        # Handle empty string as None for content_id
-        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
-
         # Prepare state for workflow
-        state = {
-            "user_message": req.message,
-            "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
-        }
+        state = build_workflow_state(req, "stakeholder-register")
 
         result = await _invoke_graph(stakeholder_register_graph, state)
         return {"type": "stakeholder-register", "response": result["response"]}
@@ -435,15 +416,8 @@ async def generate_high_level_requirements(req: AIRequest):
         }
     """
     try:
-        # Handle empty string as None for content_id
-        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
-
         # Prepare state for workflow
-        state = {
-            "user_message": req.message,
-            "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
-        }
+        state = build_workflow_state(req, "high-level-requirements")
 
         result = await _invoke_graph(high_level_requirements_graph, state)
         return {"type": "high-level-requirements", "response": result["response"]}
@@ -460,7 +434,7 @@ async def generate_requirements_management_plan(req: AIRequest):
     Generate Requirements Management Plan document.
 
     Args:
-        req (AIRequest): Request body containing message, content_id, storage_paths
+        req (AIRequest): Request body containing message, content_id, project_id, document_format
 
     Returns:
         dict: Response with requirements management plan data
@@ -475,15 +449,8 @@ async def generate_requirements_management_plan(req: AIRequest):
         }
     """
     try:
-        # Handle empty string as None for content_id
-        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
-
         # Prepare state for workflow
-        state = {
-            "user_message": req.message,
-            "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
-        }
+        state = build_workflow_state(req, "requirements-management-plan")
 
         result = await _invoke_graph(requirements_management_plan_graph, state)
         return {"type": "requirements-management-plan", "response": result["response"]}
@@ -515,15 +482,8 @@ async def generate_business_case(req: AIRequest):
         }
     """
     try:
-        # Handle empty string as None for content_id
-        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
-
         # Prepare state for workflow
-        state = {
-            "user_message": req.message,
-            "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
-        }
+        state = build_workflow_state(req, "business-case")
 
         result = await _invoke_graph(business_case_graph, state)
         return {"type": "business-case", "response": result["response"]}
@@ -540,7 +500,7 @@ async def generate_scope_statement(req: AIRequest):
     Generate Scope Statement document defining project scope, deliverables, and boundaries.
 
     Args:
-        req (AIRequest): Request body containing message, content_id, storage_paths
+        req (AIRequest): Request body containing message, content_id, project_id, document_format
 
     Returns:
         dict: Response with scope statement document data
@@ -555,15 +515,8 @@ async def generate_scope_statement(req: AIRequest):
         }
     """
     try:
-        # Handle empty string as None for content_id
-        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
-
         # Prepare state for workflow
-        state = {
-            "user_message": req.message,
-            "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
-        }
+        state = build_workflow_state(req, "scope-statement")
 
         result = await _invoke_graph(scope_statement_graph, state)
         return {"type": "scope-statement", "response": result["response"]}
@@ -580,7 +533,7 @@ async def generate_product_roadmap(req: AIRequest):
     Generate Product Roadmap diagram showing timeline and milestones.
 
     Args:
-        req (AIRequest): Request body containing message, content_id, storage_paths
+        req (AIRequest): Request body containing message, content_id, project_id, document_format
 
     Returns:
         dict: Response with product roadmap diagram (Mermaid gantt chart)
@@ -595,15 +548,8 @@ async def generate_product_roadmap(req: AIRequest):
         }
     """
     try:
-        # Handle empty string as None for content_id
-        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
-
         # Prepare state for workflow
-        state = {
-            "user_message": req.message,
-            "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
-        }
+        state = build_workflow_state(req, "product-roadmap")
 
         result = await _invoke_graph(product_roadmap_graph, state)
         return {"type": "diagram", "response": result["response"]}
@@ -620,7 +566,7 @@ async def generate_feasibility_study(req: AIRequest):
     Generate Feasibility Study Report analyzing technical, operational, economic, schedule, and legal feasibility.
 
     Args:
-        req (AIRequest): Request body containing message, content_id, storage_paths
+        req (AIRequest): Request body containing message, content_id, project_id, document_format
 
     Returns:
         dict: Response with feasibility study document data
@@ -641,15 +587,8 @@ async def generate_feasibility_study(req: AIRequest):
         }
     """
     try:
-        # Handle empty string as None for content_id
-        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
-
         # Prepare state for workflow
-        state = {
-            "user_message": req.message,
-            "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
-        }
+        state = build_workflow_state(req, "feasibility-study")
 
         result = await _invoke_graph(feasibility_study_graph, state)
         return {"type": "feasibility-study", "response": result["response"]}
@@ -687,15 +626,8 @@ async def generate_cost_benefit_analysis(req: AIRequest):
         }
     """
     try:
-        # Handle empty string as None for content_id
-        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
-
         # Prepare state for workflow
-        state = {
-            "user_message": req.message,
-            "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
-        }
+        state = build_workflow_state(req, "cost-benefit-analysis")
 
         result = await _invoke_graph(cost_benefit_analysis_graph, state)
         return {"type": "cost-benefit-analysis", "response": result["response"]}
@@ -712,7 +644,7 @@ async def generate_risk_register(req: AIRequest):
     Generate Risk Register document with comprehensive risk identification, assessment, and mitigation planning.
 
     Args:
-        req (AIRequest): Request body containing message, content_id, storage_paths
+        req (AIRequest): Request body containing message, content_id, project_id, document_format
 
     Returns:
         dict: Response with risk register document data
@@ -732,15 +664,8 @@ async def generate_risk_register(req: AIRequest):
         }
     """
     try:
-        # Handle empty string as None for content_id
-        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
-
         # Prepare state for workflow
-        state = {
-            "user_message": req.message,
-            "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
-        }
+        state = build_workflow_state(req, "risk-register")
 
         result = await _invoke_graph(risk_register_graph, state)
         return {"type": "risk-register", "response": result["response"]}
@@ -757,7 +682,7 @@ async def generate_compliance(req: AIRequest):
     Generate Compliance document analyzing legal and regulatory compliance requirements.
 
     Args:
-        req (AIRequest): Request body containing message, content_id, storage_paths
+        req (AIRequest): Request body containing message, content_id, project_id, document_format
 
     Returns:
         dict: Response with compliance document data
@@ -777,15 +702,8 @@ async def generate_compliance(req: AIRequest):
         }
     """
     try:
-        # Handle empty string as None for content_id
-        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
-
         # Prepare state for workflow
-        state = {
-            "user_message": req.message,
-            "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
-        }
+        state = build_workflow_state(req, "compliance")
 
         result = await _invoke_graph(compliance_graph, state)
         return {"type": "compliance", "response": result["response"]}
@@ -821,15 +739,8 @@ async def generate_hld_arch(req: AIRequest):
         }
     """
     try:
-        # Handle empty string as None for content_id
-        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
-
         # Prepare state for workflow
-        state = {
-            "user_message": req.message,
-            "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
-        }
+        state = build_workflow_state(req, "hld-arch")
 
         result = await _invoke_graph(hld_arch_graph, state)
         return {"type": "hld-arch", "response": result["response"]}
@@ -846,7 +757,7 @@ async def generate_hld_cloud(req: AIRequest):
     Generate Cloud Infrastructure Setup document.
 
     Args:
-        req (AIRequest): Request body containing message, content_id, storage_paths
+        req (AIRequest): Request body containing message, content_id, project_id, document_format
 
     Returns:
         dict: Response with cloud infrastructure document
@@ -868,15 +779,8 @@ async def generate_hld_cloud(req: AIRequest):
         }
     """
     try:
-        # Handle empty string as None for content_id
-        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
-
         # Prepare state for workflow
-        state = {
-            "user_message": req.message,
-            "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
-        }
+        state = build_workflow_state(req, "hld-cloud")
 
         result = await _invoke_graph(hld_cloud_graph, state)
         return {"type": "hld-cloud", "response": result["response"]}
@@ -893,7 +797,7 @@ async def generate_hld_tech(req: AIRequest):
     Generate Technology Stack Selection document.
 
     Args:
-        req (AIRequest): Request body containing message, content_id, storage_paths
+        req (AIRequest): Request body containing message, content_id, project_id, document_format
 
     Returns:
         dict: Response with technology stack document
@@ -915,16 +819,8 @@ async def generate_hld_tech(req: AIRequest):
         }
     """
     try:
-        # Handle empty string as None for content_id
-        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
-
         # Prepare state for workflow
-        state = {
-            "user_message": req.message,
-            "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
-        }
-
+        state = build_workflow_state(req, "hld-tech")
         result = await _invoke_graph(hld_tech_graph, state)
         return {"type": "hld-tech", "response": result["response"]}
 
@@ -944,7 +840,7 @@ async def generate_lld_arch(req: AIRequest):
     Generate Low-Level Design Architecture Diagram (component, deployment diagrams).
 
     Args:
-        req (AIRequest): Request body containing message, content_id, storage_paths
+        req (AIRequest): Request body containing message, content_id, project_id, document_format
 
     Returns:
         dict: Response with detailed architecture diagram
@@ -959,15 +855,8 @@ async def generate_lld_arch(req: AIRequest):
         }
     """
     try:
-        # Handle empty string as None for content_id
-        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
-
         # Prepare state for workflow
-        state = {
-            "user_message": req.message,
-            "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
-        }
+        state = build_workflow_state(req, "lld-arch")
 
         result = await _invoke_graph(lld_arch_graph, state)
         return {"type": "lld-arch", "response": result["response"]}
@@ -984,7 +873,7 @@ async def generate_lld_db(req: AIRequest):
     Generate Database Schema ERD (Entity-Relationship Diagram).
 
     Args:
-        req (AIRequest): Request body containing message, content_id, storage_paths
+        req (AIRequest): Request body containing message, content_id, project_id, document_format
 
     Returns:
         dict: Response with database ERD diagram
@@ -999,15 +888,8 @@ async def generate_lld_db(req: AIRequest):
         }
     """
     try:
-        # Handle empty string as None for content_id
-        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
-
         # Prepare state for workflow
-        state = {
-            "user_message": req.message,
-            "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
-        }
+        state = build_workflow_state(req, "lld-db")
 
         result = await _invoke_graph(lld_db_graph, state)
         return {"type": "lld-db", "response": result["response"]}
@@ -1046,15 +928,8 @@ async def generate_lld_api(req: AIRequest):
         }
     """
     try:
-        # Handle empty string as None for content_id
-        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
-
         # Prepare state for workflow
-        state = {
-            "user_message": req.message,
-            "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
-        }
+        state = build_workflow_state(req, "lld-api")
 
         result = await _invoke_graph(lld_api_graph, state)
         return {"type": "lld-api", "response": result["response"]}
@@ -1071,7 +946,7 @@ async def generate_lld_pseudo(req: AIRequest):
     Generate Pseudocode Document with algorithm logic and complexity analysis.
 
     Args:
-        req (AIRequest): Request body containing message, content_id, storage_paths
+        req (AIRequest): Request body containing message, content_id, project_id, document_format
 
     Returns:
         dict: Response with pseudocode document
@@ -1092,15 +967,8 @@ async def generate_lld_pseudo(req: AIRequest):
         }
     """
     try:
-        # Handle empty string as None for content_id
-        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
-
         # Prepare state for workflow
-        state = {
-            "user_message": req.message,
-            "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
-        }
+        state = build_workflow_state(req, "lld-pseudo")
 
         result = await _invoke_graph(lld_pseudo_graph, state)
         return {"type": "lld-pseudo", "response": result["response"]}
@@ -1121,19 +989,13 @@ async def generate_uiux_wireframe(req: AIRequest):
     Generate UI/UX wireframe with layout and component specifications.
 
     Args:
-        req (AIRequest): Request body containing message, content_id, storage_paths
+        req (AIRequest): Request body containing message, content_id, project_id, document_format
 
     Returns:
         dict: Response with wireframe specifications
     """
     try:
-        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
-
-        state = {
-            "message": req.message,
-            "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
-        }
+        state = build_workflow_state(req, "uiux-wireframe")
 
         result = await _invoke_graph(uiux_wireframe_graph, state)
         return {"type": "uiux-wireframe", "response": result["response"]}
@@ -1156,13 +1018,7 @@ async def generate_uiux_mockup(req: AIRequest):
         dict: Response with mockup specifications
     """
     try:
-        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
-
-        state = {
-            "message": req.message,
-            "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
-        }
+        state = build_workflow_state(req, "uiux-mockup")
 
         result = await _invoke_graph(uiux_mockup_graph, state)
         return {"type": "uiux-mockup", "response": result["response"]}
@@ -1179,19 +1035,13 @@ async def generate_uiux_prototype(req: AIRequest):
     Generate interactive prototype specifications and user flow documentation.
 
     Args:
-        req (AIRequest): Request body containing message, content_id, storage_paths
+        req (AIRequest): Request body containing message, content_id, project_id, document_format
 
     Returns:
         dict: Response with prototype specifications
     """
     try:
-        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
-
-        state = {
-            "message": req.message,
-            "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
-        }
+        state = build_workflow_state(req, "uiux-prototype")
 
         result = await _invoke_graph(uiux_prototype_graph, state)
         return {"type": "uiux-prototype", "response": result["response"]}
@@ -1215,7 +1065,7 @@ async def generate_rtm(req: AIRequest):
     Maps requirements to design, implementation, and test cases to ensure complete coverage.
 
     Args:
-        req (AIRequest): Request body containing message, content_id, storage_paths
+        req (AIRequest): Request body containing message, content_id, project_id, document_format
 
     Returns:
         dict: Response with RTM document data
@@ -1230,15 +1080,8 @@ async def generate_rtm(req: AIRequest):
         }
     """
     try:
-        # Handle empty string as None for content_id
-        effective_content_id = req.content_id if req.content_id and req.content_id.strip() else None
-
         # Prepare state for workflow
-        state = {
-            "user_message": req.message,
-            "content_id": effective_content_id,
-            "storage_paths": req.storage_paths or []
-        }
+        state = build_workflow_state(req, "rtm")
 
         result = await _invoke_graph(rtm_graph, state)
         return {"type": "rtm", "response": result["response"]}
@@ -1345,4 +1188,3 @@ async def get_document_types():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
