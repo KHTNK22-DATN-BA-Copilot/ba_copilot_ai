@@ -7,8 +7,11 @@ import os
 import sys
 from typing import Any, Dict, List
 import traceback
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 from services.rag import retrieve_rag_context
 
@@ -27,7 +30,9 @@ async def get_context_node(state: Dict[str, Any]) -> Dict[str, Any]:
     project_id = state.get("project_id")
     document_constraint: List[str] = state.get("document_constraint", []) or []
 
-    print(f"Getting RAG context for query: '{query}' with constraints: {document_constraint} and project_id: {project_id}")
+    print(
+        f"Getting RAG context for query: '{query}' with constraints: {document_constraint} and project_id: {project_id}"
+    )
 
     if not query and project_id is None and not document_constraint:
         state["extracted_text"] = ""
