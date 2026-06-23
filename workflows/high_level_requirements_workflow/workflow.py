@@ -1,119 +1,98 @@
 # workflows/high_level_requirements_workflow/workflow.py
+
 from langgraph.graph import StateGraph, END
+
 import sys
 import os
-# import json
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from typing import TypedDict, Optional, List
-from workflows.nodes import get_chat_history, get_content_file
-from connect_model import get_model_client, MODEL
-from ..utils import extractor
-from response import success_response, error_response
 
-class HighLevelRequirementsState(TypedDict):
-    user_message: str
-    response: dict
-    content_id: Optional[str]
-    storage_paths: Optional[List]
-    extracted_text: Optional[str]
-    chat_context: Optional[str]
+sys.path.append(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
-def generate_high_level_requirements(state: HighLevelRequirementsState):
-    """Generate High-Level Requirements document using OpenRouter AI"""
-    model_client = get_model_client()
+from typing import Optional
 
-    # Build comprehensive prompt with context
-    user_message = state['user_message']
-    extracted_text = state.get('extracted_text', '')
-    chat_context = state.get('chat_context', '')
+from workflows.nodes import (
+    get_chat_history,
+    get_context_node,
+)
 
-    context_parts = []
-    if chat_context:
-        context_parts.append(f"Context from previous conversation:\n{chat_context}\n")
-    if extracted_text:
-        context_parts.append(f"Extracted content from uploaded files:\n{extracted_text}\n")
+from ..base.state import BaseDocumentState
 
-    context_str = "\n".join(context_parts)
+from ..base.document_generator import (
+    generate_document,
+)
 
-    prompt = f"""
-    {context_str}
 
-    ### ROLE
-    Professional Business Analyst (Requirements).
+class HighLevelRequirementsState(BaseDocumentState):
+    pass
 
-    ### TASK
-    Create a High-Level Requirements document for: {user_message}
 
-    ### REQUIREMENTS
-    Include:
-    - Functional requirements (categorized, unique IDs: FR-XXX)
-    - Non-functional requirements (measurable, IDs: NFR-XXX)
-    - Stakeholder needs
-    - Constraints, assumptions, dependencies
-    - Acceptance criteria (specific, measurable)
+HIGH_LEVEL_REQUIREMENTS_RULES = """
+### REQUIREMENTS
+Include:
+- Functional requirements (categorized, unique IDs: FR-XXX)
+- Non-functional requirements (measurable, IDs: NFR-XXX)
+- Stakeholder needs
+- Constraints, assumptions, dependencies
+- Acceptance criteria (specific, measurable)
 
-    ### OUTPUT (STRICT JSON ONLY)
-    {{
-    "content": "Markdown requirements document with sections below",
-    "summary": "One-line overview of the system scope and purpose"
-    }}
+### RULES
+- Use clear, structured Markdown
+- Use IDs for requirements (FR-XXX, NFR-XXX)
+- Include tables where appropriate
+- Keep content concise but complete
+"""
 
-    ### REQUIRED STRUCTURE (Markdown)
-    # High-Level Requirements
-    ## Introduction (Purpose, Scope, Objectives)
-    ## Stakeholder Requirements
-    ## Functional Requirements
-    ## Non-Functional Requirements
-    ## Constraints
-    ## Assumptions
-    ## Dependencies
-    ## Acceptance Criteria
-    ## Next Steps
-    ## Approval
 
-    ### RULES
-    - Return ONLY valid JSON (no markdown wrapper, no extra text)
-    - Use clear, structured Markdown
-    - Use IDs for requirements (FR-XXX, NFR-XXX)
-    - Include tables where appropriate
-    - Keep content concise but complete
-    - Ensure JSON is parsable (escape \\n properly)
-    """
+def generate_high_level_requirements(
+    state: HighLevelRequirementsState,
+    config: Optional[dict] = None,
+):
+    return generate_document(
+        state=state,
+        config=config,
+        role="Professional Business Analyst (Requirements)",
+        task="""
+Create a professional High-Level Requirements document
+for the provided project or business idea.
+""",
+        default_summary="High-Level Requirements",
+        additional_rules=HIGH_LEVEL_REQUIREMENTS_RULES,
+    )
 
-    try:
-        raw_output = model_client.gemini_completion(prompt)
 
-        json_data = extractor.extract_json(raw_output)
-        summary = "High-Level Requirements"
-        content = ""
-        if not json_data:
-            print("No JSON data found! Returning raw output...")
-            content = raw_output
-        else:
-            summary = json_data.get("summary", "High-Level Requirements")
-            content = json_data.get("content", "Empty json_data")
-        return {
-            "response": success_response(summary, content)
-        } # pyright: ignore[reportReturnType]
-    except Exception as e:
-        print(f"Error generating High-Level Requirements: {e}")
-        return {
-            "response": error_response("High-Level Requirements", f"Error generating High-Level Requirements: {e}")
-        } # pyright: ignore[reportReturnType]
-
-# Build LangGraph pipeline for High-Level Requirements
 workflow = StateGraph(HighLevelRequirementsState)
 
-# Add nodes in sequence: Get Content File -> Chat History -> Generate
-workflow.add_node("get_content_file", get_content_file)
-workflow.add_node("get_chat_history", get_chat_history)
-workflow.add_node("generate_high_level_requirements", generate_high_level_requirements)
+workflow.add_node(
+    "get_context_node",
+    get_context_node,
+)
 
-# Set entry point and edges
-workflow.set_entry_point("get_content_file")
-workflow.add_edge("get_content_file", "get_chat_history")
-workflow.add_edge("get_chat_history", "generate_high_level_requirements")
-workflow.add_edge("generate_high_level_requirements", END)
+workflow.add_node(
+    "get_chat_history",
+    get_chat_history,
+)
 
-# Compile graph
+workflow.add_node(
+    "generate_high_level_requirements",
+    generate_high_level_requirements,
+)
+
+workflow.set_entry_point("get_context_node")
+
+workflow.add_edge(
+    "get_context_node",
+    "get_chat_history",
+)
+
+workflow.add_edge(
+    "get_chat_history",
+    "generate_high_level_requirements",
+)
+
+workflow.add_edge(
+    "generate_high_level_requirements",
+    END,
+)
+
 high_level_requirements_graph = workflow.compile()
