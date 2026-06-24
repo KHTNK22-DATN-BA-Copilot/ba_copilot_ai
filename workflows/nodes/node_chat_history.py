@@ -33,7 +33,7 @@ async def fetch_chat_history(content_id: str) -> List[ChatMessage]:
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(
-                f"{BACKEND_API_URL}/api/v1/sessions/list/{content_id}"
+                f"{BACKEND_API_URL}/api/v1/sessions/list-ai/{content_id}"
             )
             response.raise_for_status()
             data = response.json()
