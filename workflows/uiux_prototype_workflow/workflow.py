@@ -21,19 +21,27 @@ def generate_uiux_prototype(state: UIUXPrototypeState, config: Optional[dict] = 
     """
     Generate interactive prototype specifications and user flow documentation
     """
-    UIUX_PROTOTYPE_ADDITIONAL_RULES = DIAGRAM_DOCUMENT_ADDITIONAL_RULES + """
-\n- Demonstrate Page structure (header, nav, main, sections, footer), Navigation flow and layout hierarchy, Interaction states (hover, focus, active), Responsive behavior (mobile, tablet, desktop)
-- At least 3 interactive components (e.g., nav, cards, form, modal)
-- Use semantic HTML and clear class naming
-- Use CSS for layout, responsiveness (media queries), and interactions
-- Follow modern UX principles (clarity, accessibility, spacing)
-- HTML & CSS must be single-line strings
-- Use single quotes for HTML attributes
-- Do NOT include <style> tags
-- No comments in CSS
-- Include responsive + interaction states
-- Escape quotes properly
+    UIUX_PROTOTYPE_ADDITIONAL_RULES = (
+        DIAGRAM_DOCUMENT_ADDITIONAL_RULES
+        + """
+\n- Generate the prototype as HTML and CSS only.
+- The JSON `content` field MUST be an object with exactly two fields: `html` and `css`.
+- Put the complete HTML document in `html` and all styles in `css`.
+- Do not include any other fields inside `content`.
+- Create a functional, high-fidelity interactive prototype.
+- Demonstrate a complete page structure (`header`, `nav`, `main`, `section`, `footer`), navigation flow, and layout hierarchy.
+- Include at least three interactive components (e.g., navigation, cards, forms, modal, tabs, accordion, dropdown).
+- Implement interaction states (`:hover`, `:focus`, `:active`) and responsive layouts for mobile, tablet, and desktop.
+- Use semantic HTML and meaningful class names.
+- Use CSS for layout, responsiveness (media queries), transitions, and visual interactions.
+- Follow modern UX principles, including accessibility, clarity, spacing, and visual consistency.
+- HTML and CSS must each be returned as a single string.
+- Use single quotes for HTML attributes.
+- Do not embed CSS inside `<style>` tags.
+- Do not include JavaScript.
+- Do not include comments in HTML or CSS.
 """
+    )
     return generate_document(
         state=state,
         config=config,

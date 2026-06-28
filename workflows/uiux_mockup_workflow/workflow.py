@@ -20,19 +20,27 @@ def generate_uiux_mockup(state: UIUXMockupState, config: Optional[dict] = None):
     """
     Generate high-fidelity UI/UX mockup with design specifications
     """
-    UIUX_MOCKUP_ADDITIONAL_RULES = DIAGRAM_DOCUMENT_ADDITIONAL_RULES + """
-\n- Clean, modern design with strong layout and typography
-- Include Page structure (header, main, sections, footer), Visual hierarchy and spacing, UI components (buttons, cards, forms if relevant)
-- Consistent styling and responsive-friendly layout
-- Use semantic HTML and clear class naming
-- Minimal, professional color palette
-- HTML & CSS must be single-line strings
-- Use single quotes for HTML attributes
-- Do NOT include <style> tags
-- No comments in CSS
-- Escape quotes properly
-- Ensure valid JSON (parsable)
+    UIUX_MOCKUP_ADDITIONAL_RULES = (
+        DIAGRAM_DOCUMENT_ADDITIONAL_RULES
+        + """
+\n- Generate the mockup as HTML and CSS only.
+- The JSON `content` field MUST be an object with exactly two fields: `html` and `css`.
+- Put the complete HTML document in `html` and all styles in `css`.
+- Do not include any other fields inside `content`.
+- Create a clean, modern, production-quality UI.
+- Include a complete page structure (`header`, `main`, `section`, `footer`).
+- Demonstrate strong visual hierarchy, spacing, typography, and alignment.
+- Include realistic UI components (buttons, cards, forms, navigation, etc.) where appropriate.
+- Use a consistent design system with a minimal, professional color palette.
+- Use semantic HTML and meaningful class names.
+- Implement responsive layouts and interaction states (`:hover`, `:focus`, `:active`) where appropriate.
+- HTML and CSS must each be returned as a single string.
+- Use single quotes for HTML attributes.
+- Do not embed CSS inside `<style>` tags.
+- Do not include JavaScript.
+- Do not include comments in HTML or CSS.
 """
+    )
     return generate_document(
         state=state,
         config=config,

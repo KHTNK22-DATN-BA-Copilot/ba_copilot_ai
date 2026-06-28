@@ -21,22 +21,27 @@ def generate_uiux_wireframe(state: UIUXWireframeState, config: Optional[dict] = 
     """
     Generate UI/UX wireframe with layout and component specifications
     """
-    UIUX_WIREFRAME_ADDITIONAL_RULES = DIAGRAM_DOCUMENT_ADDITIONAL_RULES + """
-\n- Define layout structure using semantic HTML (header, nav, main, section, footer)
-- Show layout hierarchy and content grouping
-- Include navigation, hero, content sections, and at least 1 form
-- Use grid/flex for layout
-- Include responsive behavior (mobile breakpoint)
-- Focus on structure, NOT visual styling
-- No markdown, no explanations
-- HTML & CSS MUST NOT be empty
-- HTML & CSS must be single-line strings
-- Use single quotes in HTML
-- Do NOT include <style> tags
-- No comments in CSS
-- Include responsive layout (@media)
-- Escape quotes properly
+    UIUX_WIREFRAME_ADDITIONAL_RULES = (
+        DIAGRAM_DOCUMENT_ADDITIONAL_RULES
+        + """
+\n- Generate the wireframe as HTML and CSS only.
+- The JSON `content` field MUST be an object with exactly two fields: `html` and `css`.
+- Put the complete HTML document in `html` and all styles in `css`.
+- Do not include any other fields inside `content`.
+- Define the layout using semantic HTML (`header`, `nav`, `main`, `section`, `footer`).
+- Show clear layout hierarchy and content grouping.
+- Include navigation, a hero section, content sections, and at least one form.
+- Use CSS Grid and/or Flexbox for layout.
+- Include responsive behavior with at least one `@media` breakpoint.
+- Focus on structure and layout rather than visual styling.
+- Use semantic HTML and meaningful class names.
+- HTML and CSS must each be returned as a single string.
+- Use single quotes for HTML attributes.
+- Do not embed CSS inside `<style>` tags.
+- Do not include JavaScript.
+- Do not include comments in HTML or CSS.
 """
+    )
     return generate_document(
         state=state,
         config=config,
