@@ -31,12 +31,23 @@ def build_document_prompt(
         {additional_rules}
 
         ### OUTPUT FORMAT SPECIFICATION
-        You must return a raw JSON object matching the schema below. Do not wrap the JSON in markdown code blocks (e.g., do not use ```json).
 
+        You must return a raw JSON object matching the schema below. Do not wrap the JSON in markdown code blocks (e.g., do not use ```json).
+        The response must contain exactly one top-level `content` field and one top-level `summary` field.
+
+        - `content` must contain the actual generated document directly.
+        - `content` may be either:
+        - a string (for plain text or Markdown documents), or
+        - an object containing document-specific fields (for example, `{{ "html": "...", "css": "..." }}` for HTML/CSS documents).
+        - Never include `content` or `summary` inside the `content` field.
+        - Never wrap the actual content inside another object with `content` or `summary` keys.
+
+        Schema:
         {{
-            "content": "The complete generated document as a single string. Use valid Markdown syntax inside this string. Use literal \\n for all newlines and escape all quotes.",
+            "content": "<string | object>",
             "summary": "A concise, one-line summary of the generated document."
         }}
+
 
         ### STRICT FORMATTING RULES
         - Output the raw JSON object ONLY.
