@@ -21,6 +21,7 @@ from ..base.state import BaseDocumentState
 from ..base.document_generator import (
     generate_document,
 )
+from utils.prompt_builder import build_document_prompt
 
 
 class ScopeStatementState(BaseDocumentState):
@@ -50,6 +51,7 @@ Create a professional Project Scope Statement
 for the provided project or business idea.
 """,
         default_summary="Scope Statement",
+        prompt_builder=build_document_prompt,
         additional_rules=SCOPE_STATEMENT_RULES,
     )
 

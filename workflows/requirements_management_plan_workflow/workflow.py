@@ -21,6 +21,7 @@ from ..base.state import BaseDocumentState
 from ..base.document_generator import (
     generate_document,
 )
+from utils.prompt_builder import build_document_prompt
 
 
 class RequirementsManagementPlanState(BaseDocumentState):
@@ -76,6 +77,7 @@ Create a professional Requirements Management Plan
 for the provided project or business idea.
 """,
         default_summary="Requirements Management Plan",
+        prompt_builder=build_document_prompt,
         additional_rules=REQUIREMENTS_MANAGEMENT_PLAN_RULES,
     )
 

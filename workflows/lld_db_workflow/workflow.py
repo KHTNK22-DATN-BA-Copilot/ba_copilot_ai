@@ -9,6 +9,7 @@ from workflows.nodes import get_chat_history, get_context_node
 from ..base.additional_rules import DIAGRAM_DOCUMENT_ADDITIONAL_RULES
 from ..base.document_generator import generate_document
 from ..base.state import BaseDocumentState
+from utils.prompt_builder import build_document_prompt
 
 
 class LLDDBState(BaseDocumentState):
@@ -44,6 +45,7 @@ def generate_lld_db_schema(state: LLDDBState, config: Optional[dict] = None):
         role="Database Architect (ERD, Mermaid)",
         task="Create a Low-Level Database Design (ERD)",
         default_summary="Low-level Database Design",
+        prompt_builder=build_document_prompt,
         additional_rules=LLD_DB_ADITIONAL_RULES
     )
     

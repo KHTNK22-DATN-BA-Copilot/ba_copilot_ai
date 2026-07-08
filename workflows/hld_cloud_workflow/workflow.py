@@ -8,6 +8,7 @@ from workflows.nodes import get_chat_history, get_context_node
 from ..base.document_generator import generate_document
 from ..base.state import BaseDocumentState
 from ..base.additional_rules import TEXT_DOCUMENT_ADDITONAL_RULES
+from utils.prompt_builder import build_document_prompt
 
 
 class HLDCloudState(BaseDocumentState):
@@ -21,6 +22,7 @@ def generate_hld_cloud(state: HLDCloudState, config: Optional[dict] = None):
         role="Expert Cloud Architecture (scalable, secure, cost-optimized)",
         task="Design a Cloud Infrastructure Setup",
         default_summary="Cloud Infrastructure Setup",
+        prompt_builder=build_document_prompt,
         additional_rules=TEXT_DOCUMENT_ADDITONAL_RULES
     )
 

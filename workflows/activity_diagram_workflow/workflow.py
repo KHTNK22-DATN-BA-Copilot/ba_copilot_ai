@@ -8,6 +8,7 @@ from workflows.nodes import get_context_node, get_chat_history
 from ..base.state import BaseDocumentState
 from ..base.document_generator import generate_document
 from ..base.additional_rules import DIAGRAM_DOCUMENT_ADDITIONAL_RULES
+from utils.prompt_builder import build_document_prompt
 
 
 class ActivityDiagramState(BaseDocumentState):
@@ -27,6 +28,7 @@ def generate_activity_diagram_description(state: ActivityDiagramState, config: O
         role="Expert UML Activity Diagram designer (Mermaid)",
         task="Create a UML Activity Diagram",
         default_summary="Actitivy Diagram",
+        prompt_builder=build_document_prompt,
         additional_rules=ACTIVITY_DIAGRAM_ADDTIONAL_RULES
     )
 

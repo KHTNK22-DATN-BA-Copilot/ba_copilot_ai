@@ -12,7 +12,7 @@ from workflows.nodes import get_chat_history, get_context_node
 from ..base.additional_rules import DIAGRAM_DOCUMENT_ADDITIONAL_RULES
 from ..base.document_generator import generate_document
 from ..base.state import BaseDocumentState
-
+from utils.prompt_builder import build_uiux_prompt
 
 class UIUXPrototypeState(BaseDocumentState):
     pass
@@ -48,6 +48,7 @@ def generate_uiux_prototype(state: UIUXPrototypeState, config: Optional[dict] = 
         role="Interaction Designer & Frontend Prototyper (HTML/CSS)",
         task="Create an interactive UIUX prototype",
         default_summary="UIUX Prototype",
+        prompt_builder=build_uiux_prompt,
         additional_rules=UIUX_PROTOTYPE_ADDITIONAL_RULES
     )
 

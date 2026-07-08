@@ -12,6 +12,7 @@ from ..base.document_generator import (
     generate_document,
 )
 from ..base.additional_rules import DIAGRAM_DOCUMENT_ADDITIONAL_RULES
+from utils.prompt_builder import build_document_prompt
 
 
 class ClassDiagramState(BaseDocumentState):
@@ -33,6 +34,7 @@ def generate_class_diagram_description(state: ClassDiagramState, config: Optiona
         role="Expert UML Class Diagram designer (Mermaid)",
         task="Create a professional Class Diagram",
         default_summary="Class Diagram",
+        prompt_builder=build_document_prompt,
         additional_rules=CLASS_DIAGRAM_ADDITIONAL_RULES
     )
 

@@ -4,6 +4,7 @@ from workflows.nodes import get_chat_history, get_context_node
 from ..base.additional_rules import DIAGRAM_DOCUMENT_ADDITIONAL_RULES
 from ..base.document_generator import generate_document
 from ..base.state import BaseDocumentState
+from utils.prompt_builder import build_document_prompt
 
 
 class LLDArchState(BaseDocumentState):
@@ -33,6 +34,7 @@ def generate_lld_arch_diagram(state: LLDArchState, config: Optional[dict] = None
         role="Expert Software Architect (Low-level Design, Mermaid)",
         task="Create a Low-level Architecture Design Architecture Diagram",
         default_summary="Low-level Architecture Design Diagram",
+        prompt_builder=build_document_prompt,
         additional_rules=LLD_ARCHITECTURE_ADITIONAL_RULES
     )
         

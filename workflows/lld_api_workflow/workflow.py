@@ -16,6 +16,8 @@ from ..base.state import BaseDocumentState
 from ..base.document_generator import (
     generate_document,
 )
+from utils.prompt_builder import build_document_prompt
+
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +49,7 @@ Design a detailed Low-Level API Specification
 for the provided project, platform, or system.
 """,
         default_summary="LLD API",
+        prompt_builder=build_document_prompt,
         additional_rules=LLD_API_RULES,
     )
 

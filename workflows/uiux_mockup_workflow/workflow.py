@@ -11,6 +11,7 @@ from workflows.nodes import get_chat_history, get_context_node
 from ..base.additional_rules import DIAGRAM_DOCUMENT_ADDITIONAL_RULES
 from ..base.document_generator import generate_document
 from ..base.state import BaseDocumentState
+from utils.prompt_builder import build_uiux_prompt
 
 
 class UIUXMockupState(BaseDocumentState):
@@ -47,6 +48,7 @@ def generate_uiux_mockup(state: UIUXMockupState, config: Optional[dict] = None):
         role="Visual Designer & Frontend Engineer (HTML/CSS mockups)",
         task="Create a UIUX mockup",
         default_summary="UIUX Mockup",
+        prompt_builder=build_uiux_prompt,
         additional_rules=UIUX_MOCKUP_ADDITIONAL_RULES
     )
 

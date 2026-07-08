@@ -21,6 +21,7 @@ from ..base.state import BaseDocumentState
 from ..base.document_generator import (
     generate_document,
 )
+from utils.prompt_builder import build_document_prompt
 
 
 class HLDTechState(BaseDocumentState):
@@ -49,6 +50,7 @@ Design a Technology Stack Selection document
 for the provided project, system, or platform.
 """,
         default_summary="HLD Tech",
+        prompt_builder=build_document_prompt,
         additional_rules=HLD_TECH_RULES,
     )
 

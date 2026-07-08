@@ -10,6 +10,8 @@ from workflows.nodes import get_chat_history, get_context_node
 from ..base.document_generator import generate_document
 from ..base.state import BaseDocumentState
 from ..base.additional_rules import DIAGRAM_DOCUMENT_ADDITIONAL_RULES
+from utils.prompt_builder import build_document_prompt
+
 
 class HLDArchState(BaseDocumentState):
     pass
@@ -37,6 +39,7 @@ def generate_hld_arch_diagram(state: HLDArchState, config: Optional[dict] = None
         role="Solution Architect specializing in HLD, Mermaid",
         task="Create a complete High-level System Architecture Diagram",
         default_summary="High-level System Architecture Diagram",
+        prompt_builder=build_document_prompt,
         additional_rules=HLD_ARCH_ADDITIONAL_RULES
     )
 

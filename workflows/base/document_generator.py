@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Callable,Optional
 
 from connect_model import (
     get_model_client,
@@ -21,6 +21,7 @@ def generate_document(
     role: str,
     task: str,
     default_summary: str,
+    prompt_builder: Callable,
     additional_rules: str = "",
 ):
     model_client = get_model_client()
@@ -43,7 +44,7 @@ def generate_document(
 
         document_format = state.get("document_format", "")
 
-        prompt = build_document_prompt(
+        prompt = prompt_builder(
             role=role,
             task=task,
             user_message=user_message,
