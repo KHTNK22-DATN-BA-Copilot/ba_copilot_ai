@@ -67,44 +67,84 @@ def build_uiux_prompt(
     return f"""
         {context}
 
-        ### ROLE
+        # ROLE
+
         {role}
 
-        ### TASK
+        # PRIMARY INPUT
+
+        The context above contains:
+
+        - Uploaded project documents
+        - Software Requirement Specification (SRS)
+        - High Level Requirements (HLR)
+        - Other generated documents
+
+        Treat these documents as the source of truth.
+
+        If information exists in multiple documents, use the most specific and latest requirement.
+
+        # OPTIONAL USER REQUEST
+
+        {user_message if user_message else "No additional user request."}
+
+        If an additional user request is provided:
+
+        - apply it only when it does not contradict the documented requirements.
+
+        If no additional request is provided:
+
+        - infer the UI completely from the requirements.
+
+        # TASK
         {task}
 
-        Project / User Request:
-        {user_message}
+        Identify:
 
-        ### UI GENERATION RULES
-        - Design the UI based on the user's request.
-        - Generate HTML and CSS separately.
-        - Ensure the HTML and CSS work together correctly.
+        - application purpose
+        - user roles
+        - business flows
+        - primary pages
+        - required components
+        - forms
+        - tables
+        - navigation
+        - dashboards
+        - actions
+        - validations
+
+        Then design a professional UI mockup representing the application.
+
+        The generated UI should:
+
+        - accurately reflect the documented requirements
+        - prioritize usability
+        - use proper visual hierarchy
+        - include realistic content
+        - include responsive layouts
+        - include reusable design patterns
+
+        Do not invent business features unless they are required to complete the interface.
+
+        Missing visual details may be reasonably inferred.
+
+        ### UI RULES
+
+        Generate HTML and CSS only.
+
+        HTML and CSS must work together.
 
         {additional_rules}
 
-       ### OUTPUT FORMAT SPECIFICATION
+        ### OUTPUT
 
-        You must return a raw JSON object matching the schema below. Do not wrap the JSON in Markdown code blocks (e.g. ```json).
-
-        The response must contain exactly one top-level `content` field and one top-level `summary` field.
-
-        - Never include `content` or `summary` inside the `content` field.
-        - Never wrap the generated HTML/CSS inside another object.
-
-        Schema:
         {{
-            "content": {{
-                "html": "<html code>",
-                "css": "<css code>"
-            }},
-            "summary": "A concise, one-line summary of the generated UI."
+        "content": {{
+            "html": "...",
+            "css": "..."
+        }},
+        "summary": "..."
         }}
 
-        ### STRICT FORMATTING RULES
-        - Output the raw JSON object ONLY.
-        - No conversational text.
-        - No explanations.
-        - No text before or after the JSON.
-        - Escape quotation marks, backslashes, newlines, and other special characters inside the HTML and CSS strings so the JSON remains valid.
+        Return raw JSON only.
         """
