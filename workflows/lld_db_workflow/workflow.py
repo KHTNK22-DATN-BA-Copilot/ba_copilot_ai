@@ -10,17 +10,21 @@ from ..base.additional_rules import DIAGRAM_DOCUMENT_ADDITIONAL_RULES
 from ..base.document_generator import generate_document
 from ..base.state import BaseDocumentState
 from utils.prompt_builder import build_document_prompt
+from utils.default_document_format import DocumentFormat
 
 
 class LLDDBState(BaseDocumentState):
     pass
+
 
 def generate_lld_db_schema(state: LLDDBState, config: Optional[dict] = None):
     """
     Generate database ERD schema using LLM.
     Creates Entity-Relationship Diagrams with tables, columns, relationships.
     """
-    LLD_DB_ADITIONAL_RULES = DIAGRAM_DOCUMENT_ADDITIONAL_RULES + """
+    LLD_DB_ADITIONAL_RULES = (
+        DIAGRAM_DOCUMENT_ADDITIONAL_RULES
+        + """
 \n- Use Mermaid erDiagram
 - Tables with attributes (name, type)
 - Types: uuid, string, int, decimal, boolean, timestamp
@@ -38,17 +42,20 @@ def generate_lld_db_schema(state: LLDDBState, config: Optional[dict] = None):
 - No orphan tables
 - Avoid redundancy, ensure normalized design
 """
-    
+    )
+
     return generate_document(
         state=state,
         config=config,
         role="Database Architect (ERD, Mermaid)",
         task="Create a Low-Level Database Design (ERD)",
         default_summary="Low-level Database Design",
+        default_format=DocumentFormat.LLD_DB,
         prompt_builder=build_document_prompt,
-        additional_rules=LLD_DB_ADITIONAL_RULES
+        additional_rules=LLD_DB_ADITIONAL_RULES,
     )
-    
+
+
 # Build LangGraph pipeline for LLD Database Schema
 workflow = StateGraph(LLDDBState)
 

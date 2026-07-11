@@ -3,7 +3,10 @@ from langgraph.graph import StateGraph, END
 
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+sys.path.append(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 # from models.hld_arch import HLDArchOutput, HLDArchResponse
 from typing import Optional
 from workflows.nodes import get_chat_history, get_context_node
@@ -11,14 +14,18 @@ from ..base.document_generator import generate_document
 from ..base.state import BaseDocumentState
 from ..base.additional_rules import DIAGRAM_DOCUMENT_ADDITIONAL_RULES
 from utils.prompt_builder import build_document_prompt
+from utils.default_document_format import DocumentFormat
 
 
 class HLDArchState(BaseDocumentState):
     pass
 
+
 def generate_hld_arch_diagram(state: HLDArchState, config: Optional[dict] = None):
     """Generate High-Level Design Architecture Diagram in Mermaid format"""
-    HLD_ARCH_ADDITIONAL_RULES =  DIAGRAM_DOCUMENT_ADDITIONAL_RULES + """
+    HLD_ARCH_ADDITIONAL_RULES = (
+        DIAGRAM_DOCUMENT_ADDITIONAL_RULES
+        + """
 \n-Include:
     - System components (frontend, backend, database, services)
     - External systems (APIs, third-party)
@@ -33,15 +40,18 @@ def generate_hld_arch_diagram(state: HLDArchState, config: Optional[dict] = None
 - Logical grouping of related services
 - Readable and valid Mermaid structure
 """
+    )
     return generate_document(
         state=state,
         config=config,
         role="Solution Architect specializing in HLD, Mermaid",
         task="Create a complete High-level System Architecture Diagram",
         default_summary="High-level System Architecture Diagram",
+        default_format=DocumentFormat.HLD_ARCH,
         prompt_builder=build_document_prompt,
-        additional_rules=HLD_ARCH_ADDITIONAL_RULES
+        additional_rules=HLD_ARCH_ADDITIONAL_RULES,
     )
+
 
 # Build LangGraph pipeline for HLD Architecture
 workflow = StateGraph(HLDArchState)

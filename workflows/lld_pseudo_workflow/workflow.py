@@ -17,6 +17,7 @@ from ..base.document_generator import (
     generate_document,
 )
 from utils.prompt_builder import build_document_prompt
+from utils.default_document_format import DocumentFormat
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,7 @@ Create a detailed Pseudocode Design document
 for the provided algorithm, system, or feature.
 """,
         default_summary="LLD Pseudo",
+        default_format=DocumentFormat.LLD_PSEUDO,
         prompt_builder=build_document_prompt,
         additional_rules=LLD_PSEUDOCODE_RULES,
     )

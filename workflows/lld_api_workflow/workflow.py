@@ -1,23 +1,18 @@
 # workflows/lld_api_workflow/workflow.py
 
 from langgraph.graph import StateGraph, END
-
 import logging
-
 from typing import Optional
-
 from workflows.nodes import (
     get_chat_history,
     get_context_node,
 )
-
 from ..base.state import BaseDocumentState
-
 from ..base.document_generator import (
     generate_document,
 )
 from utils.prompt_builder import build_document_prompt
-
+from utils.default_document_format import DocumentFormat
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +44,7 @@ Design a detailed Low-Level API Specification
 for the provided project, platform, or system.
 """,
         default_summary="LLD API",
+        default_format=DocumentFormat.LLD_API,
         prompt_builder=build_document_prompt,
         additional_rules=LLD_API_RULES,
     )

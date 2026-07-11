@@ -22,6 +22,7 @@ from ..base.document_generator import (
     generate_document,
 )
 from utils.prompt_builder import build_document_prompt
+from utils.default_document_format import DocumentFormat
 
 
 class RequirementsManagementPlanState(BaseDocumentState):
@@ -29,32 +30,6 @@ class RequirementsManagementPlanState(BaseDocumentState):
 
 
 REQUIREMENTS_MANAGEMENT_PLAN_RULES = """
-### REQUIREMENTS
-The generated document must include:
-
-# Requirements Management Plan - <Project Name>
-
-## 1. Introduction
-## 2. Requirements Management Approach
-## 3. Elicitation
-## 4. Analysis (MoSCoW)
-## 5. Documentation
-## 6. Validation
-## 7. Traceability
-- Include a traceability table
-
-## 8. Change Management
-## 9. Communication Plan
-- Include a table
-
-## 10. Roles & Responsibilities
-## 11. Tools
-## 12. Metrics
-## 13. Quality Assurance
-## 14. Training
-## 15. Appendices
-## 16. Approval
-
 ### RULES
 - Use concise bullet points
 - Do NOT leave any section empty
@@ -77,6 +52,7 @@ Create a professional Requirements Management Plan
 for the provided project or business idea.
 """,
         default_summary="Requirements Management Plan",
+        default_format=DocumentFormat.REQUIREMENTS_MANAGEMENT_PLAN,
         prompt_builder=build_document_prompt,
         additional_rules=REQUIREMENTS_MANAGEMENT_PLAN_RULES,
     )

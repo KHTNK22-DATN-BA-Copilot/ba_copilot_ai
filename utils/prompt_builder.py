@@ -8,6 +8,11 @@ def build_document_prompt(
     additional_rules: str = "",
 ):
     return f"""
+        ### REFERENCE KNOWLEDGE (Retrieved from Project Documents)
+        The following information was retrieved from project documents,
+        design specifications, previous documents, and uploaded files.
+        Use this information as the primary source of truth whenever possible.
+        If multiple retrieved chunks overlap, merge them logically.
         {context}
 
         ### ROLE
@@ -20,7 +25,7 @@ def build_document_prompt(
         {user_message}
 
         ### TARGET DOCUMENT STRUCTURE (MARKDOWN)
-        This is the structure you must generate inside the JSON "content" field:
+        The following document format defines the exact structure, sections, tables, diagrams, placeholders, and writing conventions that MUST be followed.
         {document_format}
 
         ### DOCUMENT GENERATION RULES

@@ -22,6 +22,7 @@ from ..base.document_generator import (
     generate_document,
 )
 from utils.prompt_builder import build_document_prompt
+from utils.default_document_format import DocumentFormat
 
 
 class ScopeStatementState(BaseDocumentState):
@@ -51,6 +52,7 @@ Create a professional Project Scope Statement
 for the provided project or business idea.
 """,
         default_summary="Scope Statement",
+        default_format=DocumentFormat.SCOPE_STATEMENT,
         prompt_builder=build_document_prompt,
         additional_rules=SCOPE_STATEMENT_RULES,
     )
