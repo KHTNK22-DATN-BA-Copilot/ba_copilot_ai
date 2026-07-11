@@ -125,6 +125,8 @@ def create_chat_model(
     if title:
         default_headers.setdefault("X-Title", title)
 
+    kwargs.setdefault("max_tokens", 10000)
+
     return ChatOpenAI(
         model=resolved_model_name,
         api_key=resolved_api_key,
