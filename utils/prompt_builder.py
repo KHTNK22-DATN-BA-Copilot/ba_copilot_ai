@@ -8,56 +8,86 @@ def build_document_prompt(
     additional_rules: str = "",
 ):
     return f"""
-        ### REFERENCE KNOWLEDGE (Retrieved from Project Documents)
-        The following information was retrieved from project documents,
-        design specifications, previous documents, and uploaded files.
-        Use this information as the primary source of truth whenever possible.
-        If multiple retrieved chunks overlap, merge them logically.
-        {context}
+    ### REFERENCE KNOWLEDGE
+    The following information was retrieved from project documents,
+    design specifications, previous documents, and uploaded files.
 
-        ### ROLE
-        {role}
+    Use this information as the primary source of truth whenever possible.
+    If multiple retrieved chunks overlap, merge them logically.
 
-        ### TASK
-        {task}
+    {context}
 
-        Project / User Request:
-        {user_message}
+    ### ROLE
+    {role}
 
-        ### TARGET DOCUMENT STRUCTURE (MARKDOWN)
-        The following document format defines the exact structure, sections, tables, diagrams, placeholders, and writing conventions that MUST be followed.
-        {document_format}
+    ### TASK
+    {task}
 
-        ### DOCUMENT GENERATION RULES
-        - The generated document must keep ALL headings and sections from the TARGET DOCUMENT STRUCTURE.
-        - Fill all sections with meaningful professional content.
-        - Write the document content using clean Markdown syntax.
+    Project / User Request:
+    {user_message}
 
-        {additional_rules}
+    ### OUTPUT FORMAT
+    Return exactly ONE JSON object.
+    Schema:
+    {{
+        "content": "<Markdown document>",
+        "summary": "<One-line summary>"
+    }}
+    Rules:
+    - `content` MUST contain the Markdown document directly.
+    - `content` MUST NOT contain JSON.
+    - `content` MUST NOT contain another object.
+    - `content` MUST NOT contain another "content" key.
+    - `content` must contain only the Markdown document.
+    - Do not embed JSON inside `content`.
+    - Do not serialize another JSON object into `content`.
+    - Never wrap the response inside Markdown code fences.
+    Valid:
+    {{
+        "content":"# Title\\n\\n## Section\\nText...",
+        "summary":"One-line summary of content field"
+    }}
 
-        ### OUTPUT FORMAT SPECIFICATION
+    Invalid:
 
-        You must return a raw JSON object matching the schema below. Do not wrap the JSON in markdown code blocks (e.g., do not use ```json).
-        The response must contain exactly one top-level `content` field and one top-level `summary` field.
+    {{
+        "content":"{{\\"content\\":\\"...\\"}}",
+        "summary":"..."
+    }}
 
-        - `content` must contain the actual generated document directly.
-        - Never include `content` or `summary` inside the `content` field.
-        - Never wrap the actual content inside another object with `content` or `summary` keys.
+    Invalid:
+    {{
+        "content":"```json\\n{{...}}\\n```",
+        "summary":"..."
+    }}
 
-        Schema:
-        {{
-            "content": "<Markdown string>",
-            "summary": "A concise, one-line summary of the generated document."
-        }}
+    ### DOCUMENT TEMPLATE (Markdown Only)
+    The template below applies ONLY to the value of the `content` field in OUTPUT FORMAT.
+    It defines the Markdown document that `content` must contain.
+    It does NOT define the JSON response.
 
+    If a document template is provided below, follow it strictly when generating the `content` field.
+    Otherwise, generate the Markdown document for the `content` field using standard best practices for the requested document type.
+    {document_format}
 
-        ### STRICT FORMATTING RULES
-        - Output the raw JSON object ONLY.
-        - No conversational text, no explanations, no text before or after the JSON.
-        - "content" must be a valid JSON string containing the generated Markdown.
-        - "summary" must be a valid JSON string.
-        - Escape special characters inside the Markdown so the JSON remains valid.
-        """
+    ### DOCUMENT GENERATION RULES
+
+    - Keep ALL headings and sections from the template.
+    - Fill every section with meaningful professional content.
+    - Use clean Markdown.
+    - Do not omit required sections.
+    - Do not generate placeholder text unless explicitly required.
+    {additional_rules}
+
+    ### STRICT FORMATTING RULES
+
+    - Output ONLY the raw JSON object.
+    - Escape all special characters so the JSON is valid.
+    - Do not include explanations.
+    - Do not include notes.
+    - Do not include comments.
+    - Do not include code fences.
+    """
 
 
 def build_uiux_prompt(
@@ -73,39 +103,29 @@ def build_uiux_prompt(
         {context}
 
         # ROLE
-
         {role}
 
         # PRIMARY INPUT
-
         The context above contains:
-
         - Uploaded project documents
         - Software Requirement Specification (SRS)
         - High Level Requirements (HLR)
         - Other generated documents
-
         Treat these documents as the source of truth.
-
         If information exists in multiple documents, use the most specific and latest requirement.
 
         # OPTIONAL USER REQUEST
-
         {user_message if user_message else "No additional user request."}
 
         If an additional user request is provided:
-
         - apply it only when it does not contradict the documented requirements.
-
         If no additional request is provided:
-
         - infer the UI completely from the requirements.
 
         # TASK
         {task}
 
         Identify:
-
         - application purpose
         - user roles
         - business flows
@@ -119,36 +139,29 @@ def build_uiux_prompt(
         - validations
 
         Then design a professional UI mockup representing the application.
-
         The generated UI should:
-
         - accurately reflect the documented requirements
         - prioritize usability
         - use proper visual hierarchy
         - include realistic content
         - include responsive layouts
         - include reusable design patterns
-
         Do not invent business features unless they are required to complete the interface.
-
         Missing visual details may be reasonably inferred.
 
         ### UI RULES
-
         Generate HTML and CSS only.
-
         HTML and CSS must work together.
 
         {additional_rules}
 
         ### OUTPUT
-
         {{
         "content": {{
             "html": "...",
             "css": "..."
         }},
-        "summary": "..."
+        "summary": "A concise, one-line summary of the generated document."
         }}
 
         Return raw JSON only.
