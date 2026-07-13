@@ -21,6 +21,8 @@ from ..base.state import BaseDocumentState
 from ..base.document_generator import (
     generate_document,
 )
+from utils.prompt_builder import build_document_prompt
+from utils.default_document_format import DocumentFormat
 
 
 class HighLevelRequirementsState(BaseDocumentState):
@@ -57,6 +59,8 @@ Create a professional High-Level Requirements document
 for the provided project or business idea.
 """,
         default_summary="High-Level Requirements",
+        default_format=DocumentFormat.HIGH_LEVEL_REQUIREMENTS,
+        prompt_builder=build_document_prompt,
         additional_rules=HIGH_LEVEL_REQUIREMENTS_RULES,
     )
 

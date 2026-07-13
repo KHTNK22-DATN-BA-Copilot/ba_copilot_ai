@@ -19,6 +19,8 @@ from ..base.state import BaseDocumentState
 from ..base.document_generator import (
     generate_document,
 )
+from utils.prompt_builder import build_document_prompt
+from utils.default_document_format import DocumentFormat
 
 
 class StakeholderRegisterState(BaseDocumentState):
@@ -38,6 +40,8 @@ Create a professional Stakeholder Register document
 for the provided project or business idea
 """,
         default_summary="Stakeholder Register",
+        default_format=DocumentFormat.STAKEHOLDER_REGISTER,
+        prompt_builder=build_document_prompt,
     )
 
 

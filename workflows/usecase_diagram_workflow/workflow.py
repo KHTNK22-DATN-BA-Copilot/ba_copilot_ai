@@ -3,20 +3,29 @@
 from langgraph.graph import StateGraph, END
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+sys.path.append(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 from typing import Optional
 from workflows.nodes import get_chat_history, get_context_node
 from ..base.additional_rules import DIAGRAM_DOCUMENT_ADDITIONAL_RULES
 from ..base.document_generator import generate_document
 from ..base.state import BaseDocumentState
+from utils.prompt_builder import build_document_prompt
 
 
 class UsecaseDiagramState(BaseDocumentState):
     pass
 
-def generate_usecase_diagram_description(state: UsecaseDiagramState, config: Optional[dict] = None):
+
+def generate_usecase_diagram_description(
+    state: UsecaseDiagramState, config: Optional[dict] = None
+):
     """Generate use-case diagram in markdown format using OpenRouter AI"""
-    USECASE_DIAGRAM_ADDITIONAL_RULES = DIAGRAM_DOCUMENT_ADDITIONAL_RULES + """
+    USECASE_DIAGRAM_ADDITIONAL_RULES = (
+        DIAGRAM_DOCUMENT_ADDITIONAL_RULES
+        + """
 \n- Use Mermaid flowchart (graph TD or TB), start the Mermaid content with `graph TD` or `graph TB`
 - Include:
     - System boundary (labeled)
@@ -30,14 +39,17 @@ def generate_usecase_diagram_description(state: UsecaseDiagramState, config: Opt
 - Group elements clearly (e.g., system boundary via subgraph)
 - Ensure logical structure and readability
 """
+    )
     return generate_document(
         state=state,
         config=config,
         role="Expert UML Use Case Diagram Desinger (Mermaid)",
         task="Create UML Use Case Diagram",
         default_summary="Use Case Diagram",
-        additional_rules=USECASE_DIAGRAM_ADDITIONAL_RULES
+        prompt_builder=build_document_prompt,
+        additional_rules=USECASE_DIAGRAM_ADDITIONAL_RULES,
     )
+
 
 # Build LangGraph pipeline for Use Case Diagram
 workflow = StateGraph(UsecaseDiagramState)

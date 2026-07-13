@@ -8,6 +8,7 @@ from workflows.nodes import get_chat_history, get_context_node
 from ..base.additional_rules import DIAGRAM_DOCUMENT_ADDITIONAL_RULES
 from ..base.document_generator import generate_document
 from ..base.state import BaseDocumentState
+from utils.prompt_builder import build_document_prompt
 
 
 class ProductRoadmapState(BaseDocumentState):
@@ -34,6 +35,7 @@ def generate_product_roadmap_diagram(state: ProductRoadmapState, config: Optiona
         role="Expert Product Manager (Mermaid, Gantt)",
         task="Create a Product Roadmap",
         default_summary="Product Roadmap Diagram",
+        prompt_builder=build_document_prompt,
         additional_rules=PRODUCT_ROADMAP_ADDITIONAL_RULES
     )
 

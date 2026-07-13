@@ -21,6 +21,7 @@ from ..base.state import BaseDocumentState
 from ..base.document_generator import (
     generate_document,
 )
+from utils.prompt_builder import build_document_prompt
 
 
 class RiskRegisterState(BaseDocumentState):
@@ -50,6 +51,7 @@ Create a Risk Register document
 for the provided project or business idea.
 """,
         default_summary="Risk Register",
+        prompt_builder=build_document_prompt,
         additional_rules=RISK_REGISTER_RULES,
     )
 

@@ -12,7 +12,7 @@ from workflows.nodes import get_chat_history, get_context_node
 from ..base.additional_rules import DIAGRAM_DOCUMENT_ADDITIONAL_RULES
 from ..base.document_generator import generate_document
 from ..base.state import BaseDocumentState
-
+from utils.prompt_builder import build_uiux_prompt
 
 class UIUXWireframeState(BaseDocumentState):
     pass
@@ -48,6 +48,7 @@ def generate_uiux_wireframe(state: UIUXWireframeState, config: Optional[dict] = 
         role="UX/UI Wireframe Designer (HTML/CSS)",
         task="Create UI Wireframe",
         default_summary="UIUX Wireframe",
+        prompt_builder= build_uiux_prompt,
         additional_rules=UIUX_WIREFRAME_ADDITIONAL_RULES
     )
 

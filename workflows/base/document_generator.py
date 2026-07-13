@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Callable, Optional
 
 from connect_model import (
     get_model_client,
@@ -10,7 +10,6 @@ from connect_model import (
 from response import success_response, error_response
 
 from utils.context_builder import build_context
-from utils.prompt_builder import build_document_prompt
 from utils.response_parser import parse_ai_json_response
 
 
@@ -21,6 +20,8 @@ def generate_document(
     role: str,
     task: str,
     default_summary: str,
+    default_format: Optional[str] = None,
+    prompt_builder: Callable,
     additional_rules: str = "",
 ):
     model_client = get_model_client()
@@ -41,9 +42,13 @@ def generate_document(
             chat_context=state.get("chat_context", ""),
         )
 
-        document_format = state.get("document_format", "")
+        # document_format = state.get("document_format", "")
 
-        prompt = build_document_prompt(
+        document_format = state.get("document_format")
+        if document_format is None:
+            document_format = default_format if default_format is not None else ""
+
+        prompt = prompt_builder(
             role=role,
             task=task,
             user_message=user_message,

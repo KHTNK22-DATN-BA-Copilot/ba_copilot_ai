@@ -21,6 +21,8 @@ from ..base.state import BaseDocumentState
 from ..base.document_generator import (
     generate_document,
 )
+from utils.prompt_builder import build_document_prompt
+from utils.default_document_format import DocumentFormat
 
 
 class FeasibilityStudyState(BaseDocumentState):
@@ -50,6 +52,8 @@ Create a Feasibility Study document
 for the provided project or business idea.
 """,
         default_summary="Feasibility Study",
+        default_format=DocumentFormat.FEASIBILITY_STUDY,
+        prompt_builder=build_document_prompt,
         additional_rules=FEASIBILITY_STUDY_RULES,
     )
 

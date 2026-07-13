@@ -8,7 +8,8 @@ from workflows.nodes import get_chat_history, get_context_node
 from ..base.additional_rules import TEXT_DOCUMENT_ADDITONAL_RULES
 from ..base.document_generator import generate_document
 from ..base.state import BaseDocumentState
-
+from utils.prompt_builder import build_document_prompt
+from utils.default_document_format import DocumentFormat
 
 class SRSState(BaseDocumentState):
     pass
@@ -21,6 +22,8 @@ def generate_srs(state: SRSState, config: Optional[dict] = None):
         role="Business Analyst",
         task="Create a Software Requirements Specification (SRS)",
         default_summary="Software Requirements Specification",
+        default_format=DocumentFormat.SRS,
+        prompt_builder=build_document_prompt,
         additional_rules=TEXT_DOCUMENT_ADDITONAL_RULES
     )
 

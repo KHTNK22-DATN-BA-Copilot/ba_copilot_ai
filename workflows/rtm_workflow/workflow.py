@@ -21,6 +21,8 @@ from ..base.state import BaseDocumentState
 from ..base.document_generator import (
     generate_document,
 )
+from utils.prompt_builder import build_document_prompt
+from utils.default_document_format import DocumentFormat
 
 
 class RTMState(BaseDocumentState):
@@ -50,6 +52,8 @@ Create a Requirements Traceability Matrix (RTM)
 for the provided project, platform, or system.
 """,
         default_summary="RTM",
+        default_format=DocumentFormat.RTM,
+        prompt_builder=build_document_prompt,
         additional_rules=RTM_RULES,
     )
 

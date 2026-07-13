@@ -21,6 +21,7 @@ from ..base.state import BaseDocumentState
 from ..base.document_generator import (
     generate_document,
 )
+from utils.prompt_builder import build_document_prompt
 
 
 class BusinessCaseState(BaseDocumentState):
@@ -49,6 +50,7 @@ Create a complete Business Case document
 for the provided project or business idea.
 """,
         default_summary="Business Case",
+        prompt_builder=build_document_prompt,
         additional_rules=BUSINESS_CASE_RULES,
     )
 
