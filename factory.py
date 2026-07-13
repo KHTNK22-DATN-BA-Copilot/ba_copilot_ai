@@ -25,6 +25,8 @@ DEFAULT_MODEL_BY_PROVIDER = {
     "anthropic": "claude-haiku-4.5",
     "openrouter": "anthropic/claude-haiku-4.5",
 }
+MAX_TOKEN = int(os.getenv("MAX_CONTEXT_TOKENS", "10000"))
+
 
 def _clean(value: Optional[str]) -> Optional[str]:
     if value is None:
@@ -55,13 +57,17 @@ def _resolve_api_key(provider: str, user_api_key: Optional[str]) -> str:
         key = _clean(os.getenv("ANTHROPIC_API_KEY"))
         if key:
             return key
-        raise ValueError("Missing API key for Anthropic provider. Set ANTHROPIC_API_KEY.")
+        raise ValueError(
+            "Missing API key for Anthropic provider. Set ANTHROPIC_API_KEY."
+        )
 
     if provider == "openrouter":
         key = _clean(os.getenv("OPEN_ROUTER_API_KEY"))
         if key:
             return key
-        raise ValueError("Missing API key for OpenRouter provider. Set OPEN_ROUTER_API_KEY or OPENROUTER_API_KEY.")
+        raise ValueError(
+            "Missing API key for OpenRouter provider. Set OPEN_ROUTER_API_KEY or OPENROUTER_API_KEY."
+        )
 
     raise ValueError(f"Unsupported provider: {provider}")
 
@@ -115,7 +121,9 @@ def create_chat_model(
             **kwargs,
         )
 
-    openrouter_base_url = os.getenv("OPENROUTER_BASE_URL") or "https://openrouter.ai/api/v1"
+    openrouter_base_url = (
+        os.getenv("OPENROUTER_BASE_URL") or "https://openrouter.ai/api/v1"
+    )
     referer = os.getenv("OPENROUTER_REFERER")
     title = os.getenv("OPENROUTER_TITLE")
 
@@ -125,7 +133,7 @@ def create_chat_model(
     if title:
         default_headers.setdefault("X-Title", title)
 
-    kwargs.setdefault("max_tokens", 10000)
+    kwargs.setdefault("max_tokens", MAX_TOKEN)
 
     return ChatOpenAI(
         model=resolved_model_name,
