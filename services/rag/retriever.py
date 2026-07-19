@@ -71,7 +71,7 @@ def retrieve_rag_context(
         if not content:
             continue
 
-        source = row.get("document_type") or row.get("file_id") or "stakeholder_requirements"
+        source = row.get("document_type") or row.get("file_id") or "others"
         chunk_index = row.get("chunk_index", 0)
         snippet = f"### Source: {source} (chunk {chunk_index})\n{content}".strip()
 

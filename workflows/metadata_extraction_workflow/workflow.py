@@ -353,7 +353,7 @@ def build_classification_prompt(content: str) -> str:
 
     IMPORTANT RULES:
     1. Determine the SINGLE most likely document type that fits the primary purpose of the content.
-    2. If the document does not align with any of the specific types listed, use "stakeholder_requirements".
+    2. If the document does not align with any of the specific types listed, use "others".
 
     CONTENT TO ANALYZE:
     ```markdown
@@ -392,23 +392,23 @@ def call_llm_for_classification(content: str, config: Optional[dict]) -> str:
         # Parse the JSON response
         result = extract_json_arr_from_response(raw_output)
         print("The result in call_llm_for_classification is ", result)
-        detected_type = result[0].get("type", "stakeholder_requirements")
+        detected_type = result[0].get("type", "others")
         
         # Validate against our known types to prevent LLM hallucinations
         if detected_type not in ALL_DOCUMENT_TYPES:
             print(f"""
                   [WARNING]: LLM hallucinated some types other than provided types, and not 'other'.
                   \nThe type is {detected_type}
-                  \nSet back to 'stakeholder_requirements'...
+                  \nSet back to 'others'...
                   """)
-            detected_type = "stakeholder_requirements"
+            detected_type = "others"
         # print("done call_llm_for_classification, detected_type is ", detected_type)    
         return detected_type
         
     except Exception as e:
         print(f"Error calling LLM for classification: {e}")
-        # Default to 'stakeholder_requirements' on failure so the backend can still gracefully handle it
-        return "stakeholder_requirements"
+        # Default to 'others' on failure so the backend can still gracefully handle it
+        return "others"
     finally:
         reset_request_model_config(token)
     
