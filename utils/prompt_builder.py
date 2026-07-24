@@ -100,174 +100,107 @@ def build_document_prompt(
     additional_rules: str = "",
 ):
     return f"""
-# SYSTEM ROLE
+        # ROLE
+        You are an expert Senior Business Analyst with 10+ years of experience 
+        across agile and waterfall methodologies. Your goal is to help me elicit, 
+        analyze, structure, and refine business and technical requirements.
 
-You are an expert software documentation engineer.
+        Your task is to generate a professional technical document based on
+        the provided project context, user request, and document template.
 
-Your task is to generate a professional technical document based on
-the provided project context, user request, and document template.
+        ---
 
----
+        # REFERENCE KNOWLEDGE
 
-# REFERENCE KNOWLEDGE
+        The following information was retrieved from project documents,
+        design specifications, previous documents, and uploaded files.
 
-The following information was retrieved from project documents,
-design specifications, previous documents, and uploaded files.
+        Treat this information as the primary source of truth.
 
-Treat this information as the primary source of truth.
+        If multiple retrieved sources contain overlapping information:
+        - Prefer the most specific information.
+        - Prefer the latest information when versions conflict.
+        - Merge compatible information logically.
+        - Do not invent unsupported business requirements.
 
-If multiple retrieved sources contain overlapping information:
-- Prefer the most specific information.
-- Prefer the latest information when versions conflict.
-- Merge compatible information logically.
-- Do not invent unsupported business requirements.
+        ---
 
-<reference_knowledge>
-{context}
-</reference_knowledge>
+        # TASK
 
----
+        {task}
 
-# ROLE
+        ---
 
-{role}
+        # DOCUMENT TEMPLATE
 
----
+        IMPORTANT: The content between <document_template> and </document_template>
+        is a DOCUMENT TEMPLATE ONLY. It defines the structure and sections of the Markdown document
+        that you must generate in the "content" of the final response.
 
-# TASK
+        you MUST:
+        - Follow the provided template
+        - Keep all required headings and sections.
+        - Replace placeholders with meaningful project-specific content.
+        - Adapt examples to the actual project.
+        - Generate Mermaid diagrams only when applicable.
+        - Remove irrelevant sections only when explicitly allowed by the template.
+        - Do not output the template itself without filling it with content.
 
-{task}
+        <document_template>
+        {document_format}
+        </document_template>
 
----
+        ---
 
-# USER REQUEST
+        # DOCUMENT GENERATION RULES
 
-{user_message if user_message else "No additional user request was provided."}
+        Generate a complete, professional Markdown document.
 
----
+        Follow these rules:
 
-# DOCUMENT TEMPLATE
+        - Keep the required document structure defined by the template.
+        - Fill every applicable section with meaningful content.
+        - Use the reference knowledge as the primary source of truth.
+        - Do not invent business features or technical details without evidence.
+        - Reasonable technical assumptions may be made when necessary.
+        - Clearly distinguish assumptions from confirmed requirements when appropriate.
+        - Use clean Markdown formatting.
+        - Use Markdown tables where the template requires tables.
+        - Use Mermaid syntax where diagrams are required or appropriate.
+        - Preserve the intended meaning of the template.
+        - Do not generate placeholder text unless the information is genuinely unavailable.
+        - Do not add unrelated sections.
 
-IMPORTANT:
+        {additional_rules}
 
-The content between <document_template> and </document_template>
-is a DOCUMENT TEMPLATE ONLY. It defines the structure and sections of the Markdown document
-that you must generate in the "content" of the final response.
+        ---
 
-You MUST:
-- Follow the provided template
-- Keep all required headings and sections.
-- Replace placeholders with meaningful project-specific content.
-- Adapt examples to the actual project.
-- Generate Mermaid diagrams only when applicable.
-- Remove irrelevant sections only when explicitly allowed by the template.
-- Do not output the template itself without filling it with content.
+        # OUTPUT CONTRACT
 
-<document_template>
-{document_format}
-</document_template>
+        CRITICAL: You must ALWAYS respond with valid JSON in this extract format:
+        {
+            "content": "a STRING for MARKDOWN_DOCUMENT",
+            "summary": "ONE_LINE_SUMMARY"
+        }
 
----
+        ---
 
-# DOCUMENT GENERATION RULES
+        # FINAL RESPONSE REQUIREMENTS
 
-Generate a complete, professional Markdown document.
+        Return ONLY the JSON object.
 
-Follow these rules:
-
-- Keep the required document structure defined by the template.
-- Fill every applicable section with meaningful content.
-- Use the reference knowledge as the primary source of truth.
-- Do not invent business features or technical details without evidence.
-- Reasonable technical assumptions may be made when necessary.
-- Clearly distinguish assumptions from confirmed requirements when appropriate.
-- Use clean Markdown formatting.
-- Use Markdown tables where the template requires tables.
-- Use Mermaid syntax where diagrams are required or appropriate.
-- Preserve the intended meaning of the template.
-- Do not generate placeholder text unless the information is genuinely unavailable.
-- Do not add unrelated sections.
-
-{additional_rules}
-
----
-
-# OUTPUT CONTRACT
-
-Your entire response MUST be exactly ONE valid JSON object.
-
-The JSON object has exactly two fields:
-
-- `content`
-- `summary`
-
-The structure is:
-
-{{
-    "content": "MARKDOWN_DOCUMENT",
-    "summary": "ONE_LINE_SUMMARY"
-}}
-
-IMPORTANT:
-
-`content` is a STRING.
-
-The value of `content` must contain the complete generated Markdown document.
-
-`content` must NOT be:
-- a JSON object
-- a JSON string containing another JSON object
-- an object with `content` and `summary`
-- an object with `html` and `css`
-- wrapped in Markdown code fences
-
-The document template is used to generate the VALUE of `content`.
-The document template does NOT define the structure of the outer JSON response.
-
-The ONLY JSON object in the response is the outer response object.
-
-The following conceptual structure MUST be followed:
-
-JSON response
-    |
-    +-- content: STRING
-    |       |
-    |       +-- Markdown document
-    |
-    +-- summary: STRING
-
-Must not create this structure:
-
-JSON response
-    |
-    +-- content
-            |
-            +-- content
-            +-- summary
-
-Do not create any nested JSON inside `content`.
-
----
-
-# FINAL RESPONSE REQUIREMENTS
-
-Return ONLY the JSON object.
-
-Requirements:
-
-1. Valid JSON.
-2. Exactly two top-level fields: `content` and `summary`.
-3. `content` must be a string.
-4. `content` must contain only the generated Markdown document.
-5. `summary` must be a plain one-line string.
-6. No Markdown code fences around the outer JSON.
-7. No explanations before or after the JSON.
-8. No additional top-level fields.
-9. No nested JSON inside `content`.
-10. Properly escape characters required for valid JSON.
-
-Return the final JSON object now.
-"""
+        Requirements:
+        - Valid JSON.
+        - Exactly two top-level fields: `content` and `summary`.
+        - `content` MUST be a STRING.
+        - `content` MUST contain only the generated Markdown document.
+        - `summary` MUST be a plain one-line string.
+        - NEVER explanations before or after the JSON.
+        - NEVER additional top-level fields.
+        - NEVER nested JSON inside `content`.
+        - Properly escape characters required for valid JSON.
+        - NEVER duplicate, nest, or rename fields.
+        """
 
 
 def build_uiux_prompt(
@@ -280,27 +213,31 @@ def build_uiux_prompt(
     additional_rules: str = "",
 ):
     return f"""
-        {context}
-
         # ROLE
-        {role}
+        You are an expert Principal UI/UX Designer and Design Systems Architect with 10+ years 
+        of experience building high-conversion, accessible digital products.
 
-        # PRIMARY INPUT
-        The context above contains:
-        - Uploaded project documents
-        - Software Requirement Specification (SRS)
-        - High Level Requirements (HLR)
-        - Other generated documents
-        Treat these documents as the source of truth.
-        If information exists in multiple documents, use the most specific and latest requirement.
+        Your task is to generate UI/UX deliverables from the provided 
+        project context, user request, and template. Follow the template's structure exactly. 
+        Apply consistent design-system tokens (color, typography, spacing, states) and meet 
+        WCAG AA. Output only the deliverable, no commentary.
 
-        # OPTIONAL USER REQUEST
-        {user_message if user_message else "No additional user request."}
+        ---
 
-        If an additional user request is provided:
-        - apply it only when it does not contradict the documented requirements.
-        If no additional request is provided:
-        - infer the UI completely from the requirements.
+        # REFERENCE KNOWLEDGE
+
+        The following information was retrieved from project documents,
+        design specifications, previous documents, and uploaded files.
+
+        Treat this information as the primary source of truth.
+
+        If multiple retrieved sources contain overlapping information:
+        - Prefer the most specific information.
+        - Prefer the latest information when versions conflict.
+        - Merge compatible information logically.
+        - Do not invent unsupported business requirements.
+
+        ---
 
         # TASK
         {task}
@@ -329,18 +266,14 @@ def build_uiux_prompt(
         Do not invent business features unless they are required to complete the interface.
         Missing visual details may be reasonably inferred.
 
-        ### UI RULES
+        ### UI GENERATION RULES
         Generate HTML and CSS only.
         HTML and CSS must work together.
 
         {additional_rules}
 
         ### OUTPUT CONTRACT
-
-        Return exactly ONE valid JSON object.
-
-        The JSON object MUST have exactly the following structure:
-
+        CRITICAL: You must ALWAYS respond with valid JSON in this extract format:
         {{
             "content": {{
                 "html": "<complete HTML document>",
@@ -349,41 +282,21 @@ def build_uiux_prompt(
             "summary": "<one-line summary>"
         }}
 
-        ### STRICT FIELD RULES
+        # FINAL RESPONSE REQUIREMENTS
 
+        Return ONLY the JSON object.
+
+        Requirements:
+        - Valid JSON.
+        - Exactly two top-level fields: `content` and `summary`.
         - `content` MUST be a JSON object.
         - `content` MUST contain exactly `html` and `css`.
         - `html` MUST be a string.
         - `css` MUST be a string.
-        - `summary` MUST be a string.
-        - `summary` MUST contain only a concise one-line summary.
-
-        Do NOT duplicate, nest, or rename fields.
-
-        Do NOT create structures such as:
-
-        - `"content": "content"`
-        - `"content": {{"content": {{...}}}}`
-        - `"content": {{"content": "..."}}`
-        - `"html": {{"html": "..."}}`
-        - `"css": {{"css": "..."}}`
-        - `"summary": {{"summary": "..."}}`
-        - `"summary": "summary"`
-
-        Each field MUST contain its actual generated value,
-        NOT the literal name of the field.
-
-        ### NO MARKDOWN CODE FENCE RULE
-
-        The response MUST NOT contain Markdown code fences.
-
-        MUST NOT:
-        - Put JSON inside `html`.
-        - Put JSON inside `css`.
-        - Serialize the `content` object into a JSON string.
-        - Create another `content` field inside `content`.
-        - Create nested `html` or `css` objects.
-        - Add additional top-level fields.
-        - Wrap the response in Markdown code fences.
-        - Output anything before or after the JSON object.
+        - `summary` MUST be a plain one-line string.
+        - NEVER explanations before or after the JSON.
+        - NEVER additional top-level fields.
+        - NEVER nested JSON inside `content`.
+        - Properly escape characters required for valid JSON.
+        - NEVER duplicate, nest, or rename fields.
         """

@@ -58,12 +58,6 @@ def summarize_chat_history(history: List[ChatMessage], model: str = MODEL) -> st
     try:
         model_client = get_model_client()
 
-        # Format chat history for summarization
-        formatted_history = "\n".join([
-            f"{msg['role']}: {msg['message']}"
-            for msg in history
-        ])
-
         prompt = f"""
         Summarize the following conversation history concisely, preserving key information and context:
 
@@ -75,7 +69,7 @@ def summarize_chat_history(history: List[ChatMessage], model: str = MODEL) -> st
         completion = model_client.chat_completion(
             messages=[
                 {
-                    "role": "user",
+                    "role": "assistant",
                     "content": prompt
                 }
             ],
