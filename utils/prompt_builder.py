@@ -151,32 +151,11 @@ If multiple retrieved sources contain overlapping information:
 IMPORTANT:
 
 The content between <document_template> and </document_template>
-is a DOCUMENT TEMPLATE ONLY.
-
-It defines the structure and sections of the Markdown document
-that you must generate.
-
-It is NOT:
-- a JSON schema
-- a JSON object
-- an output format
-- an instruction to create nested JSON
-- an instruction to copy the template literally
-
-The template may contain:
-- Markdown headings
-- Markdown tables
-- Mermaid diagrams
-- Code blocks
-- Curly braces
-- Placeholders
-- Examples
-
-These elements belong to the generated Markdown document.
-
-Use the template structure as the required document structure.
+is a DOCUMENT TEMPLATE ONLY. It defines the structure and sections of the Markdown document
+that you must generate in the "content" of the final response.
 
 You MUST:
+- Follow the provided template
 - Keep all required headings and sections.
 - Replace placeholders with meaningful project-specific content.
 - Adapt examples to the actual project.
@@ -257,7 +236,7 @@ JSON response
     |
     +-- summary: STRING
 
-Do not create this structure:
+Must not create this structure:
 
 JSON response
     |
@@ -372,7 +351,7 @@ def build_uiux_prompt(
 
         ### STRICT FIELD RULES
 
-        - `content` MUST be an object.
+        - `content` MUST be a JSON object.
         - `content` MUST contain exactly `html` and `css`.
         - `html` MUST be a string.
         - `css` MUST be a string.
@@ -398,7 +377,7 @@ def build_uiux_prompt(
 
         The response MUST NOT contain Markdown code fences.
 
-
+        MUST NOT:
         - Put JSON inside `html`.
         - Put JSON inside `css`.
         - Serialize the `content` object into a JSON string.
