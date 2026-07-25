@@ -161,18 +161,17 @@ def build_document_prompt(
 
         # DOCUMENT TEMPLATE
 
-        IMPORTANT: The content between <document_template> and </document_template>
-        is a DOCUMENT TEMPLATE ONLY. It defines the structure and sections of the Markdown document
-        that you must generate in the "content" of the final response.
-
-        you MUST:
-        - Follow the provided template
+        CRITICAL SCOPE: The template below applies ONLY to the Markdown text inside the "content" JSON field.
+        It DOES NOT define the outer JSON output structure.
+        The content between <document_template> and </document_template> is the structural requirement for the Markdown document to be rendered inside `content`.
+        When generating the Markdown for `content`, you MUST:
+        - Follow the provided template structure for the document.
         - Keep all required headings and sections.
         - Replace placeholders with meaningful project-specific content.
         - Adapt examples to the actual project.
         - Generate Mermaid diagrams only when applicable.
         - Remove irrelevant sections only when explicitly allowed by the template.
-        - Do not output the template itself without filling it with content.
+        - Do not output the raw template without filling it with content.
 
         <document_template>
         {document_format}
@@ -215,18 +214,13 @@ def build_document_prompt(
 
         # FINAL RESPONSE REQUIREMENTS
 
-        Return ONLY the JSON object.
-
-        Requirements:
-        - Valid JSON.
+        Return ONLY the raw JSON object. Do not wrap the JSON output in markdown code blocks like ```json ... ```.
+        STRICT FIELD FORMATTING:
         - Exactly two top-level fields: `content` and `summary`.
-        - `content` MUST be a STRING.
-        - `content` MUST contain only the generated Markdown document.
-        - `summary` MUST be a plain one-line string.
-        - NEVER explanations before or after the JSON.
-        - NEVER additional top-level fields.
-        - NEVER nested JSON inside `content`.
-        - Properly escape characters required for valid JSON.
+        - `content` MUST be a raw Markdown STRING ONLY.
+        - ABSOLUTELY NO markdown code blocks surrounding the content string inside JSON (DO NOT start `content` with ```markdown, ```json, or ``` and DO NOT end it with ```).
+        - ABSOLUTELY NO JSON objects or nested JSON strings inside `content`.
+        - `summary` MUST be a plain, single-line string describing the document.
         - NEVER duplicate, nest, or rename fields.
         """
 
@@ -310,7 +304,7 @@ def build_uiux_prompt(
 
         # FINAL RESPONSE REQUIREMENTS
 
-        Return ONLY the JSON object.
+        Return ONLY raw JSON.
 
         Requirements:
         - Valid JSON.
