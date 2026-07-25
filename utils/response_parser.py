@@ -1,61 +1,103 @@
-import json
 import re
-from . import extractor
+from typing import Any, Dict
 
 
-def process_llm_response(raw_llm_output: str) -> dict:
-    """Xử lý output từ LLM để tạo ra JSON object chứa 'content' và 'summary'
-
-    đúng chuẩn format cho cả luồng Document và luồng UI/UX.
-    """
+def process_llm_response(raw_llm_output: str) -> Dict[str, Any]:
     if not isinstance(raw_llm_output, str):
-        return {"content": str(raw_llm_output), "summary": "No summary provided."}
+        return {
+            "response": {
+                "content": str(raw_llm_output),
+                "summary": "No summary provided.",
+            }
+        }
 
     text = raw_llm_output.strip()
 
-    # 1. Bóc tách khối code block nếu LLM cố tình chèn ```html, ```markdown hoặc ```
-    if text.startswith("```"):
-        text = re.sub(r"^```[a-zA-Z]*\n", "", text)
-        text = re.sub(r"\n```$", "", text).strip()
-
-    # 2. Tìm nội dung bên trong thẻ <summary>...</summary>
-    summary_pattern = r"<summary>(.*?)</summary>"
-    summary_match = re.search(summary_pattern, text, flags=re.DOTALL)
-
-    if summary_match:
-        summary = summary_match.group(1).strip()
-        content = re.sub(summary_pattern, "", text, flags=re.DOTALL).strip()
-    else:
-        summary = "No summary provided."
-        content = text
-
-    return {"content": content, "summary": summary}
-
-
-def parse_ai_json_response(
-    raw_output: str,
-    default_summary: str,
-):
-    """Parse kết quả trả về từ LLM cho cả luồng Document và UI/UX."""
-    if not raw_output:
+    if not text:
         return {
-            "summary": default_summary,
-            "content": "",
+            "response": {
+                "content": "",
+                "summary": "No summary provided.",
+            }
         }
 
-    # 1. Trích xuất summary từ thẻ <summary> và giữ content nguyên bản (bao gồm HTML + CSS)
-    result = process_llm_response(raw_output)
+    text = _remove_outer_code_fence(text)
 
-    # 2. Fallback tương thích ngược nếu LLM cũ sinh chuỗi JSON
-    if isinstance(result["content"], str) and result["content"].strip().startswith("{") and result["content"].strip().endswith("}"):
-        json_data = extractor.extract_json(result["content"])
-        if json_data and isinstance(json_data, dict):
-            if "summary" in json_data and (not result["summary"] or result["summary"] == "No summary provided."):
-                result["summary"] = json_data.get("summary", default_summary)
-            if "content" in json_data:
-                result["content"] = json_data.get("content")
+    return _parse_marker_format(text)
 
-    if not result["summary"] or result["summary"] == "No summary provided.":
-        result["summary"] = default_summary
 
-    return result
+def _remove_outer_code_fence(text: str) -> str:
+    text = text.strip()
+
+    match = re.match(
+        r"^```[a-zA-Z0-9_-]*\s*\n([\s\S]*?)\n```$",
+        text,
+    )
+
+    if match:
+        return match.group(1).strip()
+
+    return text
+
+
+def _parse_marker_format(text: str) -> Dict[str, Any]:
+    summary_match = re.search(
+        r"===SUMMARY===\s*\n([\s\S]*?)(?=\n===\w+===|$)",
+        text,
+    )
+
+    summary = (
+        summary_match.group(1).strip() if summary_match else "No summary provided."
+    )
+
+    html_match = re.search(
+        r"===HTML===\s*\n([\s\S]*?)(?=\n===\w+===|$)",
+        text,
+    )
+
+    css_match = re.search(
+        r"===CSS===\s*\n([\s\S]*?)(?=\n===\w+===|$)",
+        text,
+    )
+
+    if html_match or css_match:
+        html = html_match.group(1).strip() if html_match else ""
+        css = css_match.group(1).strip() if css_match else ""
+
+        return {
+            "response": {
+                "content": {
+                    "html": html,
+                    "css": css,
+                },
+                "summary": summary,
+            }
+        }
+
+    content_match = re.search(
+        r"===CONTENT===\s*\n([\s\S]*?)$",
+        text,
+    )
+
+    if content_match:
+        content = content_match.group(1).strip()
+
+        return {
+            "response": {
+                "content": content,
+                "summary": summary,
+            }
+        }
+
+    content = re.sub(
+        r"===SUMMARY===\s*\n[\s\S]*?(?=\n===\w+===|$)",
+        "",
+        text,
+    ).strip()
+
+    return {
+        "response": {
+            "content": content,
+            "summary": summary,
+        }
+    }

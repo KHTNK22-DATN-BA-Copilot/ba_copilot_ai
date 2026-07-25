@@ -10,7 +10,7 @@ from connect_model import (
 from response import success_response, error_response
 
 from utils.prompt_builder import build_user_message
-from utils.response_parser import parse_ai_json_response
+from utils.response_parser import process_llm_response
 
 
 def generate_document(
@@ -73,17 +73,13 @@ def generate_document(
 
         raw_output = response.choices[0].message.content or ""
 
-        parsed = parse_ai_json_response(
-            raw_output=raw_output,
-            default_summary=default_summary,
-        )
+        # parsed = process_llm_response(
+        #     raw_output=raw_output,
+        # )
 
-        return {
-            "response": success_response(
-                parsed["summary"],
-                parsed["content"],
-            )
-        }
+        return process_llm_response(
+            raw_llm_output=raw_output,
+        )
 
     except Exception as e:
         print(f"Error generating document: {e}")

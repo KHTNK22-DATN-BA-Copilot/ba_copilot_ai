@@ -1,95 +1,3 @@
-# def build_document_prompt(
-#     *,
-#     role: str,
-#     task: str,
-#     user_message: str,
-#     context: str,
-#     document_format: str,
-#     additional_rules: str = "",
-# ):
-#     return f"""
-#     ### REFERENCE KNOWLEDGE
-#     The following information was retrieved from project documents,
-#     design specifications, previous documents, and uploaded files.
-
-#     Use this information as the primary source of truth whenever possible.
-#     If multiple retrieved chunks overlap, merge them logically.
-
-#     {context}
-
-#     ### ROLE
-#     {role}
-
-#     ### TASK
-#     {task}
-
-#     Project / User Request:
-#     {user_message}
-
-#     ### OUTPUT FORMAT
-#     Return exactly ONE JSON object.
-#     Schema:
-#     {{
-#         "content": "<Markdown document>",
-#         "summary": "<One-line summary>"
-#     }}
-#     Rules:
-#     - `content` MUST contain the Markdown document directly.
-#     - `content` MUST NOT contain JSON.
-#     - `content` MUST NOT contain another object.
-#     - `content` MUST NOT contain another "content" key.
-#     - `content` must contain only the Markdown document.
-#     - Do not embed JSON inside `content`.
-#     - Do not serialize another JSON object into `content`.
-#     - Never wrap the response inside Markdown code fences.
-#     Valid:
-#     {{
-#         "content":"# Title\\n\\n## Section\\nText...",
-#         "summary":"One-line summary of content field"
-#     }}
-
-#     Invalid:
-
-#     {{
-#         "content":"{{\\"content\\":\\"...\\"}}",
-#         "summary":"..."
-#     }}
-
-#     Invalid:
-#     {{
-#         "content":"```json\\n{{...}}\\n```",
-#         "summary":"..."
-#     }}
-
-#     ### DOCUMENT TEMPLATE (Markdown Only)
-#     The template below applies ONLY to the value of the `content` field in OUTPUT FORMAT.
-#     It defines the Markdown document that `content` must contain.
-#     It does NOT define the JSON response.
-
-#     If a document template is provided below, follow it strictly when generating the `content` field.
-#     Otherwise, generate the Markdown document for the `content` field using standard best practices for the requested document type.
-#     {document_format}
-
-#     ### DOCUMENT GENERATION RULES
-
-#     - Keep ALL headings and sections from the template.
-#     - Fill every section with meaningful professional content.
-#     - Use clean Markdown.
-#     - Do not omit required sections.
-#     - Do not generate placeholder text unless explicitly required.
-#     {additional_rules}
-
-#     ### STRICT FORMATTING RULES
-
-#     - Output ONLY the raw JSON object.
-#     - Escape all special characters so the JSON is valid.
-#     - Do not include explanations.
-#     - Do not include notes.
-#     - Do not include comments.
-#     - Do not include code fences.
-#     """
-
-
 def build_user_message(
     *,
     context: str = "",
@@ -196,21 +104,35 @@ def build_document_prompt(
 
             ---
 
-            # OUTPUT FORMAT CONTRACT & DELIMITERS
+            # OUTPUT FORMAT
 
-            CRITICAL: Output ONLY raw text following the EXACT delimiter structure below. 
-            - Do NOT wrap the entire response in a JSON object.
-            - Do NOT wrap the document inside ```json ... ``` or ```markdown ... ``` code fences.
-            - Return ONLY the content with the <summary> tag at the beginning, followed immediately by the Markdown document.
+            Your response MUST contain exactly two sections in the following order:
 
-            STRICT RESPONSE LAYOUT:
-            <summary>
-            Write a single-line executive summary of the document here.
-            </summary>
+            ===SUMMARY===
+            Provide a concise one-line summary of the generated document.
 
-            # [Document Title]
-            [Start the complete Markdown document here...]
-        """
+            ===CONTENT===
+            Provide the complete Markdown document.
+
+            ---
+
+            # FINAL RESPONSE REQUIREMENTS
+
+            Return ONLY the two required sections.
+
+            Requirements:
+            - Do not return JSON.
+            - Do not wrap the entire response in a markdown code block.
+            - Do not add any commentary before or after the required sections.
+            - The section markers MUST appear exactly as defined:
+            ===SUMMARY===
+            ===CONTENT===
+            - `SUMMARY` MUST contain exactly one concise summary line.
+            - `CONTENT` MUST contain the complete Markdown document.
+            - Do not omit any required section.
+            - Do not add additional sections.
+            - Do not put JSON inside the document content.
+            """
 
 
 def build_uiux_prompt(
@@ -282,28 +204,37 @@ def build_uiux_prompt(
 
         ---
 
-        # OUTPUT FORMAT CONTRACT & DELIMITERS
+        # OUTPUT FORMAT
 
-        CRITICAL: Output ONLY raw text following the EXACT delimiter structure below. 
-        - Do NOT wrap the entire response in a JSON object.
-        - Do NOT wrap the output inside ```json ... ``` code fences.
-        - Return ONLY the content with the <summary> tag at the beginning, followed immediately by the complete HTML document (including CSS inside <style> tags).
+        Your response MUST contain exactly three sections in the following order:
+            ===SUMMARY===
+            Provide a concise one-line summary of the generated UI/UX design.
 
-        STRICT RESPONSE LAYOUT:
-        <summary>
-        Write a single-line executive summary of the UI/UX deliverable here.
-        </summary>
+            ===HTML===
+            Provide the complete HTML document.
 
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            /* Complete CSS stylesheet here */
-          </style>
-        </head>
-        <body>
-          <!-- Complete HTML markup here -->
-        </body>
-        </html>
+            ===CSS===
+            Provide the complete CSS stylesheet.
+
+        ---
+
+        # FINAL RESPONSE REQUIREMENTS
+
+        Return ONLY the three required sections.
+
+        Requirements:
+        - Do not return JSON.
+        - Do not wrap the entire response in a markdown code block.
+        - Do not add any commentary before or after the required sections.
+        - The section markers MUST appear exactly as defined:
+          ===SUMMARY===
+          ===HTML===
+          ===CSS===
+        - `SUMMARY` MUST contain exactly one concise summary line.
+        - `HTML` MUST contain the complete HTML document.
+        - `CSS` MUST contain the complete CSS stylesheet.
+        - Do not omit any required section.
+        - Do not add additional sections.
+        - Do not put HTML or CSS inside JSON.
+        - Do not put JSON inside HTML or CSS.
         """
