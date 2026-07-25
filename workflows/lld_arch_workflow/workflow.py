@@ -31,6 +31,7 @@ def generate_lld_arch_diagram(state: LLDArchState, config: Optional[dict] = None
 - Choose appropriate style (component, deployment, or hybrid)
 - Ensure logical structure and readability
 - ALWAYS start the Mermaid content with `graph TD` or `graph TB`
+- Correct mermaid graph TD syntax, do not use `-->>`, use `-.->|Text|` instead, nodeID must be unique
 - The `content` field MUST contain a complete Mermaid markdown block"""
     )
     return generate_document(

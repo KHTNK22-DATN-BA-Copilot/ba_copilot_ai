@@ -384,7 +384,7 @@ def call_llm_for_classification(content: str, config: Optional[dict]) -> str:
     prompt = build_classification_prompt(content)
     try:
         response = model_client.chat_completion(
-            messages=[{"role": "user", "content": prompt}],
+            messages=[{"role": "user", "message": prompt}],
             model=cfg.get("model_name") or MODEL,
         )
         raw_output = response.choices[0].message.content or ""

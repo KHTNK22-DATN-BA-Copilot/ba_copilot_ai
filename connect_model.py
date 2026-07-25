@@ -19,7 +19,31 @@ load_dotenv()
 
 # Load API configuration from environment
 MODEL = os.getenv("MODEL", "anthropic/claude-haiku-4.5")
-MAX_CONTEXT_TOKENS = int(os.getenv("MAX_CONTEXT_TOKENS", "100000"))
+
+# Default provider when the request does not specify one (mirrors factory.DEFAULT_PROVIDER).
+DEFAULT_PROVIDER = "openrouter"
+
+# Per-provider context-window budget (in tokens). Used to decide when chat history
+# must be summarized before being sent to the model.
+MAX_CONTEXT_TOKENS_BY_PROVIDER: Dict[str, int] = {
+    "openai": 128_000,
+    "openrouter": 128_000,
+    "google": 1_000_000,
+    "anthropic": 200_000,
+}
+
+
+def get_max_context_tokens(provider: Optional[str] = None) -> int:
+    """Return the context-window budget (tokens) for the given or current provider.
+
+    When ``provider`` is not passed, it is resolved from the request-scoped config
+    set by the HTTP middleware (falling back to the default provider).
+    """
+    if not provider:
+        provider = get_request_model_config().get("provider") or DEFAULT_PROVIDER
+    return MAX_CONTEXT_TOKENS_BY_PROVIDER.get(
+        provider.strip().lower(), MAX_CONTEXT_TOKENS_BY_PROVIDER[DEFAULT_PROVIDER]
+    )
 
 # Request-scoped model settings (BYOK + provider/model selection).
 _request_model_config: ContextVar[Dict[str, str]] = ContextVar("request_model_config", default={})
@@ -100,11 +124,11 @@ class ModelClient:
         converted: List[Any] = []
         for message in messages:
             role = (message.get("role") or "").strip().lower()
-            content = message.get("content", "")
+            content = message.get("message", "")
 
             if role == "system":
                 converted.append(SystemMessage(content=content))
-            elif role == "assistant":
+            elif role == "ai":
                 converted.append(AIMessage(content=content))
             else:
                 converted.append(HumanMessage(content=content))
@@ -167,7 +191,7 @@ class ModelClient:
         Create a chat completion using the configured client.
 
         Args:
-            messages: List of message dictionaries with 'role' and 'content' keys.
+            messages: List of message dictionaries with 'role' and 'message' keys.
             model: The model to use for completion. Defaults to DEFAULT_MODEL.
             **kwargs: Additional arguments to pass to the API.
 
@@ -209,15 +233,15 @@ def get_model_client() -> ModelClient:
 
 def get_token_limit(model: str = MODEL) -> int:
     """
-    Get the token limit for a specific model.
+    Get the token limit for the current request's provider.
 
     Args:
-        model: The model identifier.
+        model: The model identifier (unused; kept for backward compatibility).
 
     Returns:
-        The token limit for the model.
+        The context-window budget for the resolved provider.
     """
-    return MAX_CONTEXT_TOKENS
+    return get_max_context_tokens()
 
 
 def estimate_tokens(text: str) -> int:

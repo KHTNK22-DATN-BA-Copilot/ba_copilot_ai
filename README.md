@@ -3,7 +3,7 @@
 
 An AI-powered microservice that assists Business Analysts by automatically generating documentation across the Planning, Analysis, and Design phases of the SDLC.
 
-<img src="docs/images/architecture.png" alt="AI Service Architecture" width="800"/>
+<img src="docs/architecture.png" alt="AI Service Architecture" width="800"/>
   
 ![Python](https://img.shields.io/badge/Python_3.11-black?style=for-the-badge&logo=python&logoColor=3776AB)
 ![FastAPI](https://img.shields.io/badge/FastAPI-black?style=for-the-badge&logo=fastapi&logoColor=009688)

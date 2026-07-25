@@ -88,7 +88,7 @@ Repeat the same structure for every feature.
 *   **Logical Architecture Diagram:**
     *   *Keywords:* `Presentation Layer`, `Application Layer`, `Domain Layer`, `Data Layer`, `Mermaid Diagram`.
     *   *Instruction:* Customize the Mermaid diagram below to visualize your logical structure.
-    ```mermaid
+    mermaid
     graph TD
         Client[Client: Web/Mobile] --> Gateway[API Gateway / Load Balancer]
         Gateway --> AuthService[Auth Service]
@@ -96,7 +96,7 @@ Repeat the same structure for every feature.
         CoreService --> DB[(Database)]
         CoreService --> Queue[Message Queue]
         Queue --> Worker[Background Worker]
-    ```
+    
 *   **Architectural Style & Design Principles:**
     *   *Keywords:* `Microservices`, `Monolithic`, `Event-Driven`, `Serverless`, `Loosely Coupled`, `Domain-Driven Design`.
     *   *Description:* Detail the chosen architectural pattern and why it fits the business requirements.
@@ -118,7 +118,7 @@ Repeat the same structure for every feature.
 *   **Sequence Diagram:**
     *   *Keywords:* `Interaction Flow`, `Request-Response`, `Lifeline`.
     *   *Instruction:* Modify the Mermaid sequence flow below to match your main system process (e.g., Login, Checkout).
-    ```mermaid
+    mermaid
     sequenceDiagram
         autonumber
         actor User as End User
@@ -132,7 +132,7 @@ Repeat the same structure for every feature.
         Auth-->>GW: Return JWT Token
         GW-->>FE: HTTP 200 OK (Token)
         FE-->>User: Redirect to Dashboard
-    ```
+    
 
 ## 5. Architectural Non-Functional Requirements (NFRs)
 *Document the cross-cutting architectural constraints and metrics.*
@@ -172,7 +172,7 @@ Repeat the same structure for every feature.
 *   **Infrastructure Topology Diagram:**
     *   *Keywords:* `VPC`, `Public Subnet`, `Private Subnet`, `NAT Gateway`, `Internet Gateway`, `Mermaid Diagram`.
     *   *Instruction:* Modify the Mermaid chart below to represent your network layout.
-    ```mermaid
+    mermaid
     graph TD
         Internet((Internet)) --> WAF[Cloud WAF]
         WAF --> ALB[Application Load Balancer]
@@ -192,7 +192,7 @@ Repeat the same structure for every feature.
         App --> DB
         App --> NAT
         NAT --> Internet
-    ```
+    
 *   **Subnet Allocation & Security Zones:**
     *   **Public Subnet:** Hosts public load balancers (ALB), NAT Gateways, Bastion Hosts. Accessible from the internet.
     *   **Private Subnet:** Hosts App nodes and private services. No direct inbound internet access; outbound access via NAT Gateway.
@@ -278,7 +278,7 @@ Repeat the same structure for every feature.
 *   **Entity Relationship Diagram (ERD):**
     *   *Keywords:* `PK`, `FK`, `One-to-Many`, `Mermaid ERD`.
     *   *Instruction:* Customize the Mermaid ERD below to model your relational schema.
-    ```mermaid
+    mermaid
     erDiagram
         USERS ||--o{ ORDERS : places
         USERS {
@@ -294,7 +294,7 @@ Repeat the same structure for every feature.
             decimal total_amount
             timestamp created_at
         }
-    ```
+    
 *   **Indexing & Partitioning Strategy:**
     *   *Keywords:* `Composite Index`, `B-Tree Index`, `Table Partitioning`, `Execution Plan`.
     *   *Description:* Specify fields that require indexing (e.g., query constraints in `WHERE` or fields in `JOIN`/`ORDER BY` clauses).
@@ -308,7 +308,7 @@ Repeat the same structure for every feature.
 *   **API Design Standards:**
     *   *Keywords:* `RESTful API`, `GraphQL`, `gRPC`, `Naming Convention (camelCase / snake_case)`.
 *   **Standard JSON Response Structure:**
-    ```json
+    json
     {
       "success": true,
       "data": {
@@ -317,7 +317,7 @@ Repeat the same structure for every feature.
       },
       "error": null
     }
-    ```
+    
 *   **Authentication & Authorization:**
     *   *Keywords:* `JWT`, `OAuth 2.0`, `Bearer Token`, `RBAC (Role-Based Access Control)`.
     *   *Description:* Describe the authorization model (e.g., passing JWT in the HTTP header: `Authorization: Bearer <token>`).
@@ -530,13 +530,13 @@ Sources: Industry best practices and standards (SDD/IEEE 1016) recommend coverin
 
 - Request Payloads: For POST/PUT endpoints, define the JSON (or XML) schema of the request body. List all fields with types, required status, and validation rules. Example:
 
-  ```json
+  json
   {
     "username": "string (required, max 50 chars)",
     "password": "string (required)",
     "email": "string (required, format: email)"
   }
-  ```
+  
 
 - Response Schemas: Define the success response format (200/201) as a JSON schema or example. List fields and meanings. Provide examples of both success and error responses.
 - Status Codes: Enumerate HTTP status codes used (200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 404 Not Found, 500 Server Error, etc.) and conditions for each.
@@ -599,7 +599,7 @@ Sources: Industry best practices and standards (SDD/IEEE 1016) recommend coverin
 
 - Structured Pseudocode: For each module/function above, provide pseudocode that outlines the step-by-step logic. Use a consistent style (e.g., `BEGIN`/`END`, indentation, keywords like IF, FOR). Example:
 
-  ```
+  
   FUNCTION AddRole(roleName, memberId)
       IF RoleExists(roleName) THEN
           RETURN "Error: No duplication of roles allowed"
@@ -609,7 +609,7 @@ Sources: Industry best practices and standards (SDD/IEEE 1016) recommend coverin
           RETURN "Role added successfully"
       ENDIF
   END FUNCTION
-  ```
+  
 
 - Clarity: Use clear, descriptive names (avoid vague placeholders). Focus on logic flow, not syntax of a specific language. Mention condition branches and loops explicitly.
 - Comments: Optionally include brief comments for complex steps.

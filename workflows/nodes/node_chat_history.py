@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from connect_model import (
     get_model_client,
     MODEL,
-    MAX_CONTEXT_TOKENS,
+    get_max_context_tokens,
 )
 from utils.tokenizer import estimate_tokens as _estimate_tokens
 
@@ -58,7 +58,6 @@ def summarize_chat_history(history: List[ChatMessage], model: str = MODEL) -> st
     try:
         model_client = get_model_client()
 
-        # Format chat history for summarization
         formatted_history = "\n".join([
             f"{msg['role']}: {msg['message']}"
             for msg in history
@@ -76,7 +75,7 @@ def summarize_chat_history(history: List[ChatMessage], model: str = MODEL) -> st
             messages=[
                 {
                     "role": "user",
-                    "content": prompt
+                    "message": prompt
                 }
             ],
             model=model
@@ -93,35 +92,52 @@ def summarize_chat_history(history: List[ChatMessage], model: str = MODEL) -> st
         ])
 
 
-def format_chat_context(history: List[ChatMessage], max_tokens: int = MAX_CONTEXT_TOKENS) -> str:
+def _normalize_role(role: str) -> str:
+    """Map backend roles to the two roles used downstream: 'ai' or 'user'."""
+    normalized = (role or "").strip().lower()
+    return "ai" if normalized in ("ai", "assistant") else "user"
+
+
+def build_chat_messages(
+    history: List[ChatMessage],
+    max_tokens: int,
+) -> List[Dict[str, str]]:
     """
-    Format chat history into context string, summarizing if necessary
+    Turn raw chat history into a list of {"role", "message"} turns in chronological order.
+
+    The backend `/list-ai` endpoint returns messages newest-first, so we reverse it.
+    We ALWAYS take the full history first, then measure the total token count. Only if
+    it exceeds ``max_tokens`` do we replace it with a single summarized turn — we never
+    drop turns by breaking the loop.
 
     Args:
-        history: List of chat messages
-        max_tokens: Maximum tokens allowed for context
+        history: List of chat messages from the backend (newest-first)
+        max_tokens: Context-window budget (tokens) for the chat history
 
     Returns:
-        Formatted chat context
+        List of {"role": "user"|"ai", "message": str} in chronological order
     """
     if not history:
-        return ""
+        return []
 
-    # Format full history
-    formatted = "\n".join([
-        f"{msg['role']} ({msg['create_at']}): {msg['message']}"
-        for msg in history
-    ])
+    # Backend returns newest-first; reverse to chronological (oldest-first).
+    messages: List[Dict[str, str]] = [
+        {"role": _normalize_role(msg.get("role")), "message": msg.get("message", "")}
+        for msg in reversed(history)
+        if msg.get("message")
+    ]
 
-    # Check if it exceeds token limit
-    estimated_tokens = _estimate_tokens(formatted)
+    if not messages:
+        return []
 
-    if estimated_tokens > max_tokens:
-        print(f"Chat history exceeds token limit ({estimated_tokens} > {max_tokens}), summarizing...")
-        summary = summarize_chat_history(history)
-        return f"Previous conversation summary:\n{summary}"
+    total_tokens = sum(_estimate_tokens(turn["message"]) for turn in messages)
 
-    return f"Previous conversation:\n{formatted}"
+    if max_tokens > 0 and total_tokens > max_tokens:
+        print(f"Chat history exceeds token limit ({total_tokens} > {max_tokens}), summarizing...")
+        summary = summarize_chat_history(messages)
+        return [{"role": "ai", "message": f"Summary of previous conversation:\n{summary}"}]
+
+    return messages
 
 
 async def get_chat_history(state: Dict[str, Any], model: str = MODEL) -> Dict[str, Any]:
@@ -133,34 +149,30 @@ async def get_chat_history(state: Dict[str, Any], model: str = MODEL) -> Dict[st
         model: AI model being used (for token limit calculation)
 
     Returns:
-        Updated state with chat_context
+        Updated state with chat_context as a list of {"role", "message"} turns
     """
     content_id = state.get("content_id")
 
     if not content_id:
         print("No content_id provided, skipping chat history")
-        state["chat_context"] = ""
+        state["chat_context"] = []
         return state
 
     # Try to fetch chat history from backend
     try:
-        # import asyncio
-        # loop = asyncio.new_event_loop()
-        # asyncio.set_event_loop(loop)
-        # history = loop.run_until_complete(fetch_chat_history(content_id))
-        # loop.close()
         history = await fetch_chat_history(content_id)
 
-        # Reserve 50% of tokens for chat context
-        max_context_tokens = MAX_CONTEXT_TOKENS // 2
+        # Reserve 50% of the provider's context window for chat history;
+        # the rest is left for the system prompt, RAG context and the model output.
+        max_context_tokens = get_max_context_tokens() // 2
 
-        # Format and add to state
-        chat_context = format_chat_context(history, max_context_tokens)
+        chat_context = build_chat_messages(history, max_context_tokens)
         state["chat_context"] = chat_context
 
-        print(f"Chat history processed: {len(history)} messages, {_estimate_tokens(chat_context)} tokens")
+        total_tokens = sum(_estimate_tokens(turn["message"]) for turn in chat_context)
+        print(f"Chat history processed: {len(chat_context)} turns kept, {total_tokens} tokens")
     except Exception as e:
         print(f"Failed to fetch chat history: {e}. Continuing without history context.")
-        state["chat_context"] = ""
+        state["chat_context"] = []
 
     return state

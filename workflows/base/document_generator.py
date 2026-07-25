@@ -9,8 +9,8 @@ from connect_model import (
 
 from response import success_response, error_response
 
-from utils.context_builder import build_context
-from utils.response_parser import parse_ai_json_response
+from utils.prompt_builder import build_user_message
+from utils.response_parser import process_llm_response
 
 
 def generate_document(
@@ -37,49 +37,49 @@ def generate_document(
     try:
         user_message = state["user_message"]
 
-        context_str = build_context(
-            extracted_text=state.get("extracted_text", ""),
-            chat_context=state.get("chat_context", ""),
-        )
+        # RAG / uploaded-file context goes into the final user turn, not the system prompt.
+        context_str = state.get("extracted_text", "") or ""
 
-        # document_format = state.get("document_format", "")
+        # chat_context is a list of {"role": "user"|"ai", "message": str} in chronological order.
+        chat_context = state.get("chat_context") or []
+        if not isinstance(chat_context, list):
+            chat_context = []
 
         document_format = state.get("document_format")
         if document_format is None:
             document_format = default_format if default_format is not None else ""
 
-        prompt = prompt_builder(
+        system_prompt = prompt_builder(
             role=role,
             task=task,
-            user_message=user_message,
-            context=context_str,
             document_format=document_format,
             additional_rules=additional_rules,
         )
 
+        user_prompt = build_user_message(
+            context=context_str,
+            user_message=user_message,
+        )
+
+        # System prompt -> prior conversation turns -> current request.
+        messages = [{"role": "system", "message": system_prompt}]
+        messages.extend(chat_context)
+        messages.append({"role": "user", "message": user_prompt})
+
         response = model_client.chat_completion(
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt,
-                }
-            ],
+            messages=messages,
             model=cfg.get("model_name") or MODEL,
         )
 
         raw_output = response.choices[0].message.content or ""
 
-        parsed = parse_ai_json_response(
-            raw_output=raw_output,
-            default_summary=default_summary,
-        )
+        # parsed = process_llm_response(
+        #     raw_output=raw_output,
+        # )
 
-        return {
-            "response": success_response(
-                parsed["summary"],
-                parsed["content"],
-            )
-        }
+        return process_llm_response(
+            raw_llm_output=raw_output,
+        )
 
     except Exception as e:
         print(f"Error generating document: {e}")
