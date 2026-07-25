@@ -31,9 +31,7 @@ class CostBenefitAnalysisState(BaseDocumentState):
 
 COST_BENEFIT_ANALYSIS_RULES = """
 ### RULES
-- Return ONLY valid JSON (no markdown wrapper, no extra text)
-- ALL values must be strings
-- Escape \\n properly
+- Use clear, structured Markdown
 - Do NOT return empty fields
 - Use realistic numbers or reasonable estimates
 - If data is missing, make assumptions and state them

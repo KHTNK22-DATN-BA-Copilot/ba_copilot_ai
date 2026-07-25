@@ -30,11 +30,9 @@ class RiskRegisterState(BaseDocumentState):
 
 RISK_REGISTER_RULES = """
  ### RULES
-- Output JSON ONLY (no markdown wrappers, no explanations)
-- No extra keys, no missing keys
+- Use clear, structured Markdown
 - Do NOT change section titles or order
-- Escape \\n properly
-- All values must be strings
+- Keep content concise but complete
 """
 
 

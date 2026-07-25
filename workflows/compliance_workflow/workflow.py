@@ -30,10 +30,8 @@ class ComplianceState(BaseDocumentState):
 
 COMPLIANCE_RULES = """
 ### RULES
-- Return ONLY valid JSON (no markdown wrapper, no extra text)
 - Use clear, structured Markdown
 - Keep content concise but complete
-- Ensure JSON is parsable (escape \\n properly)
 """
 
 

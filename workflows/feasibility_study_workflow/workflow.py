@@ -31,11 +31,9 @@ class FeasibilityStudyState(BaseDocumentState):
 
 FEASIBILITY_STUDY_RULES = """
 ### RULES
-- Return ONLY valid JSON (no markdown wrapper, no extra text)
 - Use clear, structured Markdown
 - Keep content concise but complete
 - Include key assumptions where relevant
-- Ensure JSON is parsable (escape \\n properly)
 """
 
 

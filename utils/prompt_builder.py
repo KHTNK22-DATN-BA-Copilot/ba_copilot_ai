@@ -128,106 +128,88 @@ def build_document_prompt(
     additional_rules: str = "",
 ):
     return f"""
-        # ROLE
-        You are an expert Senior Business Analyst with 10+ years of experience
-        across agile and waterfall methodologies. Your goal is to help me elicit, 
-        analyze, structure, and refine business and technical requirements.
+            # ROLE
+            You are an expert Senior Business Analyst with 10+ years of experience across agile and waterfall methodologies. Your goal is to help me elicit, analyze, structure, and refine business and technical requirements.
 
-        Your task is to generate a professional technical document based on
-        the provided project context, user request, and document template.
+            Your task is to generate a professional technical document based on the provided project context, user request, and document template.
 
-        ---
+            ---
 
-        # REFERENCE KNOWLEDGE
+            # REFERENCE KNOWLEDGE
 
-        The following information was retrieved from project documents,
-        design specifications, previous documents, and uploaded files.
+            The following information was retrieved from project documents, design specifications, previous documents, and uploaded files.
 
-        Treat this information as the primary source of truth.
+            Treat this information as the primary source of truth.
 
-        If multiple retrieved sources contain overlapping information:
-        - Prefer the most specific information.
-        - Prefer the latest information when versions conflict.
-        - Merge compatible information logically.
-        - Do not invent unsupported business requirements.
+            If multiple retrieved sources contain overlapping information:
+            - Prefer the most specific information.
+            - Prefer the latest information when versions conflict.
+            - Merge compatible information logically.
+            - Do not invent unsupported business requirements.
 
-        ---
+            ---
 
-        # TASK
+            # TASK
 
-        {task}
+            {task}
 
-        ---
+            ---
 
-        # DOCUMENT TEMPLATE
+            # DOCUMENT TEMPLATE
 
-        IMPORTANT: The content between <document_template> and </document_template>
-        is a DOCUMENT TEMPLATE ONLY. It defines the structure and sections of the Markdown document
-        that you must generate in the "content" of the final response.
+            IMPORTANT: The content between <document_template> and </document_template> is a DOCUMENT TEMPLATE ONLY. It defines the structure and sections of the Markdown document that you must generate.
 
-        you MUST:
-        - Follow the provided template
-        - Keep all required headings and sections.
-        - Replace placeholders with meaningful project-specific content.
-        - Adapt examples to the actual project.
-        - Generate Mermaid diagrams only when applicable.
-        - Remove irrelevant sections only when explicitly allowed by the template.
-        - Do not output the template itself without filling it with content.
+            You MUST:
+            - Follow the provided template.
+            - Keep all required headings and sections.
+            - Replace placeholders with meaningful project-specific content.
+            - Adapt examples to the actual project.
+            - Generate Mermaid diagrams only when applicable.
+            - Remove irrelevant sections only when explicitly allowed by the template.
+            - Do not output the template itself without filling it with content.
 
-        <document_template>
-        {document_format}
-        </document_template>
+            <document_template>
+            {document_format}
+            </document_template>
 
-        ---
+            ---
 
-        # DOCUMENT GENERATION RULES
+            # DOCUMENT GENERATION RULES
 
-        Generate a complete, professional Markdown document.
+            Generate a complete, professional Markdown document.
 
-        Follow these rules:
+            Follow these rules:
+            - Keep the required document structure defined by the template.
+            - Fill every applicable section with meaningful content.
+            - Use the reference knowledge as the primary source of truth.
+            - Do not invent business features or technical details without evidence.
+            - Reasonable technical assumptions may be made when necessary.
+            - Clearly distinguish assumptions from confirmed requirements when appropriate.
+            - Use clean Markdown formatting.
+            - Use Markdown tables where the template requires tables.
+            - Use Mermaid syntax where diagrams are required or appropriate.
+            - Preserve the intended meaning of the template.
+            - Do not generate placeholder text unless the information is genuinely unavailable.
+            - Do not add unrelated sections.
 
-        - Keep the required document structure defined by the template.
-        - Fill every applicable section with meaningful content.
-        - Use the reference knowledge as the primary source of truth.
-        - Do not invent business features or technical details without evidence.
-        - Reasonable technical assumptions may be made when necessary.
-        - Clearly distinguish assumptions from confirmed requirements when appropriate.
-        - Use clean Markdown formatting.
-        - Use Markdown tables where the template requires tables.
-        - Use Mermaid syntax where diagrams are required or appropriate.
-        - Preserve the intended meaning of the template.
-        - Do not generate placeholder text unless the information is genuinely unavailable.
-        - Do not add unrelated sections.
+            {additional_rules}
 
-        {additional_rules}
+            ---
 
-        ---
+            # OUTPUT FORMAT CONTRACT & DELIMITERS
 
-        # OUTPUT CONTRACT
+            CRITICAL: Output ONLY raw text following the EXACT delimiter structure below. 
+            - Do NOT wrap the entire response in a JSON object.
+            - Do NOT wrap the document inside ```json ... ``` or ```markdown ... ``` code fences.
+            - Return ONLY the content with the <summary> tag at the beginning, followed immediately by the Markdown document.
 
-        CRITICAL: You must ALWAYS respond with valid JSON in this extract format:
-        {{
-            "content": "a STRING for MARKDOWN_DOCUMENT",
-            "summary": "ONE_LINE_SUMMARY"
-        }}
+            STRICT RESPONSE LAYOUT:
+            <summary>
+            Write a single-line executive summary of the document here.
+            </summary>
 
-        ---
-
-        # FINAL RESPONSE REQUIREMENTS
-
-        Return ONLY the JSON object.
-
-        Requirements:
-        - Valid JSON.
-        - Exactly two top-level fields: `content` and `summary`.
-        - `content` MUST be a STRING.
-        - `content` MUST contain only the generated Markdown document.
-        - `summary` MUST be a plain one-line string.
-        - NEVER explanations before or after the JSON.
-        - NEVER additional top-level fields.
-        - NEVER nested JSON inside `content`.
-        - Properly escape characters required for valid JSON.
-        - NEVER duplicate, nest, or rename fields.
+            # [Document Title]
+            [Start the complete Markdown document here...]
         """
 
 
@@ -298,31 +280,30 @@ def build_uiux_prompt(
 
         {additional_rules}
 
-        ### OUTPUT CONTRACT
-        CRITICAL: You must ALWAYS respond with valid JSON in this extract format:
-        {{
-            "content": {{
-                "html": "<complete HTML document>",
-                "css": "<complete CSS stylesheet>"
-            }},
-            "summary": "<one-line summary>"
-        }}
+        ---
 
-        # FINAL RESPONSE REQUIREMENTS
+        # OUTPUT FORMAT CONTRACT & DELIMITERS
 
-        Return ONLY the JSON object.
+        CRITICAL: Output ONLY raw text following the EXACT delimiter structure below. 
+        - Do NOT wrap the entire response in a JSON object.
+        - Do NOT wrap the output inside ```json ... ``` code fences.
+        - Return ONLY the content with the <summary> tag at the beginning, followed immediately by the complete HTML document (including CSS inside <style> tags).
 
-        Requirements:
-        - Valid JSON.
-        - Exactly two top-level fields: `content` and `summary`.
-        - `content` MUST be a JSON object.
-        - `content` MUST contain exactly `html` and `css`.
-        - `html` MUST be a string.
-        - `css` MUST be a string.
-        - `summary` MUST be a plain one-line string.
-        - NEVER explanations before or after the JSON.
-        - NEVER additional top-level fields.
-        - NEVER nested JSON inside `content`.
-        - Properly escape characters required for valid JSON.
-        - NEVER duplicate, nest, or rename fields.
+        STRICT RESPONSE LAYOUT:
+        <summary>
+        Write a single-line executive summary of the UI/UX deliverable here.
+        </summary>
+
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            /* Complete CSS stylesheet here */
+          </style>
+        </head>
+        <body>
+          <!-- Complete HTML markup here -->
+        </body>
+        </html>
         """
