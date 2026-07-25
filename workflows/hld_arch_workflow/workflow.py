@@ -37,6 +37,7 @@ def generate_hld_arch_diagram(state: HLDArchState, config: Optional[dict] = None
 - Subgraphs for architectural layers
 - Clear labels and directional connections
 - Consistent node naming
+- Correct mermaid graph TD syntax, do not use `-->>`, use `-.->|Text|` instead, nodeID must be unique
 - Logical grouping of related services
 - Readable and valid Mermaid structure
 """
