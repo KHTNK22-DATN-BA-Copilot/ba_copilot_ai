@@ -90,18 +90,46 @@
 #     """
 
 
+def build_user_message(
+    *,
+    context: str = "",
+    user_message: str = "",
+):
+    """Build the final user turn: retrieved reference knowledge + the user's request.
+
+    The system prompt (build_document_prompt / build_uiux_prompt) defines the role,
+    task and output contract; this function carries the concrete input the model
+    must act on, so it is sent as the last `user` message after the chat history.
+    """
+    parts = []
+
+    if context:
+        parts.append(
+            "### REFERENCE KNOWLEDGE\n"
+            "The following was retrieved from project documents, design "
+            "specifications, previous documents, and uploaded files. Treat it as "
+            "the primary source of truth.\n\n"
+            f"{context}"
+        )
+
+    parts.append(
+        "### USER REQUEST\n"
+        f"{user_message if user_message else 'No additional user request. Infer the document from the reference knowledge above.'}"
+    )
+
+    return "\n\n".join(parts)
+
+
 def build_document_prompt(
     *,
     role: str,
     task: str,
-    user_message: str,
-    context: str,
     document_format: str,
     additional_rules: str = "",
 ):
     return f"""
         # ROLE
-        You are an expert Senior Business Analyst with 10+ years of experience 
+        You are an expert Senior Business Analyst with 10+ years of experience
         across agile and waterfall methodologies. Your goal is to help me elicit, 
         analyze, structure, and refine business and technical requirements.
 
@@ -178,10 +206,10 @@ def build_document_prompt(
         # OUTPUT CONTRACT
 
         CRITICAL: You must ALWAYS respond with valid JSON in this extract format:
-        {
+        {{
             "content": "a STRING for MARKDOWN_DOCUMENT",
             "summary": "ONE_LINE_SUMMARY"
-        }
+        }}
 
         ---
 
@@ -207,8 +235,6 @@ def build_uiux_prompt(
     *,
     role: str,
     task: str,
-    user_message: str,
-    context: str,
     document_format=None,
     additional_rules: str = "",
 ):
